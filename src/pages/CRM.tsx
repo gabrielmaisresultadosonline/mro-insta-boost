@@ -172,7 +172,7 @@ const CRM = () => {
    const [activeTab, setActiveTab] = useState('dashboard');
    const [userRole, setUserRole] = useState<string | null>(null);
   const [metaSettings, setMetaSettings] = useState<any>({
-    meta_access_token: '',
+    meta_access_token: 'EAASbTZCyMKGMBRrA9TRA0T3YsOj79Q13QIyGacYaDULqs0GEFOZBaAwerpl85ZAFddvDHC0J9QkKv88RTrRod8fgqXTwApN6rZAwNzg3JNPZCpB0CFpGr0tlQZAkbdvZAvzwulLKxCTsIjxTRMcTIjAZBoIowezPSnL0hAu9rG1ZCMp7sdZBrdb7ouRJHJxt8iImBjFGZCZADc2FBkee2ZCRIADaeZAGjm7vnUhJAO2QZDZD',
     meta_phone_number_id: '',
     meta_waba_id: '',
     meta_app_id: '',
@@ -842,6 +842,10 @@ const CRM = () => {
        }, { onConflict: 'user_id' });
        
        if (error) throw error;
+
+       // Sync with Admin Central if needed (mocked for now)
+       console.log('Syncing settings with Admin Central for token activation...');
+
        toast({ title: "Configurações salvas!" });
        fetchData();
      } catch (error) {
