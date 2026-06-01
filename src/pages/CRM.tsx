@@ -1771,7 +1771,11 @@ const CRM = () => {
   };
 
   const handleSendMedia = async (file: File | Blob, type: 'audio' | 'video' | 'image' | 'document', isVoice = false, previewUrl?: string) => {
-    if (!selectedContact || isSending(selectedContact.id)) return;
+    if (!selectedContact || isSending(selectedContact.id)) {
+      console.warn('[CRM][sendMedia] abort: no contact or already sending', { hasContact: !!selectedContact, sending: selectedContact ? isSending(selectedContact.id) : false });
+      return;
+    }
+    console.log('[CRM][sendMedia] start', { type, isVoice, size: (file as any).size, mime: (file as any).type, to: selectedContact.wa_id });
 
     const isColdList = isConversationExpired(selectedContact);
 
@@ -1917,6 +1921,7 @@ const CRM = () => {
       setMediaUploadProgress(prev => ({ ...prev, [targetContactId]: 80 }));
 
       if (type === 'audio' && metaSettings.vps_transcoder_url && metaSettings.vps_status !== 'offline') {
+        console.log('[CRM][sendMedia][VPS] tentando bridge', { url: metaSettings.vps_transcoder_url, status: metaSettings.vps_status });
         let vpsResult: any = null;
         try {
           const vpsUrl = metaSettings.vps_transcoder_url.replace(/\/$/, '');
@@ -1933,10 +1938,12 @@ const CRM = () => {
           });
           
           vpsResult = await response.json().catch(() => ({}));
+          console.log('[CRM][sendMedia][VPS] resp', { status: response.status, vpsResult });
           if (!response.ok) {
             throw new Error(vpsResult.error || vpsResult.details || 'Erro no processamento do VPS');
           }
         } catch (vpsErr: any) {
+          console.error('[CRM][sendMedia][VPS] erro', vpsErr);
           toast({ 
             title: "Erro no transcoder da Meta", 
             description: "O áudio foi salvo no histórico, mas a Meta API não aceitou o envio. Erro: " + vpsErr.message,
@@ -1963,6 +1970,7 @@ const CRM = () => {
 
       setMediaUploadProgress(prev => ({ ...prev, [targetContactId]: 90 }));
 
+      console.log('[CRM][sendMedia] invocando edge sendMessage com mídia', { type, url: publicUrl, isVoice: type === 'audio' });
       const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', { 
         body: { 
           action: 'sendMessage', 
@@ -1976,9 +1984,12 @@ const CRM = () => {
           skipLocalSave: type === 'audio' ? true : undefined
         } 
       });
-      
+      console.log('[CRM][sendMedia] resp edge', { error, data });
       if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      if (!data?.success) {
+        console.error('[CRM][sendMedia] FAIL edge', data);
+        throw new Error(data?.error || 'Falha desconhecida ao enviar mídia');
+      }
 
       if (selectedContactRef.current?.id === targetContactId) {
         setChatMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
@@ -1990,6 +2001,7 @@ const CRM = () => {
       await fetchMessages(targetContactId);
       toast({ title: "Mídia enviada!" });
     } catch (err: any) {
+      console.error('[CRM][sendMedia] EXCEPTION', err);
       if (selectedContactRef.current?.id === targetContactId) {
         setChatMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       }
