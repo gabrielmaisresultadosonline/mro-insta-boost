@@ -455,6 +455,8 @@ const CRM = () => {
           addConnectionLog('error', 'Falha ao salvar conexão retornada pelo servidor', data || error);
           throw new Error(data?.error || error?.message || 'Falha ao conectar');
         }
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) localStorage.setItem(`crm_whatsapp_connected_${user.id}`, 'true');
         addConnectionLog('success', 'Conexão salva no CRM com sucesso', data);
         setWhatsAppConnectionConfirmed(true);
         setMetaSettings(prev => ({
@@ -754,6 +756,9 @@ const CRM = () => {
          navigate('/crm/login');
          return;
        }
+        if (localStorage.getItem(`crm_whatsapp_connected_${session.user.id}`) === 'true') {
+          setWhatsAppConnectionConfirmed(true);
+        }
        fetchData();
      };
      checkAuth();
