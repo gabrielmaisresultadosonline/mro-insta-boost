@@ -2696,6 +2696,42 @@ const CRM = () => {
 
   if (loading && !contacts.length) return <div className="min-h-screen flex items-center justify-center"><RefreshCcw className="animate-spin" /></div>;
 
+  // Gate: usuário precisa conectar o WhatsApp antes de acessar conversas/CRM
+  const isWhatsAppConnected = !!(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id);
+  if (!loading && !isWhatsAppConnected && activeTab !== 'settings') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#0c1317] via-[#111b21] to-[#0c1317] p-6">
+        <div className="max-w-xl w-full bg-[#202c33] rounded-2xl shadow-2xl border border-white/5 p-8 text-center">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#00a884]/10 flex items-center justify-center">
+            <MessageSquare className="w-10 h-10 text-[#00a884]" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-3">Conecte seu WhatsApp</h1>
+          <p className="text-white/60 mb-8 text-sm leading-relaxed">
+            Para começar a usar o CRM, conversas e disparos, você precisa primeiro
+            conectar uma conta oficial do WhatsApp Business através do Facebook.
+            É rápido e seguro — usamos o Embedded Signup oficial da Meta.
+          </p>
+          <button
+            onClick={startEmbeddedSignup}
+            className="w-full h-14 rounded-xl bg-[#1877F2] hover:bg-[#1465c8] text-white font-bold text-base flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#1877F2]/30 mb-3"
+          >
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            Conectar com Facebook
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className="w-full h-11 rounded-xl bg-transparent border border-white/10 hover:bg-white/5 text-white/70 text-sm font-medium transition-all"
+          >
+            Já tenho credenciais — configurar manualmente
+          </button>
+          <p className="text-[11px] text-white/30 mt-6">
+            Ao conectar, você autoriza nosso app (Tech Provider Meta) a gerenciar mensagens em nome do seu número WhatsApp Business.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="h-[100dvh] w-full flex overflow-hidden bg-[#f0f2f5] dark:bg-[#0c1317]">
