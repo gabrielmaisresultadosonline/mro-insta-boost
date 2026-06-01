@@ -1284,7 +1284,9 @@ export type Database = {
           meta_access_token: string | null
           meta_app_id: string | null
           meta_app_secret: string | null
+          meta_display_phone_number: string | null
           meta_phone_number_id: string | null
+          meta_verified_name: string | null
           meta_waba_id: string | null
           openai_api_key: string | null
           outside_hours_message: string | null
@@ -1320,7 +1322,9 @@ export type Database = {
           meta_access_token?: string | null
           meta_app_id?: string | null
           meta_app_secret?: string | null
+          meta_display_phone_number?: string | null
           meta_phone_number_id?: string | null
+          meta_verified_name?: string | null
           meta_waba_id?: string | null
           openai_api_key?: string | null
           outside_hours_message?: string | null
@@ -1356,7 +1360,9 @@ export type Database = {
           meta_access_token?: string | null
           meta_app_id?: string | null
           meta_app_secret?: string | null
+          meta_display_phone_number?: string | null
           meta_phone_number_id?: string | null
+          meta_verified_name?: string | null
           meta_waba_id?: string | null
           openai_api_key?: string | null
           outside_hours_message?: string | null
