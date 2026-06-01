@@ -341,7 +341,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       .map((m: any) => `${m.direction === 'inbound' ? 'Cliente' : 'Assistente'}: ${m.content}`)
       .join('\n');
       
-    const { data: settings } = await supabase.from('crm_settings').select('*').single();
+    const settings = await getCrmSettings(supabase, userId);
     if (settings && settings.ai_agent_enabled) {
       const OPENAI_API_KEY = settings.openai_api_key || Deno.env.get('OPENAI_API_KEY');
       if (OPENAI_API_KEY) {
@@ -396,6 +396,28 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
   status,
   headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 })
+
+async function getCrmSettings(supabase: any, userId?: string | null) {
+  if (userId) {
+    const { data, error } = await supabase
+      .from('crm_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) console.warn('[SETTINGS] user settings lookup failed', error);
+    if (data) return data;
+  }
+
+  const { data, error } = await supabase
+    .from('crm_settings')
+    .select('*')
+    .eq('id', '00000000-0000-0000-0000-000000000001')
+    .maybeSingle();
+
+  if (error) console.warn('[SETTINGS] legacy settings lookup failed', error);
+  return data;
+}
 
 const normalizePhone = (raw: string) => {
   let digits = String(raw || '').replace(/\D/g, '')
@@ -1115,10 +1137,12 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
 
     if (action === 'updateSettings') {
       const { ...newSettings } = params
-      const { error } = await supabase
+      const query = supabase
         .from('crm_settings')
-        .update(newSettings)
-        .eq('id', '00000000-0000-0000-0000-000000000001')
+        .update({ ...newSettings, updated_at: new Date().toISOString() })
+      const { error } = userId
+        ? await query.eq('user_id', userId)
+        : await query.eq('id', '00000000-0000-0000-0000-000000000001')
       
       return new Response(JSON.stringify({ success: !error, error }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -1239,11 +1263,7 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
     }
 
     // Get Meta Settings
-    const { data: settings } = await supabase
-      .from('crm_settings')
-      .select('*')
-      .eq('id', '00000000-0000-0000-0000-000000000001')
-      .single()
+      const settings = await getCrmSettings(supabase, userId)
 
     const { meta_access_token, meta_phone_number_id } = settings || {}
 
