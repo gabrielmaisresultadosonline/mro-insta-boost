@@ -2894,6 +2894,20 @@ const CRM = () => {
             </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="border-t border-white/5 p-4 bg-[#111b21]">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-white/80 hover:bg-white/5 hover:text-white transition-colors mb-2"
+              onClick={async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                setMyDataEmail(user?.email || '');
+                setMyDataNewEmail(user?.email || '');
+                setMyDataNewPassword('');
+                setMyDataConfirmPassword('');
+                setIsMyDataOpen(true);
+              }}
+            >
+              <UserCog className="mr-2 h-4 w-4" /> Meus Dados
+            </Button>
             <Button 
               variant="ghost" 
               className="w-full justify-start text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors" 
@@ -2903,6 +2917,108 @@ const CRM = () => {
             </Button>
           </SidebarFooter>
         </Sidebar>
+
+        <Dialog open={isMyDataOpen} onOpenChange={setIsMyDataOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Meus Dados</DialogTitle>
+              <DialogDescription>
+                Veja e altere o email e a senha da sua conta no CRM.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Email atual</Label>
+                <Input value={myDataEmail} disabled className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="my-data-new-email">Novo email (opcional)</Label>
+                <Input
+                  id="my-data-new-email"
+                  type="email"
+                  value={myDataNewEmail}
+                  onChange={(e) => setMyDataNewEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="my-data-new-password">Nova senha (opcional)</Label>
+                <div className="relative">
+                  <Input
+                    id="my-data-new-password"
+                    type={myDataShowPassword ? 'text' : 'password'}
+                    value={myDataNewPassword}
+                    onChange={(e) => setMyDataNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMyDataShowPassword((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {myDataShowPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="my-data-confirm-password">Confirmar nova senha</Label>
+                <Input
+                  id="my-data-confirm-password"
+                  type={myDataShowPassword ? 'text' : 'password'}
+                  value={myDataConfirmPassword}
+                  onChange={(e) => setMyDataConfirmPassword(e.target.value)}
+                  placeholder="Repita a nova senha"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsMyDataOpen(false)} disabled={myDataSaving}>
+                Cancelar
+              </Button>
+              <Button
+                disabled={myDataSaving}
+                onClick={async () => {
+                  const updates: { email?: string; password?: string } = {};
+                  const newEmail = myDataNewEmail.trim();
+                  if (newEmail && newEmail !== myDataEmail) updates.email = newEmail;
+                  if (myDataNewPassword) {
+                    if (myDataNewPassword.length < 6) {
+                      toast({ title: 'Senha muito curta', description: 'A senha precisa ter pelo menos 6 caracteres.', variant: 'destructive' });
+                      return;
+                    }
+                    if (myDataNewPassword !== myDataConfirmPassword) {
+                      toast({ title: 'Senhas não conferem', description: 'A confirmação da senha não bate.', variant: 'destructive' });
+                      return;
+                    }
+                    updates.password = myDataNewPassword;
+                  }
+                  if (!updates.email && !updates.password) {
+                    toast({ title: 'Nada para atualizar', description: 'Altere o email ou a senha para salvar.' });
+                    return;
+                  }
+                  setMyDataSaving(true);
+                  const { error } = await supabase.auth.updateUser(updates);
+                  setMyDataSaving(false);
+                  if (error) {
+                    toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+                    return;
+                  }
+                  toast({
+                    title: 'Dados atualizados',
+                    description: updates.email
+                      ? 'Confirme a alteração de email pelo link enviado para sua caixa de entrada.'
+                      : 'Suas informações foram salvas com sucesso.',
+                  });
+                  setMyDataNewPassword('');
+                  setMyDataConfirmPassword('');
+                  setIsMyDataOpen(false);
+                }}
+              >
+                {myDataSaving ? 'Salvando...' : 'Salvar alterações'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <SidebarInset className="flex flex-col flex-1 h-full overflow-hidden bg-[#f0f2f5] dark:bg-[#0c1317]">
           <header className="min-h-[64px] h-auto md:h-16 border-b border-border/50 flex flex-wrap items-center px-4 md:px-6 bg-[#f0f2f5] dark:bg-[#202c33] z-10 shrink-0 justify-between gap-2 py-2 shadow-sm">
