@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
  import { useNavigate, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,6 +161,30 @@ const createMobilePlayableAudioBlob = async (audioBlob: Blob) => {
     return null;
   } finally {
     context.close?.();
+  }
+};
+
+type ConnectionLogEntry = {
+  id: string;
+  at: string;
+  level: 'info' | 'success' | 'warn' | 'error';
+  message: string;
+  details?: string;
+};
+
+const sanitizeConnectionDetails = (details?: unknown) => {
+  if (!details) return undefined;
+  try {
+    return JSON.stringify(
+      details,
+      (key, value) => {
+        if (/code|token|secret|password/i.test(key)) return value ? '[oculto]' : value;
+        return value;
+      },
+      2
+    );
+  } catch {
+    return String(details);
   }
 };
 
