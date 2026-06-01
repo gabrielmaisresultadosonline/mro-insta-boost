@@ -1146,6 +1146,23 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
           })
         }
         const access_token = tokenJson.access_token as string
+        let resolvedPhoneNumberId = phone_number_id
+
+        // Alguns fluxos v4 retornam apenas o WABA no postMessage. Quando isso acontecer,
+        // buscamos o primeiro número conectado para liberar o CRM sem preenchimento manual.
+        if (waba_id && !resolvedPhoneNumberId) {
+          try {
+            const phonesRes = await fetch(`https://graph.facebook.com/v25.0/${waba_id}/phone_numbers?fields=id,display_phone_number,verified_name`, {
+              headers: { 'Authorization': `Bearer ${access_token}` }
+            })
+            const phonesJson = await phonesRes.json().catch(() => ({}))
+            if (phonesRes.ok && Array.isArray(phonesJson?.data) && phonesJson.data[0]?.id) {
+              resolvedPhoneNumberId = phonesJson.data[0].id
+            } else {
+              console.warn('Could not resolve phone_number_id from WABA:', phonesJson)
+            }
+          } catch (e) { console.warn('phone_numbers lookup failed', e) }
+        }
 
         // 2) Subscrever o app à WABA (necessário para receber webhooks)
         if (waba_id) {
@@ -1159,9 +1176,9 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
 
         // 3) Registrar phone number na Cloud API apenas no fluxo padrão.
         // No Coexistence (WhatsApp Business app onboarding) a Meta já registra o número.
-        if (phone_number_id && signup_event !== 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
+        if (resolvedPhoneNumberId && signup_event !== 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
           try {
-            await fetch(`https://graph.facebook.com/v25.0/${phone_number_id}/register`, {
+            await fetch(`https://graph.facebook.com/v25.0/${resolvedPhoneNumberId}/register`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ messaging_product: 'whatsapp', pin: '000000' })
@@ -1172,15 +1189,19 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
         // 4) Persistir nas configurações
         const patch: any = { meta_access_token: access_token }
         if (waba_id) patch.meta_waba_id = waba_id
-        if (phone_number_id) patch.meta_phone_number_id = phone_number_id
+        if (resolvedPhoneNumberId) patch.meta_phone_number_id = resolvedPhoneNumberId
         // business_id é informativo (não há coluna dedicada)
 
-        const { error: updErr } = await supabase
-          .from('crm_settings')
-          .update(patch)
-          .eq('id', '00000000-0000-0000-0000-000000000001')
+        const { error: updErr } = userId
+          ? await supabase
+              .from('crm_settings')
+              .upsert({ ...patch, user_id: userId, webhook_identifier: crypto.randomUUID(), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+          : await supabase
+              .from('crm_settings')
+              .update(patch)
+              .eq('id', '00000000-0000-0000-0000-000000000001')
 
-        return new Response(JSON.stringify({ success: !updErr, error: updErr, access_token_preview: access_token.slice(0, 12) + '...', waba_id, phone_number_id, business_id }), {
+        return new Response(JSON.stringify({ success: !updErr, error: updErr?.message, access_token_preview: access_token.slice(0, 12) + '...', waba_id, phone_number_id: resolvedPhoneNumberId, business_id }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       } catch (e: any) {
