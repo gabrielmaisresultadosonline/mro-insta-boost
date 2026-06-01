@@ -1168,6 +1168,29 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
        })
      }
 
+     if (action === 'repairMetaWebhook') {
+       if (!userId) {
+         return new Response(JSON.stringify({ success: false, error: 'Usuário não autenticado' }), {
+           status: 401,
+           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+         })
+       }
+
+       const settings = await getCrmSettings(supabase, userId);
+       if (!settings?.meta_waba_id || !settings?.meta_access_token) {
+         return jsonResponse({ success: false, error: 'WhatsApp conectado não encontrado para este usuário' }, 400);
+       }
+
+       const appWebhook = await ensureMetaAppWebhookConfigured();
+       const wabaSubscription = await ensureWabaSubscribed(settings.meta_waba_id, settings.meta_access_token);
+
+       return jsonResponse({
+         success: !!appWebhook.success && !!wabaSubscription.success,
+         appWebhook,
+         wabaSubscription,
+       }, (!appWebhook.success || !wabaSubscription.success) ? 500 : 200);
+     }
+
       if (!action && body.object === 'whatsapp_business_account' && !userSettings) {
         const value = body?.entry?.[0]?.changes?.[0]?.value || {};
         const webhookPhoneNumberId = value?.metadata?.phone_number_id;
