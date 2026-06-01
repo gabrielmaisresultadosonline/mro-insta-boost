@@ -256,16 +256,26 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 }
 
  async function handleProcessWebhook(supabase: any, entry: any, skipSave = false, userId?: string) {
-  if (!entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
-    return jsonResponse({ success: true });
-  }
+  const value = entry?.[0]?.changes?.[0]?.value || {};
 
   if (!userId) {
-    console.warn('[WEBHOOK] Message received but no CRM user was resolved for this webhook payload');
+    console.warn('[WEBHOOK] Event received but no CRM user was resolved for this webhook payload', { hasMessages: !!value?.messages?.length, hasStatuses: !!value?.statuses?.length });
     return jsonResponse({ success: true, ignored: 'missing_user' });
   }
 
-  const message = entry[0].changes[0].value.messages[0];
+  if (Array.isArray(value.statuses) && value.statuses.length > 0) {
+    const results = [];
+    for (const statusEvent of value.statuses) {
+      results.push(await syncOutboundStatusFromMeta(supabase, userId, statusEvent));
+    }
+    return jsonResponse({ success: true, type: 'statuses', results });
+  }
+
+  if (!value?.messages?.[0]) {
+    return jsonResponse({ success: true, ignored: 'empty_event' });
+  }
+
+  const message = value.messages[0];
   const waId = message.from;
   let text = '';
   let buttonId = '';
@@ -469,6 +479,62 @@ const normalizePhone = (raw: string) => {
   return digits
 }
 
+async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusEvent: any) {
+  const metaMessageId = statusEvent?.id;
+  if (!metaMessageId) return { updated: false, reason: 'missing_meta_message_id' };
+
+  const metaStatus = String(statusEvent?.status || '').toLowerCase();
+  const nextStatus = ['sent', 'delivered', 'read', 'failed'].includes(metaStatus) ? metaStatus : 'sent';
+  const firstError = Array.isArray(statusEvent?.errors) ? statusEvent.errors[0] : null;
+
+  const { data: existing, error: lookupError } = await supabase
+    .from('crm_messages')
+    .select('id, user_id, metadata')
+    .eq('meta_message_id', metaMessageId)
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error('[META-STATUS] Falha ao buscar mensagem para status', { userId, metaMessageId, error: lookupError.message });
+    return { updated: false, reason: lookupError.message };
+  }
+
+  if (!existing?.id) {
+    console.warn('[META-STATUS] Status recebido, mas mensagem local não encontrada', { userId, metaMessageId, metaStatus, statusEvent });
+    return { updated: false, reason: 'local_message_not_found' };
+  }
+
+  const updateData: any = {
+    status: nextStatus,
+    user_id: userId,
+    metadata: {
+      ...(existing.metadata || {}),
+      last_meta_status: statusEvent,
+      last_meta_status_at: new Date().toISOString(),
+    },
+  };
+
+  if (firstError) {
+    updateData.error_code = String(firstError.code || firstError.error_code || 'meta_failed');
+    updateData.error_message = firstError.message || firstError.title || firstError.error_data?.details || 'Meta informou falha na entrega';
+  }
+
+  const { error: updateError } = await supabase
+    .from('crm_messages')
+    .update(updateData)
+    .eq('id', existing.id);
+
+  if (updateError) {
+    console.error('[META-STATUS] Falha ao atualizar status local', { userId, metaMessageId, localId: existing.id, error: updateError.message });
+    return { updated: false, reason: updateError.message };
+  }
+
+  console.log('[META-STATUS] Status atualizado no CRM', { userId, metaMessageId, localId: existing.id, status: nextStatus, error: updateData.error_message || null });
+  return { updated: true, status: nextStatus };
+}
+
 const guessMedia = (params: any) => {
   if (params.audioUrl) return { type: 'audio', url: params.audioUrl, mime: 'audio/ogg; codecs=opus', fileName: 'audio.ogg' }
   if (params.imageUrl) return { type: 'image', url: params.imageUrl, mime: 'image/jpeg', fileName: 'image.jpg' }
@@ -572,6 +638,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
           if (contact && !params.skipLocalSave) {
             await supabase.from('crm_messages').insert({
               contact_id: contact.id,
+              user_id: contact.user_id || null,
               direction: 'outbound',
               message_type: 'audio',
               content: '[Mensagem de Áudio]',
@@ -632,6 +699,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   if (contact && !params.skipLocalSave) {
     await supabase.from('crm_messages').insert({
       contact_id: contact.id,
+      user_id: contact.user_id || null,
       direction: 'outbound',
       message_type: params.interactive ? 'interactive' : (media?.type || 'text'),
       content: media ? (params.text || `[${media.type}]`) : (params.interactive?.body?.text || params.text),
@@ -900,6 +968,7 @@ async function internalSendTemplate(
 
     await supabase.from('crm_messages').insert({
       contact_id: contact.id,
+      user_id: contact.user_id || null,
       direction: 'outbound',
       message_type: isCarousel ? 'carousel' : 'template',
       content: `[Template: ${templateName}]`,
