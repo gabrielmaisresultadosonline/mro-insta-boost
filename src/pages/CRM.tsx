@@ -385,6 +385,7 @@ const CRM = () => {
             waba_id: sessionInfo.waba_id,
             phone_number_id: sessionInfo.phone_number_id,
             business_id: sessionInfo.business_id,
+            signup_event: sessionInfo.event,
           },
         });
         if (error || !data?.success) {
