@@ -1271,11 +1271,14 @@ const CRM = () => {
     });
 
     try {
+      console.log('[CRM][sendText] →', { to: targetWaId, len: textToSend.length, preview: textToSend.slice(0, 80) });
       const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
         body: { action: 'sendMessage', to: targetWaId, text: textToSend }
       });
+      console.log('[CRM][sendText] ← resp', { error, data });
       if (error) throw error;
-      if (!data.success) {
+      if (!data?.success) {
+        console.error('[CRM][sendText] FAIL', data);
         throw new Error(data.error || "Erro ao enviar mensagem pela Meta");
       }
       // Remove optimistic and fetch real
