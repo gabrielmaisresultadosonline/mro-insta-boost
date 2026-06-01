@@ -228,6 +228,7 @@ const CRM = () => {
     vps_transcoder_url: 'https://vps.zapmro.com.br',
     vps_status: 'unknown' as 'unknown' | 'online' | 'offline'
   });
+  const [whatsAppConnectionConfirmed, setWhatsAppConnectionConfirmed] = useState(false);
 
   const [metrics, setMetrics] = useState<any>({
     sent_count: 0,
@@ -455,6 +456,14 @@ const CRM = () => {
           throw new Error(data?.error || error?.message || 'Falha ao conectar');
         }
         addConnectionLog('success', 'Conexão salva no CRM com sucesso', data);
+        setWhatsAppConnectionConfirmed(true);
+        setMetaSettings(prev => ({
+          ...prev,
+          meta_waba_id: data.waba_id || prev.meta_waba_id,
+          meta_phone_number_id: data.phone_number_id || prev.meta_phone_number_id,
+          meta_display_phone_number: data.display_phone_number || prev.meta_display_phone_number,
+          meta_verified_name: data.verified_name || prev.meta_verified_name,
+        }));
         toast({ title: 'WhatsApp conectado!', description: `WABA: ${data.waba_id || '—'} · Phone: ${data.phone_number_id || '—'}` });
         await fetchData();
       } catch (e: any) {
