@@ -1132,6 +1132,14 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
         const { code, waba_id, phone_number_id, business_id, signup_event } = params || {}
         const APP_ID = Deno.env.get('FACEBOOK_APP_ID')
         const APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET')
+        console.log('[Embedded Signup] exchange started', {
+          has_code: !!code,
+          waba_id: waba_id || null,
+          phone_number_id: phone_number_id || null,
+          business_id: business_id || null,
+          signup_event: signup_event || null,
+          user_id: userId || null,
+        })
         if (!code) throw new Error('Missing code')
         if (!APP_ID || !APP_SECRET) throw new Error('FACEBOOK_APP_ID / FACEBOOK_APP_SECRET not configured')
 
@@ -1139,6 +1147,7 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
         const tokenUrl = `https://graph.facebook.com/v25.0/oauth/access_token?client_id=${APP_ID}&client_secret=${APP_SECRET}&code=${encodeURIComponent(code)}`
         const tokenRes = await fetch(tokenUrl)
         const tokenJson = await tokenRes.json()
+        console.log('[Embedded Signup] token exchange response', { ok: tokenRes.ok, status: tokenRes.status, has_access_token: !!tokenJson?.access_token, error: tokenJson?.error?.message || null })
         if (!tokenRes.ok || !tokenJson.access_token) {
           console.error('Token exchange failed:', tokenJson)
           return new Response(JSON.stringify({ success: false, error: tokenJson?.error?.message || 'Token exchange failed', details: tokenJson }), {
@@ -1156,6 +1165,7 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
               headers: { 'Authorization': `Bearer ${access_token}` }
             })
             const phonesJson = await phonesRes.json().catch(() => ({}))
+            console.log('[Embedded Signup] phone lookup response', { ok: phonesRes.ok, status: phonesRes.status, count: Array.isArray(phonesJson?.data) ? phonesJson.data.length : 0, error: phonesJson?.error?.message || null })
             if (phonesRes.ok && Array.isArray(phonesJson?.data) && phonesJson.data[0]?.id) {
               resolvedPhoneNumberId = phonesJson.data[0].id
             } else {
@@ -1167,10 +1177,12 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
         // 2) Subscrever o app à WABA (necessário para receber webhooks)
         if (waba_id) {
           try {
-            await fetch(`https://graph.facebook.com/v25.0/${waba_id}/subscribed_apps`, {
+            const subscribeRes = await fetch(`https://graph.facebook.com/v25.0/${waba_id}/subscribed_apps`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${access_token}` }
             })
+            const subscribeJson = await subscribeRes.json().catch(() => ({}))
+            console.log('[Embedded Signup] subscribed_apps response', { ok: subscribeRes.ok, status: subscribeRes.status, success: subscribeJson?.success || null, error: subscribeJson?.error?.message || null })
           } catch (e) { console.warn('subscribed_apps failed', e) }
         }
 
@@ -1178,11 +1190,13 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
         // No Coexistence (WhatsApp Business app onboarding) a Meta já registra o número.
         if (resolvedPhoneNumberId && signup_event !== 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
           try {
-            await fetch(`https://graph.facebook.com/v25.0/${resolvedPhoneNumberId}/register`, {
+            const registerRes = await fetch(`https://graph.facebook.com/v25.0/${resolvedPhoneNumberId}/register`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ messaging_product: 'whatsapp', pin: '000000' })
             })
+            const registerJson = await registerRes.json().catch(() => ({}))
+            console.log('[Embedded Signup] phone register response', { ok: registerRes.ok, status: registerRes.status, success: registerJson?.success || null, error: registerJson?.error?.message || null })
           } catch (e) { console.warn('register phone failed', e) }
         }
 
@@ -1203,12 +1217,14 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
             .from('crm_settings')
             .upsert({ ...patch, user_id: userId, webhook_identifier: existingSettings?.webhook_identifier || crypto.randomUUID(), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
           updErr = result.error
+          console.log('[Embedded Signup] settings upsert result', { ok: !updErr, error: updErr?.message || null, user_id: userId })
         } else {
           const result = await supabase
             .from('crm_settings')
             .update(patch)
             .eq('id', '00000000-0000-0000-0000-000000000001')
           updErr = result.error
+          console.log('[Embedded Signup] legacy settings update result', { ok: !updErr, error: updErr?.message || null })
         }
 
         return new Response(JSON.stringify({ success: !updErr, error: updErr?.message, access_token_preview: access_token.slice(0, 12) + '...', waba_id, phone_number_id: resolvedPhoneNumberId, business_id }), {
