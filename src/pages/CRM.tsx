@@ -345,7 +345,7 @@ const CRM = () => {
         if (data?.type !== 'WA_EMBEDDED_SIGNUP') return;
         console.log('[Embedded Signup] event:', data);
         if (['FINISH', 'FINISH_ONLY_WABA', 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING', 'FINISH_GRANT_ONLY_API_ACCESS'].includes(data.event)) {
-          (window as any).__waEmbeddedSignupData = data.data;
+          (window as any).__waEmbeddedSignupData = { ...(data.data || {}), event: data.event };
         } else if (data.event === 'CANCEL') {
           toast({ title: 'Conexão cancelada', description: `Etapa: ${data.data?.current_step || 'N/A'}`, variant: 'destructive' });
         } else if (data.event === 'ERROR') {
