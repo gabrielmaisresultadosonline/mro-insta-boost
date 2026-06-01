@@ -397,6 +397,28 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
   headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 })
 
+async function getCrmSettings(supabase: any, userId?: string | null) {
+  if (userId) {
+    const { data, error } = await supabase
+      .from('crm_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) console.warn('[SETTINGS] user settings lookup failed', error);
+    if (data) return data;
+  }
+
+  const { data, error } = await supabase
+    .from('crm_settings')
+    .select('*')
+    .eq('id', '00000000-0000-0000-0000-000000000001')
+    .maybeSingle();
+
+  if (error) console.warn('[SETTINGS] legacy settings lookup failed', error);
+  return data;
+}
+
 const normalizePhone = (raw: string) => {
   let digits = String(raw || '').replace(/\D/g, '')
   if (digits.length === 10 || digits.length === 11) digits = `55${digits}`
