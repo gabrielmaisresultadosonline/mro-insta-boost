@@ -359,14 +359,25 @@ const CRM = () => {
   const startEmbeddedSignup = () => {
     const FB = (window as any).FB;
     if (!FB) {
-      toast({ title: 'SDK do Facebook ainda carregando…', description: 'Aguarde alguns segundos e tente novamente.', variant: 'destructive' });
+      toast({ title: 'SDK do Facebook ainda carregando…', description: 'Aguarde, tentaremos novamente em 2s.', variant: 'destructive' });
+      // Retry once after SDK has had a chance to load
+      setTimeout(() => {
+        if ((window as any).FB) startEmbeddedSignup();
+        else {
+          // Fallback: open the Embedded Signup URL directly in a new tab
+          const url = `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${META_APP_ID}&config_id=${META_CONFIG_ID}`;
+          window.open(url, '_blank', 'width=700,height=800');
+        }
+      }, 2000);
       return;
     }
     (window as any).__waEmbeddedSignupData = null;
-    FB.login(
+    try {
+      FB.login(
       async (response: any) => {
         if (!response?.authResponse?.code) {
-          toast({ title: 'Login cancelado', variant: 'destructive' });
+          console.warn('[Embedded Signup] no auth code in response', response);
+          toast({ title: 'Login cancelado ou bloqueado', description: 'Verifique se o popup foi bloqueado pelo navegador.', variant: 'destructive' });
           return;
         }
         const code = response.authResponse.code;
@@ -397,7 +408,13 @@ const CRM = () => {
         override_default_response_type: true,
         extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
       }
-    );
+      );
+    } catch (err: any) {
+      console.error('[Embedded Signup] FB.login threw', err);
+      toast({ title: 'Erro ao abrir o Facebook', description: err?.message || 'Tente novamente fora do preview.', variant: 'destructive' });
+      const url = `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${META_APP_ID}&config_id=${META_CONFIG_ID}`;
+      window.open(url, '_blank', 'width=700,height=800');
+    }
   };
 
   const computeConversationStats = async () => {
