@@ -1687,40 +1687,30 @@ const CRM = () => {
 
   const startRecording = async () => {
     try {
-      // Audio Recording logic
-      const getSupportedMimeType = () => {
-        const types = [
-          'audio/ogg; codecs=opus',
-          'audio/webm; codecs=opus',
-          'audio/webm',
-          'audio/aac',
-          'audio/mp4'
-        ];
-        return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
-      };
+      // Grava direto em OGG/Opus (formato aceito pelo WhatsApp Cloud API como PTT).
+      // O MediaRecorder do Chrome só gera WebM/Opus, que a Meta rejeita com "Media upload error".
+      const { default: Recorder } = await import('opus-recorder');
+      const recorder: any = new Recorder({
+        encoderPath: '/opus/encoderWorker.min.js',
+        encoderApplication: 2048, // VOIP
+        encoderSampleRate: 16000,
+        numberOfChannels: 1,
+        streamPages: false,
+        encoderBitRate: 24000,
+      });
 
-      const mimeType = getSupportedMimeType();
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      const chunks: Blob[] = [];
-
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = async () => {
-        const recordedType = recorder.mimeType || 'audio/ogg';
-        const audioBlob = new Blob(chunks, { type: recordedType });
-        console.log(`Audio recording stopped. Size: ${audioBlob.size} bytes, Type: ${recordedType}`);
-        
+      recorder.ondataavailable = (typedArray: Uint8Array) => {
+        const buf = typedArray.buffer.slice(typedArray.byteOffset, typedArray.byteOffset + typedArray.byteLength) as ArrayBuffer;
+        const audioBlob = new Blob([buf], { type: 'audio/ogg; codecs=opus' });
+        console.log(`Audio recording stopped. Size: ${audioBlob.size} bytes, Type: audio/ogg; codecs=opus`);
         const audioUrl = URL.createObjectURL(audioBlob);
         setRecordedAudioBlob(audioBlob);
         setRecordedAudioUrl(audioUrl);
         setIsPreviewingAudio(true);
-        
-        // Finalize stream
-        stream.getTracks().forEach(track => track.stop());
       };
 
-      recorder.start();
-      setMediaRecorder(recorder);
+      await recorder.start();
+      setMediaRecorder(recorder as any);
       setIsRecording(true);
       setRecordingDuration(0);
       recordingTimerRef.current = setInterval(() => {
