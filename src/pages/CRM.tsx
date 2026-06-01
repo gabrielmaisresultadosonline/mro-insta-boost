@@ -6099,6 +6099,79 @@ const CRM = () => {
                     </Card>
                   </div>
 
+                  <Card className="shadow-sm border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-card">
+                    <CardHeader className="bg-muted/30 border-b">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10 text-primary"><ShieldCheck className="w-5 h-5" /></div>
+                          <div>
+                            <CardTitle className="text-lg">Log de Conexões</CardTitle>
+                            <CardDescription className="text-[11px]">Acompanhe cada etapa do Embedded Signup/QR Code da Meta.</CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-9 rounded-xl text-xs"
+                            onClick={() => {
+                              navigator.clipboard.writeText(connectionLogs.map(log => `[${log.at}] ${log.level.toUpperCase()} - ${log.message}${log.details ? `\n${log.details}` : ''}`).join('\n\n'));
+                              toast({ title: 'Logs copiados!' });
+                            }}
+                            disabled={connectionLogs.length === 0}
+                          >
+                            <Copy className="w-3 h-3 mr-2" /> Copiar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 rounded-xl text-xs"
+                            onClick={() => {
+                              setConnectionLogs([]);
+                              localStorage.removeItem('crm_connection_logs');
+                              toast({ title: 'Logs limpos' });
+                            }}
+                            disabled={connectionLogs.length === 0}
+                          >
+                            Limpar
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 md:p-6">
+                      <div className="rounded-xl border bg-muted/20 overflow-hidden">
+                        {connectionLogs.length === 0 ? (
+                          <div className="p-5 text-sm text-muted-foreground flex items-center gap-2">
+                            <Clock className="w-4 h-4" /> Nenhum log ainda. Clique em “Conectar com Facebook” para registrar as etapas.
+                          </div>
+                        ) : (
+                          <div className="max-h-80 overflow-auto divide-y divide-border/70">
+                            {connectionLogs.map(log => (
+                              <div key={log.id} className="p-3 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  {log.level === 'success' ? <CheckCircle2 className="w-4 h-4 text-primary mt-0.5" /> : log.level === 'error' ? <XCircle className="w-4 h-4 text-destructive mt-0.5" /> : log.level === 'warn' ? <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" /> : <Clock className="w-4 h-4 text-muted-foreground mt-0.5" />}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                      <p className="text-sm font-semibold break-words">{log.message}</p>
+                                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{log.at}</span>
+                                    </div>
+                                    {log.details && (
+                                      <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-background/70 border p-2 text-[10px] text-muted-foreground whitespace-pre-wrap break-words">
+                                        {log.details}
+                                      </pre>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <div className="flex justify-end pt-4">
                     <Button onClick={handleSaveSettings} disabled={saving} size="lg" className="px-10 h-14 rounded-2xl bg-primary text-white font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform">
                       {saving ? <RefreshCcw className="mr-3 h-5 w-5 animate-spin" /> : <Save className="mr-3 h-5 w-5" />}
