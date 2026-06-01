@@ -4968,6 +4968,7 @@ export type Database = {
       }
     }
     Functions: {
+      crm_is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       get_whatsapp_public_config: { Args: never; Returns: Json }
       has_role: {
         Args: {
