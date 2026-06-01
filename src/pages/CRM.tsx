@@ -538,7 +538,7 @@ const CRM = () => {
 
       const { data: monthMsgs } = await supabase
         .from('crm_messages')
-        .select('contact_id, direction, created_at')
+        .select('contact_id, direction, created_at, metadata')
         .gte('created_at', startOfMonth)
         .order('created_at', { ascending: true })
         .limit(2000);
@@ -563,6 +563,10 @@ const CRM = () => {
           if (m.direction === 'inbound') {
             lastInbound = t;
           } else if (m.direction === 'outbound') {
+            // Mensagens enviadas pelo app do celular (echoes) NÃO são cobradas
+            // pela Meta — não contam como conversa paga.
+            const src = (m as any)?.metadata?.source;
+            if (src === 'echo_mobile_app' || src === 'meta_webhook_echo') continue;
             // Regra oficial do WhatsApp: A janela de 24h só reseta quando o cliente responde.
             // O envio de mensagens outbound não estende a janela de atendimento livre.
             const inFreeWindow = t - lastInbound < DAY;
@@ -628,6 +632,8 @@ const CRM = () => {
               lastInbound = mt;
               if (mDate === dateStr) contactActiveForDay = true;
             } else if (m.direction === 'outbound') {
+              const src = (m as any)?.metadata?.source;
+              if (src === 'echo_mobile_app' || src === 'meta_webhook_echo') return;
               const inFreeWindow = mt - lastInbound < DAY;
               const inPaidWindow = mt - lastPaidStart < DAY;
               if (!inFreeWindow && !inPaidWindow) {
@@ -669,7 +675,7 @@ const CRM = () => {
       if (type === 'paid' || type === 'weekly_paid') {
         const { data: msgs } = await supabase
           .from('crm_messages')
-          .select('contact_id, direction, created_at')
+          .select('contact_id, direction, created_at, metadata')
           .gte('created_at', startTime)
           .order('created_at', { ascending: true });
 
@@ -688,6 +694,8 @@ const CRM = () => {
             if (m.direction === 'inbound') {
               lastInbound = t;
             } else if (m.direction === 'outbound') {
+              const src = (m as any)?.metadata?.source;
+              if (src === 'echo_mobile_app' || src === 'meta_webhook_echo') continue;
               const inFreeWindow = t - lastInbound < DAY;
               const inPaidWindow = t - lastPaidStart < DAY;
               if (!inFreeWindow && !inPaidWindow) {
