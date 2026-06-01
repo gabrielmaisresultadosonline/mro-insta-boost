@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
  import { useNavigate, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -164,6 +164,30 @@ const createMobilePlayableAudioBlob = async (audioBlob: Blob) => {
   }
 };
 
+type ConnectionLogEntry = {
+  id: string;
+  at: string;
+  level: 'info' | 'success' | 'warn' | 'error';
+  message: string;
+  details?: string;
+};
+
+const sanitizeConnectionDetails = (details?: unknown) => {
+  if (!details) return undefined;
+  try {
+    return JSON.stringify(
+      details,
+      (key, value) => {
+        if (/code|token|secret|password/i.test(key)) return value ? '[oculto]' : value;
+        return value;
+      },
+      2
+    );
+  } catch {
+    return String(details);
+  }
+};
+
 const CRM = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -307,6 +331,32 @@ const CRM = () => {
   const [metricsChartData, setMetricsChartData] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [activeFlowsView, setActiveFlowsView] = useState(false);
+  const [connectionLogs, setConnectionLogs] = useState<ConnectionLogEntry[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      return JSON.parse(localStorage.getItem('crm_connection_logs') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const addConnectionLog = useCallback((level: ConnectionLogEntry['level'], message: string, details?: unknown) => {
+    const entry: ConnectionLogEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      at: new Date().toLocaleString('pt-BR'),
+      level,
+      message,
+      details: sanitizeConnectionDetails(details),
+    };
+    setConnectionLogs(prev => {
+      const next = [entry, ...prev].slice(0, 25);
+      localStorage.setItem('crm_connection_logs', JSON.stringify(next));
+      return next;
+    });
+
+    const logger = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
+    logger('[WhatsApp Connection]', message, details || '');
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -327,6 +377,7 @@ const CRM = () => {
         xfbml: true,
         version: 'v25.0',
       });
+      addConnectionLog('success', 'SDK do Facebook carregado', { app_id: META_APP_ID, config_id: META_CONFIG_ID, version: 'v25.0' });
     };
     const id = 'facebook-jssdk';
     if (document.getElementById(id)) return;
@@ -344,6 +395,7 @@ const CRM = () => {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data?.type !== 'WA_EMBEDDED_SIGNUP') return;
         console.log('[Embedded Signup] event:', data);
+        addConnectionLog(data.event === 'ERROR' ? 'error' : data.event === 'CANCEL' ? 'warn' : 'info', `Evento Meta recebido: ${data.event}`, data.data);
         if (['FINISH', 'FINISH_ONLY_WABA', 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING', 'FINISH_GRANT_ONLY_API_ACCESS'].includes(data.event)) {
           (window as any).__waEmbeddedSignupData = { ...(data.data || {}), event: data.event };
         } else if (data.event === 'CANCEL') {
@@ -355,7 +407,7 @@ const CRM = () => {
     };
     window.addEventListener('message', handleMsg);
     return () => window.removeEventListener('message', handleMsg);
-  }, []);
+  }, [addConnectionLog]);
 
   const startEmbeddedSignup = () => {
     const FB = (window as any).FB;
@@ -369,6 +421,7 @@ const CRM = () => {
     }
     (window as any).__waEmbeddedSignupData = null;
     const handleSignupResponse = async (response: any) => {
+      addConnectionLog(response?.authResponse?.code ? 'success' : 'warn', 'Resposta final do popup Meta recebida', response);
       if (!response?.authResponse?.code) {
         console.warn('[Embedded Signup] no auth code in response', response);
         toast({ title: 'Login cancelado ou bloqueado', description: 'Verifique se o popup foi bloqueado pelo navegador.', variant: 'destructive' });
@@ -376,6 +429,13 @@ const CRM = () => {
       }
       const code = response.authResponse.code;
       const sessionInfo = (window as any).__waEmbeddedSignupData || {};
+      addConnectionLog('info', 'Enviando código para salvar a conexão no CRM', {
+        signup_event: sessionInfo.event,
+        waba_id: sessionInfo.waba_id,
+        phone_number_id: sessionInfo.phone_number_id,
+        business_id: sessionInfo.business_id,
+        has_code: true,
+      });
       toast({ title: 'Conectando à Meta…', description: 'Trocando código por token e salvando credenciais.' });
       try {
         const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
@@ -389,15 +449,24 @@ const CRM = () => {
           },
         });
         if (error || !data?.success) {
+          addConnectionLog('error', 'Falha ao salvar conexão retornada pelo servidor', data || error);
           throw new Error(data?.error || error?.message || 'Falha ao conectar');
         }
+        addConnectionLog('success', 'Conexão salva no CRM com sucesso', data);
         toast({ title: 'WhatsApp conectado!', description: `WABA: ${data.waba_id || '—'} · Phone: ${data.phone_number_id || '—'}` });
         await fetchData();
       } catch (e: any) {
+        addConnectionLog('error', 'Erro ao finalizar conexão no CRM', { message: e?.message || String(e) });
         toast({ title: 'Erro ao conectar', description: e?.message || String(e), variant: 'destructive' });
       }
     };
     try {
+      addConnectionLog('info', 'Abrindo popup de conexão Meta', {
+        app_id: META_APP_ID,
+        config_id: META_CONFIG_ID,
+        domain: window.location.hostname,
+        flow: 'whatsapp_business_app_onboarding',
+      });
       FB.login(
       (response: any) => {
         void handleSignupResponse(response);
@@ -408,15 +477,14 @@ const CRM = () => {
         override_default_response_type: true,
         extras: {
           setup: {},
-          feature: 'whatsapp_embedded_signup',
           featureType: 'whatsapp_business_app_onboarding',
-          feature_type: 'whatsapp_business_app_onboarding',
           sessionInfoVersion: '3',
         },
       }
       );
     } catch (err: any) {
       console.error('[Embedded Signup] FB.login threw', err);
+      addConnectionLog('error', 'Erro ao abrir popup do Facebook', { message: err?.message || String(err) });
       toast({ title: 'Erro ao abrir o Facebook', description: err?.message || 'Recarregue a página e tente novamente.', variant: 'destructive' });
     }
   };
@@ -6028,6 +6096,79 @@ const CRM = () => {
                       </CardContent>
                     </Card>
                   </div>
+
+                  <Card className="shadow-sm border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-card">
+                    <CardHeader className="bg-muted/30 border-b">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10 text-primary"><ShieldCheck className="w-5 h-5" /></div>
+                          <div>
+                            <CardTitle className="text-lg">Log de Conexões</CardTitle>
+                            <CardDescription className="text-[11px]">Acompanhe cada etapa do Embedded Signup/QR Code da Meta.</CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-9 rounded-xl text-xs"
+                            onClick={() => {
+                              navigator.clipboard.writeText(connectionLogs.map(log => `[${log.at}] ${log.level.toUpperCase()} - ${log.message}${log.details ? `\n${log.details}` : ''}`).join('\n\n'));
+                              toast({ title: 'Logs copiados!' });
+                            }}
+                            disabled={connectionLogs.length === 0}
+                          >
+                            <Copy className="w-3 h-3 mr-2" /> Copiar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 rounded-xl text-xs"
+                            onClick={() => {
+                              setConnectionLogs([]);
+                              localStorage.removeItem('crm_connection_logs');
+                              toast({ title: 'Logs limpos' });
+                            }}
+                            disabled={connectionLogs.length === 0}
+                          >
+                            Limpar
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 md:p-6">
+                      <div className="rounded-xl border bg-muted/20 overflow-hidden">
+                        {connectionLogs.length === 0 ? (
+                          <div className="p-5 text-sm text-muted-foreground flex items-center gap-2">
+                            <Clock className="w-4 h-4" /> Nenhum log ainda. Clique em “Conectar com Facebook” para registrar as etapas.
+                          </div>
+                        ) : (
+                          <div className="max-h-80 overflow-auto divide-y divide-border/70">
+                            {connectionLogs.map(log => (
+                              <div key={log.id} className="p-3 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  {log.level === 'success' ? <CheckCircle2 className="w-4 h-4 text-primary mt-0.5" /> : log.level === 'error' ? <XCircle className="w-4 h-4 text-destructive mt-0.5" /> : log.level === 'warn' ? <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" /> : <Clock className="w-4 h-4 text-muted-foreground mt-0.5" />}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                      <p className="text-sm font-semibold break-words">{log.message}</p>
+                                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{log.at}</span>
+                                    </div>
+                                    {log.details && (
+                                      <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-background/70 border p-2 text-[10px] text-muted-foreground whitespace-pre-wrap break-words">
+                                        {log.details}
+                                      </pre>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   <div className="flex justify-end pt-4">
                     <Button onClick={handleSaveSettings} disabled={saving} size="lg" className="px-10 h-14 rounded-2xl bg-primary text-white font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform">
