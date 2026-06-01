@@ -643,7 +643,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
               message_type: 'audio',
               content: '[Mensagem de Áudio]',
               media_url: media.url,
-              status: 'sent',
+              status: 'accepted',
               meta_message_id: msgId,
               metadata: { source: 'vps_flow', is_voice: true }
             });
@@ -704,7 +704,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       message_type: params.interactive ? 'interactive' : (media?.type || 'text'),
       content: media ? (params.text || `[${media.type}]`) : (params.interactive?.body?.text || params.text),
       media_url: media?.url || null,
-      status: 'sent',
+      status: 'accepted',
       meta_message_id: result?.messages?.[0]?.id || null,
       metadata: { 
         ...(media?.type === 'audio' ? { is_voice: !!params.isVoice } : {}),
@@ -972,7 +972,7 @@ async function internalSendTemplate(
       direction: 'outbound',
       message_type: isCarousel ? 'carousel' : 'template',
       content: `[Template: ${templateName}]`,
-      status: 'sent',
+      status: 'accepted',
       meta_message_id: result?.messages?.[0]?.id || null,
       metadata: { 
         template_name: templateName,
