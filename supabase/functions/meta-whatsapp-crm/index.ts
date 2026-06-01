@@ -1094,6 +1094,12 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
      const hubMode = url.searchParams.get('hub.mode');
      const hubChallenge = url.searchParams.get('hub.challenge');
      const hubVerifyToken = url.searchParams.get('hub.verify_token');
+
+      if (hubMode === 'subscribe' && hubVerifyToken && !webhookIdentifier) {
+        if (hubVerifyToken === getGlobalWebhookVerifyToken()) {
+          return new Response(hubChallenge, { status: 200 });
+        }
+      }
  
      if (hubMode === 'subscribe' && hubVerifyToken && webhookIdentifier) {
        const { data: settings } = await supabase
