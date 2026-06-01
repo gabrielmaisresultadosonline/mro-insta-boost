@@ -1380,15 +1380,9 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
         }
 
         // 2) Subscrever o app à WABA (necessário para receber webhooks)
+        await ensureMetaAppWebhookConfigured()
         if (waba_id) {
-          try {
-            const subscribeRes = await fetch(`https://graph.facebook.com/v25.0/${waba_id}/subscribed_apps`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${access_token}` }
-            })
-            const subscribeJson = await subscribeRes.json().catch(() => ({}))
-            console.log('[Embedded Signup] subscribed_apps response', { ok: subscribeRes.ok, status: subscribeRes.status, success: subscribeJson?.success || null, error: subscribeJson?.error?.message || null })
-          } catch (e) { console.warn('subscribed_apps failed', e) }
+          await ensureWabaSubscribed(waba_id, access_token)
         }
 
         // 3) Registrar phone number na Cloud API apenas no fluxo padrão.
