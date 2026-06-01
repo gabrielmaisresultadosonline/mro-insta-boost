@@ -962,23 +962,22 @@ const CRM = () => {
        const { data: { user } } = await supabase.auth.getUser();
        if (!user) return;
  
-       let { data: settingsData } = await supabase
-         .from('crm_settings')
-         .select('*')
-         .eq('user_id', user.id)
-         .maybeSingle();
-       
-       if (!settingsData) {
-         const { data: newSettings, error: createError } = await supabase
-           .from('crm_settings')
-           .insert({
-             user_id: user.id,
-             webhook_identifier: crypto.randomUUID()
-           })
-           .select()
-           .maybeSingle();
-         if (!createError && newSettings) settingsData = newSettings;
-       }
+        let settingsData = null;
+        const { data: cloudSettings, error: cloudSettingsError } = await supabase.functions.invoke('meta-whatsapp-crm', {
+          body: { action: 'getCloudSettings' }
+        });
+
+        if (!cloudSettingsError && cloudSettings?.success && cloudSettings.settings) {
+          settingsData = cloudSettings.settings;
+        } else {
+          console.warn('[CRM] Falha ao carregar conexão em nuvem pela função, tentando leitura direta:', cloudSettingsError || cloudSettings?.error);
+          const { data: directSettings } = await supabase
+            .from('crm_settings')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          settingsData = directSettings;
+        }
  
        if (settingsData) {
          setMetaSettings(settingsData);
