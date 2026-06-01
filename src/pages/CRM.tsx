@@ -324,7 +324,7 @@ const CRM = () => {
         appId: META_APP_ID,
         cookie: true,
         xfbml: false,
-        version: 'v21.0',
+        version: 'v25.0',
       });
     };
     const id = 'facebook-jssdk';
@@ -359,48 +359,46 @@ const CRM = () => {
   const startEmbeddedSignup = () => {
     const FB = (window as any).FB;
     if (!FB) {
-      toast({ title: 'SDK do Facebook ainda carregando…', description: 'Aguarde, tentaremos novamente em 2s.', variant: 'destructive' });
-      // Retry once after SDK has had a chance to load
+      toast({ title: 'Facebook ainda carregando…', description: 'Aguarde, tentaremos abrir novamente em 2s.' });
       setTimeout(() => {
         if ((window as any).FB) startEmbeddedSignup();
-        else {
-          // Fallback: open the Embedded Signup URL directly in a new tab
-          const url = `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${META_APP_ID}&config_id=${META_CONFIG_ID}`;
-          window.open(url, '_blank', 'width=700,height=800');
-        }
+        else toast({ title: 'Facebook não carregou', description: 'Recarregue a página e tente novamente.', variant: 'destructive' });
       }, 2000);
       return;
     }
     (window as any).__waEmbeddedSignupData = null;
+    const handleSignupResponse = async (response: any) => {
+      if (!response?.authResponse?.code) {
+        console.warn('[Embedded Signup] no auth code in response', response);
+        toast({ title: 'Login cancelado ou bloqueado', description: 'Verifique se o popup foi bloqueado pelo navegador.', variant: 'destructive' });
+        return;
+      }
+      const code = response.authResponse.code;
+      const sessionInfo = (window as any).__waEmbeddedSignupData || {};
+      toast({ title: 'Conectando à Meta…', description: 'Trocando código por token e salvando credenciais.' });
+      try {
+        const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+          body: {
+            action: 'exchangeEmbeddedSignupCode',
+            code,
+            waba_id: sessionInfo.waba_id,
+            phone_number_id: sessionInfo.phone_number_id,
+            business_id: sessionInfo.business_id,
+          },
+        });
+        if (error || !data?.success) {
+          throw new Error(data?.error || error?.message || 'Falha ao conectar');
+        }
+        toast({ title: 'WhatsApp conectado!', description: `WABA: ${data.waba_id || '—'} · Phone: ${data.phone_number_id || '—'}` });
+        await fetchData();
+      } catch (e: any) {
+        toast({ title: 'Erro ao conectar', description: e?.message || String(e), variant: 'destructive' });
+      }
+    };
     try {
       FB.login(
-      async (response: any) => {
-        if (!response?.authResponse?.code) {
-          console.warn('[Embedded Signup] no auth code in response', response);
-          toast({ title: 'Login cancelado ou bloqueado', description: 'Verifique se o popup foi bloqueado pelo navegador.', variant: 'destructive' });
-          return;
-        }
-        const code = response.authResponse.code;
-        const sessionInfo = (window as any).__waEmbeddedSignupData || {};
-        toast({ title: 'Conectando à Meta…', description: 'Trocando código por token e salvando credenciais.' });
-        try {
-          const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-            body: {
-              action: 'exchangeEmbeddedSignupCode',
-              code,
-              waba_id: sessionInfo.waba_id,
-              phone_number_id: sessionInfo.phone_number_id,
-              business_id: sessionInfo.business_id,
-            },
-          });
-          if (error || !data?.success) {
-            throw new Error(data?.error || error?.message || 'Falha ao conectar');
-          }
-          toast({ title: 'WhatsApp conectado!', description: `WABA: ${data.waba_id || '—'} · Phone: ${data.phone_number_id || '—'}` });
-          await fetchData();
-        } catch (e: any) {
-          toast({ title: 'Erro ao conectar', description: e?.message || String(e), variant: 'destructive' });
-        }
+      (response: any) => {
+        void handleSignupResponse(response);
       },
       {
         config_id: META_CONFIG_ID,
@@ -411,9 +409,7 @@ const CRM = () => {
       );
     } catch (err: any) {
       console.error('[Embedded Signup] FB.login threw', err);
-      toast({ title: 'Erro ao abrir o Facebook', description: err?.message || 'Tente novamente fora do preview.', variant: 'destructive' });
-      const url = `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${META_APP_ID}&config_id=${META_CONFIG_ID}`;
-      window.open(url, '_blank', 'width=700,height=800');
+      toast({ title: 'Erro ao abrir o Facebook', description: err?.message || 'Recarregue a página e tente novamente.', variant: 'destructive' });
     }
   };
 
