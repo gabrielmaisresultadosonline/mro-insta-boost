@@ -315,7 +315,7 @@ const CRM = () => {
 
   // Meta Embedded Signup (WhatsApp Tech Provider) ---------------------------
   const META_APP_ID = '1296667748608099';
-  const META_CONFIG_ID = '1691744568626778';
+  const META_CONFIG_ID = '1646592743239229';
 
   useEffect(() => {
     if ((window as any).FB) return;
