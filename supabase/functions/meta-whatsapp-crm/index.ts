@@ -1129,14 +1129,14 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
     // and persist WABA/Phone IDs returned by the FB SDK callback.
     if (action === 'exchangeEmbeddedSignupCode') {
       try {
-        const { code, waba_id, phone_number_id, business_id } = params || {}
+        const { code, waba_id, phone_number_id, business_id, signup_event } = params || {}
         const APP_ID = Deno.env.get('FACEBOOK_APP_ID')
         const APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET')
         if (!code) throw new Error('Missing code')
         if (!APP_ID || !APP_SECRET) throw new Error('FACEBOOK_APP_ID / FACEBOOK_APP_SECRET not configured')
 
         // 1) Trocar code por access_token (business-scoped, long-lived)
-        const tokenUrl = `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${APP_ID}&client_secret=${APP_SECRET}&code=${encodeURIComponent(code)}`
+        const tokenUrl = `https://graph.facebook.com/v25.0/oauth/access_token?client_id=${APP_ID}&client_secret=${APP_SECRET}&code=${encodeURIComponent(code)}`
         const tokenRes = await fetch(tokenUrl)
         const tokenJson = await tokenRes.json()
         if (!tokenRes.ok || !tokenJson.access_token) {
@@ -1150,17 +1150,18 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
         // 2) Subscrever o app à WABA (necessário para receber webhooks)
         if (waba_id) {
           try {
-            await fetch(`https://graph.facebook.com/v21.0/${waba_id}/subscribed_apps`, {
+            await fetch(`https://graph.facebook.com/v25.0/${waba_id}/subscribed_apps`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${access_token}` }
             })
           } catch (e) { console.warn('subscribed_apps failed', e) }
         }
 
-        // 3) Registrar phone number na Cloud API (Coexistence/Embedded já faz, mas garantimos)
-        if (phone_number_id) {
+        // 3) Registrar phone number na Cloud API apenas no fluxo padrão.
+        // No Coexistence (WhatsApp Business app onboarding) a Meta já registra o número.
+        if (phone_number_id && signup_event !== 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') {
           try {
-            await fetch(`https://graph.facebook.com/v21.0/${phone_number_id}/register`, {
+            await fetch(`https://graph.facebook.com/v25.0/${phone_number_id}/register`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ messaging_product: 'whatsapp', pin: '000000' })
