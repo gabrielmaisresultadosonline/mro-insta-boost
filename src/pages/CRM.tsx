@@ -166,6 +166,17 @@ const createMobilePlayableAudioBlob = async (audioBlob: Blob) => {
   }
 };
 
+const getMetaDeliveryErrorMessage = (message: any) => {
+  const raw = String(message?.error_message || message?.metadata?.last_meta_status?.errors?.[0]?.message || '').trim();
+  if (/business account locked/i.test(raw)) {
+    return 'A conta comercial do WhatsApp/Meta está bloqueada. A Meta aceitou o envio, mas bloqueou a entrega.';
+  }
+  if (/media upload error/i.test(raw)) {
+    return 'A Meta recusou o arquivo de áudio/mídia após o upload. Grave novamente ou envie outro formato.';
+  }
+  return raw || 'A Meta informou falha na entrega desta mensagem.';
+};
+
 type ConnectionLogEntry = {
   id: string;
   at: string;
@@ -806,6 +817,13 @@ const CRM = () => {
           const updatedMessage = payload.new;
           if (selectedContactRef.current && updatedMessage.contact_id === selectedContactRef.current.id) {
             setChatMessages(prev => prev.map(m => m.id === updatedMessage.id ? updatedMessage : m));
+            if (updatedMessage.direction === 'outbound' && updatedMessage.status === 'failed') {
+              toast({
+                title: 'Mensagem não entregue',
+                description: getMetaDeliveryErrorMessage(updatedMessage),
+                variant: 'destructive',
+              });
+            }
           }
         }
         fetchContacts();
@@ -1956,8 +1974,8 @@ const CRM = () => {
 
         if (vpsResult) {
           const metaMsgId = vpsResult?.messageId || vpsResult?.messages?.[0]?.id || null;
-          await updatePersistedAudio('sent', 'vps_bridge', metaMsgId);
-          toast({ title: "Áudio Profissional enviado!" });
+          await updatePersistedAudio('accepted', 'vps_bridge', metaMsgId);
+          toast({ title: "Áudio enviado para a Meta", description: "Aguardando confirmação de entrega." });
           setMediaUploadProgress(prev => {
             const next = { ...prev };
             delete next[targetContactId];
@@ -1996,10 +2014,10 @@ const CRM = () => {
       }
       if (type === 'audio') {
         const metaMsgId = data?.messageId || data?.messages?.[0]?.id || data?.result?.messages?.[0]?.id || null;
-        await updatePersistedAudio('sent', 'standard_send', metaMsgId);
+        await updatePersistedAudio('accepted', 'standard_send', metaMsgId);
       }
       await fetchMessages(targetContactId);
-      toast({ title: "Mídia enviada!" });
+      toast({ title: "Mídia enviada para a Meta", description: "Aguardando confirmação de entrega." });
     } catch (err: any) {
       console.error('[CRM][sendMedia] EXCEPTION', err);
       if (selectedContactRef.current?.id === targetContactId) {
@@ -4277,13 +4295,22 @@ const CRM = () => {
                                           )}
                                         </>
                                       )}
+                                      {m.direction === 'outbound' && m.status === 'failed' && (
+                                        <div className="mt-2 flex items-start gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-[10px] leading-snug text-destructive clear-both">
+                                          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                                          <span>{getMetaDeliveryErrorMessage(m)}</span>
+                                        </div>
+                                      )}
                                       <div className={cn(
                                         "text-[10px] mt-0.5 mb-[-2px] float-right ml-2 opacity-70 flex items-center gap-1 leading-none select-none",
-                                        m.direction === 'inbound' ? 'text-muted-foreground' : 'text-[#303030]/60 dark:text-white/60'
+                                        m.direction === 'inbound' ? 'text-muted-foreground' : 'text-[#303030]/60 dark:text-white/60',
+                                        m.status === 'failed' && 'text-destructive opacity-100'
                                       )}>
                                         {new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                         {m.direction === 'outbound' && (
-                                          <LucideIcons.CheckCheck className={cn("w-3.5 h-3.5", m.status === 'read' ? "text-[#53bdeb]" : "text-muted-foreground/60")} />
+                                          m.status === 'failed'
+                                            ? <XCircle className="w-3.5 h-3.5 text-destructive" />
+                                            : <LucideIcons.CheckCheck className={cn("w-3.5 h-3.5", m.status === 'read' ? "text-[#53bdeb]" : "text-muted-foreground/60")} />
                                         )}
                                       </div>
                                     </div>
