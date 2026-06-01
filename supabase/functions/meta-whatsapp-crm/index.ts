@@ -1125,6 +1125,71 @@ async function resolveTemplateMediaUrl(supabase: any, accessToken: string, media
       })
     }
 
+    // Exchange Embedded Signup auth code for a business-scoped access token
+    // and persist WABA/Phone IDs returned by the FB SDK callback.
+    if (action === 'exchangeEmbeddedSignupCode') {
+      try {
+        const { code, waba_id, phone_number_id, business_id } = params || {}
+        const APP_ID = Deno.env.get('FACEBOOK_APP_ID')
+        const APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET')
+        if (!code) throw new Error('Missing code')
+        if (!APP_ID || !APP_SECRET) throw new Error('FACEBOOK_APP_ID / FACEBOOK_APP_SECRET not configured')
+
+        // 1) Trocar code por access_token (business-scoped, long-lived)
+        const tokenUrl = `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${APP_ID}&client_secret=${APP_SECRET}&code=${encodeURIComponent(code)}`
+        const tokenRes = await fetch(tokenUrl)
+        const tokenJson = await tokenRes.json()
+        if (!tokenRes.ok || !tokenJson.access_token) {
+          console.error('Token exchange failed:', tokenJson)
+          return new Response(JSON.stringify({ success: false, error: tokenJson?.error?.message || 'Token exchange failed', details: tokenJson }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        const access_token = tokenJson.access_token as string
+
+        // 2) Subscrever o app à WABA (necessário para receber webhooks)
+        if (waba_id) {
+          try {
+            await fetch(`https://graph.facebook.com/v21.0/${waba_id}/subscribed_apps`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${access_token}` }
+            })
+          } catch (e) { console.warn('subscribed_apps failed', e) }
+        }
+
+        // 3) Registrar phone number na Cloud API (Coexistence/Embedded já faz, mas garantimos)
+        if (phone_number_id) {
+          try {
+            await fetch(`https://graph.facebook.com/v21.0/${phone_number_id}/register`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messaging_product: 'whatsapp', pin: '000000' })
+            })
+          } catch (e) { console.warn('register phone failed', e) }
+        }
+
+        // 4) Persistir nas configurações
+        const patch: any = { meta_access_token: access_token }
+        if (waba_id) patch.meta_waba_id = waba_id
+        if (phone_number_id) patch.meta_phone_number_id = phone_number_id
+        if (business_id) patch.meta_business_id = business_id
+
+        const { error: updErr } = await supabase
+          .from('crm_settings')
+          .update(patch)
+          .eq('id', '00000000-0000-0000-0000-000000000001')
+
+        return new Response(JSON.stringify({ success: !updErr, error: updErr, access_token_preview: access_token.slice(0, 12) + '...', waba_id, phone_number_id, business_id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      } catch (e: any) {
+        console.error('exchangeEmbeddedSignupCode error', e)
+        return new Response(JSON.stringify({ success: false, error: e?.message || String(e) }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     // Get Meta Settings
     const { data: settings } = await supabase
       .from('crm_settings')
