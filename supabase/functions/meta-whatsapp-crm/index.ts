@@ -256,6 +256,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 }
 
  async function handleProcessWebhook(supabase: any, entry: any, skipSave = false, userId?: string) {
+  // (helper inserted above)
   const value = entry?.[0]?.changes?.[0]?.value || {};
 
   if (!userId) {
