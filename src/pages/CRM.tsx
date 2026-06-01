@@ -966,7 +966,10 @@ const CRM = () => {
          if (!createError && newSettings) settingsData = newSettings;
        }
  
-       if (settingsData) setMetaSettings(settingsData);
+       if (settingsData) {
+         setMetaSettings(settingsData);
+         setWhatsAppConnectionConfirmed(!!(settingsData.meta_access_token && settingsData.meta_phone_number_id && settingsData.meta_waba_id));
+       }
  
        const { data: profile } = await supabase
          .from('crm_profiles')
@@ -2797,7 +2800,7 @@ const CRM = () => {
   if (loading && !contacts.length) return <div className="min-h-screen flex items-center justify-center"><RefreshCcw className="animate-spin" /></div>;
 
   // Gate: usuário precisa conectar o WhatsApp antes de acessar conversas/CRM
-  const isWhatsAppConnected = !!(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id);
+  const isWhatsAppConnected = whatsAppConnectionConfirmed || !!(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id);
   if (!loading && !isWhatsAppConnected) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#0c1317] via-[#111b21] to-[#0c1317] p-6">
