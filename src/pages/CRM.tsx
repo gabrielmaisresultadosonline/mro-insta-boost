@@ -197,6 +197,13 @@ const CRM = () => {
   const [saving, setSaving] = useState(false);
    const [activeTab, setActiveTab] = useState('dashboard');
    const [userRole, setUserRole] = useState<string | null>(null);
+  const [isMyDataOpen, setIsMyDataOpen] = useState(false);
+  const [myDataEmail, setMyDataEmail] = useState('');
+  const [myDataNewEmail, setMyDataNewEmail] = useState('');
+  const [myDataNewPassword, setMyDataNewPassword] = useState('');
+  const [myDataConfirmPassword, setMyDataConfirmPassword] = useState('');
+  const [myDataShowPassword, setMyDataShowPassword] = useState(false);
+  const [myDataSaving, setMyDataSaving] = useState(false);
   const [metaSettings, setMetaSettings] = useState<any>({
     meta_access_token: '',
     meta_phone_number_id: '',
