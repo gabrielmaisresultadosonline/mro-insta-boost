@@ -169,13 +169,18 @@ const createMobilePlayableAudioBlob = async (audioBlob: Blob) => {
 
 const getMetaDeliveryErrorMessage = (message: any) => {
   const raw = String(message?.error_message || message?.metadata?.last_meta_status?.errors?.[0]?.message || '').trim();
-  if (/business account locked/i.test(raw)) {
-    return 'A conta comercial do WhatsApp/Meta está bloqueada. A Meta aceitou o envio, mas bloqueou a entrega.';
+  if (/business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw)) {
+    return 'A Meta bloqueou o envio porque o seu Negócio (Business Manager) ainda não foi verificado. Você consegue receber mensagens, mas não enviar até concluir a verificação.';
   }
   if (/media upload error/i.test(raw)) {
     return 'A Meta recusou o arquivo de áudio/mídia após o upload. Grave novamente ou envie outro formato.';
   }
   return raw || 'A Meta informou falha na entrega desta mensagem.';
+};
+
+const isBusinessVerificationError = (message: any) => {
+  const raw = String(message?.error_message || message?.metadata?.last_meta_status?.errors?.[0]?.message || '').trim();
+  return /business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw);
 };
 
 type ConnectionLogEntry = {
