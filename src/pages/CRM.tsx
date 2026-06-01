@@ -4295,13 +4295,22 @@ const CRM = () => {
                                           )}
                                         </>
                                       )}
+                                      {m.direction === 'outbound' && m.status === 'failed' && (
+                                        <div className="mt-2 flex items-start gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-[10px] leading-snug text-destructive clear-both">
+                                          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                                          <span>{getMetaDeliveryErrorMessage(m)}</span>
+                                        </div>
+                                      )}
                                       <div className={cn(
                                         "text-[10px] mt-0.5 mb-[-2px] float-right ml-2 opacity-70 flex items-center gap-1 leading-none select-none",
-                                        m.direction === 'inbound' ? 'text-muted-foreground' : 'text-[#303030]/60 dark:text-white/60'
+                                        m.direction === 'inbound' ? 'text-muted-foreground' : 'text-[#303030]/60 dark:text-white/60',
+                                        m.status === 'failed' && 'text-destructive opacity-100'
                                       )}>
                                         {new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                         {m.direction === 'outbound' && (
-                                          <LucideIcons.CheckCheck className={cn("w-3.5 h-3.5", m.status === 'read' ? "text-[#53bdeb]" : "text-muted-foreground/60")} />
+                                          m.status === 'failed'
+                                            ? <XCircle className="w-3.5 h-3.5 text-destructive" />
+                                            : <LucideIcons.CheckCheck className={cn("w-3.5 h-3.5", m.status === 'read' ? "text-[#53bdeb]" : "text-muted-foreground/60")} />
                                         )}
                                       </div>
                                     </div>
