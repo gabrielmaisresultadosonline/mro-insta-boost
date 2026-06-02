@@ -409,6 +409,8 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
   let text = '';
   let buttonId = '';
+  let mediaUrlForSave: string | null = null;
+  let mediaCaption = '';
 
   if (!skipSave && message.id) {
      const { data: existingInbound } = await supabase
@@ -431,6 +433,35 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
       buttonId = message.interactive.button_reply.id;
       text = message.interactive.button_reply.title;
     }
+  } else if (['image', 'video', 'audio', 'voice', 'sticker', 'document'].includes(message.type)) {
+    const node = message[message.type] || {};
+    mediaCaption = node?.caption || '';
+    const mediaId = node?.id;
+    if (mediaId) {
+      try {
+        const { data: mediaSettings } = await supabase
+          .from('crm_settings')
+          .select('meta_access_token')
+          .eq('user_id', userId)
+          .maybeSingle();
+        const token = mediaSettings?.meta_access_token;
+        if (token) {
+          mediaUrlForSave = await fetchAndStoreIncomingMedia(
+            supabase,
+            token,
+            mediaId,
+            message.type === 'voice' ? 'audio' : message.type,
+            `${waId}_${message.type}`,
+            node?.mime_type
+          );
+        } else {
+          console.warn('[WEBHOOK] No meta_access_token to fetch inbound media', { userId, waId });
+        }
+      } catch (err) {
+        console.error('[WEBHOOK] Error resolving inbound media', err);
+      }
+    }
+    text = mediaCaption || '';
   }
 
    let { data: contactForSave } = await supabase
@@ -474,6 +505,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
        content: text || `[${message.type}]`,
        status: 'received',
        meta_message_id: message.id,
+       media_url: mediaUrlForSave,
        metadata: { raw: message },
        user_id: userId
      });
