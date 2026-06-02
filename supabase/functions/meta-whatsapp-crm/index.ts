@@ -319,10 +319,37 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
     // Build content/type
     const type = echo?.type || 'text';
     let content = '';
+    let echoMediaUrl: string | null = null;
     if (type === 'text') {
       content = echo?.text?.body || '';
     } else if (type === 'interactive') {
       content = echo?.interactive?.button_reply?.title || echo?.interactive?.list_reply?.title || `[${type}]`;
+    } else if (['image', 'video', 'audio', 'voice', 'sticker', 'document'].includes(type)) {
+      const node = echo?.[type] || {};
+      content = node?.caption || '';
+      const mediaId = node?.id;
+      if (mediaId) {
+        try {
+          const { data: echoSettings } = await supabase
+            .from('crm_settings')
+            .select('meta_access_token')
+            .eq('user_id', userId)
+            .maybeSingle();
+          const token = echoSettings?.meta_access_token;
+          if (token) {
+            echoMediaUrl = await fetchAndStoreIncomingMedia(
+              supabase,
+              token,
+              mediaId,
+              type === 'voice' ? 'audio' : type,
+              `echo_${waId}_${type}`,
+              node?.mime_type
+            );
+          }
+        } catch (err) {
+          console.error('[WEBHOOK-ECHO] Media resolve error', err);
+        }
+      }
     } else {
       content = `[${type}]`;
     }
@@ -334,6 +361,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
       content: content || `[${type}]`,
       status: 'sent',
       meta_message_id: metaMessageId || null,
+      media_url: echoMediaUrl,
       metadata: { raw: echo, source: 'echo_mobile_app' },
       user_id: userId
     });
