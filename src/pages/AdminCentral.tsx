@@ -18,6 +18,10 @@ import {
   Search,
   CheckCircle2,
   XCircle,
+  Users,
+  MessageCircle,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 
 type AdminUser = {
