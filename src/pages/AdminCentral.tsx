@@ -257,6 +257,11 @@ export default function AdminCentral() {
   });
 
   const connectedCount = users.filter((u) => u.connected).length;
+  const disconnectedCount = users.length - connectedCount;
+  const connectionRate = users.length > 0 ? Math.round((connectedCount / users.length) * 100) : 0;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const last7 = new Date(today); last7.setDate(last7.getDate() - 7);
+  const newThisWeek = users.filter((u) => new Date(u.created_at) >= last7).length;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
@@ -278,6 +283,70 @@ export default function AdminCentral() {
             </Button>
           </div>
         </div>
+
+        {/* WhatsApp-themed report */}
+        {!loading && users.length > 0 && (
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#075E54] via-[#128C7E] to-[#25D366] p-1 shadow-xl">
+            <div className="rounded-[14px] bg-white p-5 md:p-6">
+              <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center shadow-md">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[#075E54]">Relatório Geral</h2>
+                    <p className="text-xs text-[#128C7E]/70">Visão consolidada da plataforma</p>
+                  </div>
+                </div>
+                <Badge className="bg-[#25D366] hover:bg-[#25D366] text-white border-0 gap-1">
+                  <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                  Ao vivo
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <ReportStat
+                  icon={<Users className="h-5 w-5" />}
+                  label="Total de cadastros"
+                  value={users.length}
+                  gradient="from-[#075E54] to-[#128C7E]"
+                />
+                <ReportStat
+                  icon={<MessageCircle className="h-5 w-5" />}
+                  label="Conectados ao WhatsApp"
+                  value={connectedCount}
+                  hint={`${connectionRate}% do total`}
+                  gradient="from-[#25D366] to-[#128C7E]"
+                />
+                <ReportStat
+                  icon={<XCircle className="h-5 w-5" />}
+                  label="Não conectados"
+                  value={disconnectedCount}
+                  gradient="from-slate-500 to-slate-700"
+                />
+                <ReportStat
+                  icon={<Zap className="h-5 w-5" />}
+                  label="Novos (7 dias)"
+                  value={newThisWeek}
+                  gradient="from-[#34B7F1] to-[#128C7E]"
+                />
+              </div>
+
+              <div className="mt-5">
+                <div className="flex items-center justify-between text-xs text-[#075E54] mb-1.5 font-medium">
+                  <span>Taxa de conexão</span>
+                  <span>{connectionRate}%</span>
+                </div>
+                <div className="h-3 w-full rounded-full bg-[#E8F5F1] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#25D366] via-[#128C7E] to-[#075E54] transition-all duration-700 shadow-[0_0_12px_rgba(37,211,102,0.6)]"
+                    style={{ width: `${connectionRate}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Card className="p-3">
           <div className="relative">
