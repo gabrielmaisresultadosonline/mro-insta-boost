@@ -833,7 +833,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
           if (contact && !params.skipLocalSave) {
             await supabase.from('crm_messages').insert({
               contact_id: contact.id,
-              user_id: contact.user_id || null,
+              user_id: contact.user_id || userId || null,
               direction: 'outbound',
               message_type: 'audio',
               content: '[Mensagem de Áudio]',
@@ -894,7 +894,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   if (contact && !params.skipLocalSave) {
     const { data: savedMessage, error: insertError } = await supabase.from('crm_messages').insert({
       contact_id: contact.id,
-      user_id: contact.user_id || null,
+      user_id: contact.user_id || userId || null,
       direction: 'outbound',
       message_type: params.interactive ? 'interactive' : (media?.type || 'text'),
       content: media ? (params.text || `[${media.type}]`) : (params.interactive?.body?.text || params.text),
@@ -1170,7 +1170,7 @@ async function internalSendTemplate(
 
     const { data: savedMessage, error: insertError } = await supabase.from('crm_messages').insert({
       contact_id: contact.id,
-      user_id: contact.user_id || null,
+      user_id: contact.user_id || userId || null,
       direction: 'outbound',
       message_type: isCarousel ? 'carousel' : 'template',
       content: `[Template: ${templateName}]`,
