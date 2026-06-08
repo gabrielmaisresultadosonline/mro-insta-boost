@@ -1938,8 +1938,10 @@ async function fetchAndStoreIncomingMedia(
       }
     }
 
-    // Get Meta Settings
-    const settings = await getCrmSettings(supabase, userId);
+    // Get Meta Settings (already resolved at the top, but ensure we have it)
+    if (!settings && userId) {
+      settings = await getCrmSettings(supabase, userId);
+    }
     console.log(`[SETTINGS-DEBUG] userId: ${userId}, hasSettings: ${!!settings}, meta_phone_number_id: ${settings?.meta_phone_number_id}`);
 
     const meta_access_token = settings?.meta_access_token;
