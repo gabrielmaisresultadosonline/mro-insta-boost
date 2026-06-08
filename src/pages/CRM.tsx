@@ -1927,6 +1927,11 @@ const CRM = () => {
     };
 
     try {
+      // Desativa o agente de IA automaticamente ao enviar mídia manual
+      if (selectedContact.ai_active) {
+        await updateContactStatus(targetContactId, { ai_active: false });
+      }
+
       const isAudio = type === 'audio';
       setMediaUploadProgress(prev => ({ ...prev, [targetContactId]: 10 }));
       
