@@ -3912,14 +3912,15 @@ const CRM = () => {
                                       size="icon"
                                       className={cn(
                                         "h-6 w-6 rounded-full transition-all shrink-0",
-                                        selectedContact.ai_active && metaSettings.ai_agent_enabled ? "text-blue-500 bg-blue-500/10" : "text-muted-foreground grayscale"
+                                        selectedContact.ai_active && metaSettings.ai_agent_enabled ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20" : "text-muted-foreground bg-muted hover:bg-muted/80 grayscale"
                                       )}
                                       onClick={async () => {
                                         const newStatus = !selectedContact.ai_active;
                                         await updateContactStatus(selectedContact.id, { ai_active: newStatus });
                                       }}
+                                      title={selectedContact.ai_active ? "Desativar Agente IA" : "Ativar Agente IA"}
                                     >
-                                      <Bot className="w-3 h-3" />
+                                      <Bot className="w-3.5 h-3.5" />
                                     </Button>
                                   </div>
                                 </div>
