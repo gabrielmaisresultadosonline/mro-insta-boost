@@ -663,9 +663,11 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                 <div className="flex flex-col items-start">
                   <span className="text-blue-800 font-bold text-xs">Template Meta</span>
                   <span className="text-[9px] text-blue-600 font-medium uppercase tracking-wider">Marketing/Utilitário</span>
+                </div>
+              </Button>
               <Button 
                 variant="outline" 
-                className="justify-start gap-2 border-cyan-500/20 bg-cyan-50 hover:bg-cyan-100 group transition-all h-auto py-2.5 shadow-sm" 
+                className="justify-start gap-2 border-cyan-500 bg-cyan-50 hover:bg-cyan-100 group transition-all h-auto py-2.5 shadow-sm" 
                 onClick={() => addNode('pix')}
               >
                 <Zap className="w-5 h-5 text-cyan-600 group-hover:scale-110 transition-transform" /> 
@@ -673,8 +675,6 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                   <span className="text-cyan-800 font-bold text-xs">Enviar PIX</span>
                   <span className="text-[9px] text-cyan-600 font-medium uppercase tracking-wider">Copia e Cola + QR Code</span>
                 </div>
-              </Button>
-            </div>
               </Button>
               <Button variant="outline" className="justify-start gap-2 border-slate-700/20 hover:bg-slate-700/10" onClick={() => addNode('crmAction')}>
                 <Zap className="w-4 h-4 text-slate-700" /> Ação CRM
