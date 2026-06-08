@@ -2415,6 +2415,11 @@ const CRM = () => {
     setConfirmSend(null);
     setContactSending(targetContactId, true);
     try {
+      // Desativa o agente de IA automaticamente ao enviar template manual
+      if (selectedContact.ai_active) {
+        await updateContactStatus(targetContactId, { ai_active: false });
+      }
+      
       const components: any[] = [];
       const bodyComponent = template?.components?.find((c: any) => c.type === 'BODY');
       const headerComponent = template?.components?.find((c: any) => c.type === 'HEADER');
