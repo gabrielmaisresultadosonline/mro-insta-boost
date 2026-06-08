@@ -1326,6 +1326,12 @@ const CRM = () => {
     });
 
     try {
+      // Desativa o agente de IA automaticamente ao enviar mensagem manual
+      if (selectedContact.ai_active) {
+        console.log('[CRM] Desativando IA para contato', targetContactId);
+        await updateContactStatus(targetContactId, { ai_active: false });
+      }
+
       console.log('[CRM][sendText] →', { to: targetWaId, len: textToSend.length, preview: textToSend.slice(0, 80) });
       const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
         body: { action: 'sendMessage', to: targetWaId, text: textToSend }
@@ -1921,6 +1927,11 @@ const CRM = () => {
     };
 
     try {
+      // Desativa o agente de IA automaticamente ao enviar mídia manual
+      if (selectedContact.ai_active) {
+        await updateContactStatus(targetContactId, { ai_active: false });
+      }
+
       const isAudio = type === 'audio';
       setMediaUploadProgress(prev => ({ ...prev, [targetContactId]: 10 }));
       
@@ -2201,6 +2212,11 @@ const CRM = () => {
     setConfirmSend(null);
     setContactSending(targetContactId, true);
     try {
+      // Desativa o agente de IA automaticamente ao iniciar um fluxo manual
+      if (selectedContact.ai_active) {
+        await updateContactStatus(targetContactId, { ai_active: false });
+      }
+
       const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
         body: { action: 'startFlow', contactId: targetContactId, waId: targetWaId, flowId }
       });
@@ -2404,6 +2420,11 @@ const CRM = () => {
     setConfirmSend(null);
     setContactSending(targetContactId, true);
     try {
+      // Desativa o agente de IA automaticamente ao enviar template manual
+      if (selectedContact.ai_active) {
+        await updateContactStatus(targetContactId, { ai_active: false });
+      }
+      
       const components: any[] = [];
       const bodyComponent = template?.components?.find((c: any) => c.type === 'BODY');
       const headerComponent = template?.components?.find((c: any) => c.type === 'HEADER');
@@ -3799,7 +3820,23 @@ const CRM = () => {
                     )}>
                       {selectedContact ? (
                         <>
-                          <div className="p-1 sm:p-2 border-b border-border/40 flex flex-col gap-1 bg-[#f0f2f5] dark:bg-[#202c33] z-10 shrink-0 w-full min-w-0 shadow-sm">
+                          <div className="p-1 sm:p-2 border-b border-border/40 flex flex-col gap-1 bg-[#f0f2f5] dark:bg-[#202c33] z-10 shrink-0 w-full min-w-0 shadow-sm relative">
+                            {selectedContact.ai_active && metaSettings.ai_agent_enabled && (
+                              <div className="bg-violet-600 text-white px-3 py-1.5 flex items-center justify-between shadow-md z-[20] animate-in slide-in-from-top-2 rounded-lg mb-1 mx-1">
+                                <div className="flex items-center gap-2">
+                                  <Bot className="w-3.5 h-3.5 animate-pulse" />
+                                  <span className="text-[10px] font-bold uppercase tracking-wider">Atendente I.A no Controle</span>
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-6 px-2 text-[9px] font-black uppercase text-white hover:bg-white/20 gap-1 border border-white/30"
+                                  onClick={() => updateContactStatus(selectedContact.id, { ai_active: false })}
+                                >
+                                  <StopCircle className="w-3 h-3" /> Parar Robô (Assumir Manual)
+                                </Button>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between gap-1 sm:gap-2 w-full min-w-0">
                               <div className="flex items-center gap-2 min-w-0 flex-1">
                                 <Button variant="ghost" size="icon" className="md:hidden shrink-0 h-8 w-8 hover:bg-muted" onClick={() => setSelectedContact(null)}>

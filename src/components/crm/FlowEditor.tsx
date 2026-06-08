@@ -343,16 +343,26 @@ const AIAgentNode = ({ data }: any) => (
     <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-violet-600 !border-2 !border-white" />
     <CardHeader className="p-3 bg-violet-600 text-white rounded-t-sm">
       <CardTitle className="text-xs font-bold flex items-center gap-2">
-        <BrainCircuit className="w-4 h-4 animate-pulse" /> Agente I.A
+        <BrainCircuit className="w-4 h-4 animate-pulse" /> Atendente e Vendedor I.A
       </CardTitle>
     </CardHeader>
     <CardContent className="p-3 space-y-3 bg-white">
+      {data.initialMessage && (
+        <div className="bg-slate-50 p-2 rounded-md border border-slate-100 mb-2">
+          <p className="text-[9px] text-slate-500 font-bold uppercase mb-0.5 flex items-center gap-1">
+            <MessageSquare className="w-2.5 h-2.5" /> Mensagem Inicial:
+          </p>
+          <p className="text-[10px] text-slate-600 line-clamp-2 italic">
+            {data.initialMessage}
+          </p>
+        </div>
+      )}
       <div className="bg-violet-50 p-2.5 rounded-md border border-violet-100 shadow-inner">
         <p className="text-[10px] text-violet-800 font-bold uppercase mb-1 flex items-center gap-1">
-          <MessageSquare className="w-3 h-3" /> Prompt do Agente:
+          <BrainCircuit className="w-3 h-3" /> Instruções de Venda:
         </p>
         <p className="text-[11px] text-slate-700 line-clamp-4 italic leading-relaxed">
-          {data.prompt || 'Configure o prompt nas configurações ao lado...'}
+          {data.prompt || 'Configure as instruções nas configurações ao lado...'}
         </p>
       </div>
       <div className="relative flex items-center justify-between bg-emerald-100 text-emerald-800 px-3 py-2.5 rounded-md border border-emerald-200 text-[11px] font-bold shadow-sm group">
@@ -689,8 +699,8 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
               >
                 <BrainCircuit className="w-5 h-5 text-violet-600 group-hover:rotate-12 transition-transform" /> 
                 <div className="flex flex-col items-start text-left">
-                  <span className="text-violet-800 font-bold text-xs">Agente I.A</span>
-                  <span className="text-[9px] text-violet-600 font-medium uppercase tracking-wider">Qualificador Inteligente</span>
+                  <span className="text-violet-800 font-bold text-xs">Atendente e Vendedor I.A</span>
+                  <span className="text-[9px] text-violet-600 font-medium uppercase tracking-wider">Atendimento e Vendas 24h</span>
                 </div>
               </Button>
             </div>
@@ -977,38 +987,38 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label className="text-xs font-bold flex items-center gap-2">
-                        <MessageSquare className="w-3.5 h-3.5 text-violet-500" /> Mensagem Inicial (Opcional)
+                        <MessageSquare className="w-3.5 h-3.5 text-violet-500" /> Mensagem de Abertura (Opcional)
                       </Label>
                       <Textarea 
-                        placeholder="Ex: Olá! Sou o assistente virtual da empresa. Como posso te ajudar hoje?"
+                        placeholder="Ex: Olá! Sou o assistente virtual. Como posso te ajudar a escolher o melhor produto hoje?"
                         className="text-xs min-h-[80px] bg-white border-slate-200"
                         value={(selectedNode.data.initialMessage as string) || ''}
                         onChange={(e) => updateNodeData(selectedNode.id, { initialMessage: e.target.value })}
                       />
                       <p className="text-[9px] text-muted-foreground italic">
-                        Esta mensagem será enviada assim que o cliente chegar nesta etapa, antes da IA começar a responder.
+                        Esta mensagem inicia o atendimento antes da I.A assumir o controle total da conversa.
                       </p>
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-xs font-bold flex items-center gap-2">
-                        <BrainCircuit className="w-3.5 h-3.5 text-violet-500" /> Prompt do Agente
+                        <BrainCircuit className="w-3.5 h-3.5 text-violet-500" /> Instruções de Venda e Atendimento
                       </Label>
                       <Textarea 
-                        placeholder="Ex: Você é um qualificador. Se o cliente quiser comprar, direcione para humano..."
-                        className="text-xs min-h-[120px] bg-violet-50/30 border-violet-100"
+                        placeholder="Ex: Você é um vendedor especialista. Use links de pagamento, tire dúvidas sobre o curso e tente fechar a venda. Se o cliente pedir para falar com um humano, use a saída lateral."
+                        className="text-xs min-h-[150px] bg-violet-50/30 border-violet-100"
                         value={(selectedNode.data.prompt as string) || ''}
                         onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })}
                       />
                       <p className="text-[9px] text-muted-foreground italic">
-                        Instrua a IA sobre como atender e quando usar a saída "Direcionar Humano".
+                        Dê todo o conhecimento do seu negócio para a I.A vender por você. Inclua preços, links e regras.
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold">Etiqueta ao Qualificar (Atenção)</Label>
+                      <Label className="text-xs font-bold">Etiqueta de Intervenção Humana</Label>
                       <Input 
-                        placeholder="Ex: Precisa de Atenção Humana"
+                        placeholder="Ex: Atenção: Cliente quer Humano"
                         className="text-xs h-8"
                         value={(selectedNode.data.labelOnHumanTransfer as string) || ''}
                         onChange={(e) => updateNodeData(selectedNode.id, { labelOnHumanTransfer: e.target.value })}
@@ -1018,10 +1028,10 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                     <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 space-y-2 shadow-sm">
                       <div className="flex items-center gap-2 text-emerald-700">
                         <UserCog className="w-4 h-4" />
-                        <span className="text-[11px] font-bold">Automação de Qualificação</span>
+                        <span className="text-[11px] font-bold">Atendimento Híbrido</span>
                       </div>
                       <p className="text-[10px] text-emerald-600/80 leading-relaxed">
-                        Quando a IA decidir que um humano deve intervir, ela seguirá pela saída lateral, aplicará a etiqueta e parará o atendimento automático.
+                        A I.A conduzirá a venda sozinha. Ela só parará e alertará você (através da saída lateral) se detectar que a intervenção humana é estritamente necessária.
                       </p>
                     </div>
                   </div>
