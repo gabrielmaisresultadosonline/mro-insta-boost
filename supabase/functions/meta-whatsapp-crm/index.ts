@@ -224,7 +224,29 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
     if (reply.includes('[[TRANSFER_TO_HUMAN]]')) {
       console.log(`[AI-AGENT] AI decided to transfer contact ${waId} to human.`);
       
-             const { data: flow } = await supabase.from('crm_flows').select('*').eq('id', contact.current_flow_id).eq('user_id', contact.user_id).single();
+      // Extract the message text before the transfer tag if it exists
+      const cleanReply = reply.replace('[[TRANSFER_TO_HUMAN]]', '').trim();
+      
+      // If there's a message to send before transferring, send it
+      if (cleanReply) {
+        const settings = aiSettings || await getCrmSettings(supabase, userId);
+        if (settings) {
+          const messageParts = cleanReply.split(/\n\n+/).filter(p => p.trim()).slice(0, 3);
+          for (const part of messageParts) {
+            await handleInternalSendMessage(
+              supabase, 
+              settings.meta_phone_number_id, 
+              settings.meta_access_token, 
+              { to: waId, text: part.trim() }, 
+              contact,
+              settings.vps_transcoder_url
+            );
+            if (messageParts.length > 1) await wait(1500);
+          }
+        }
+      }
+
+      const { data: flow } = await supabase.from('crm_flows').select('*').eq('id', contact.current_flow_id).eq('user_id', contact.user_id).single();
       if (flow) {
         const currentNodeId = contact.current_node_id;
         const transferEdge = flow.edges?.find((e: any) => e.source === currentNodeId && e.sourceHandle === 'human_transfer');
