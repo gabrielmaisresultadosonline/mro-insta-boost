@@ -2133,8 +2133,8 @@ async function fetchAndStoreIncomingMedia(
         
       const response = await handleInternalSendMessage(
         supabase, 
-        meta_phone_number_id, 
-        meta_access_token, 
+        meta_phone_number_id || settings?.meta_phone_number_id, 
+        meta_access_token || settings?.meta_access_token, 
         params, 
         contact, 
         settings?.vps_transcoder_url
