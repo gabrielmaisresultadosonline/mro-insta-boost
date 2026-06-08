@@ -1727,14 +1727,10 @@ const CRM = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Para garantir que o áudio seja aceito pela Meta como PTT (gravado na hora),
-      // precisamos que ele seja audio/ogg; codecs=opus.
-      // O MediaRecorder nativo no Chrome gera .webm, que a Meta frequentemente recusa.
-      // Usaremos o opus-recorder que já temos no projeto para garantir o formato correto.
       const { default: Recorder } = await import('opus-recorder');
       const recorder: any = new Recorder({
         encoderPath: '/opus/encoderWorker.min.js',
-        encoderApplication: 2048, // VOIP/PTT
+        encoderApplication: 2048,
         encoderSampleRate: 16000,
         numberOfChannels: 1,
         streamPages: false,
@@ -1757,15 +1753,6 @@ const CRM = () => {
       };
 
       await recorder.start();
-      setMediaRecorder(recorder);
-      
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
-      };
-
-
-      recorder.start();
       setMediaRecorder(recorder);
       setIsRecording(true);
       setRecordingDuration(0);
