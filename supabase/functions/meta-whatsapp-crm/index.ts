@@ -2420,7 +2420,7 @@ async function fetchAndStoreIncomingMedia(
         // IMPORTANTE: Se o fluxo começou em um nó de Agente IA ou foi para ai_handling, processamos a resposta imediatamente
         const { data: contactAfterExec } = await supabase.from('crm_contacts').select('*').eq('id', contactId).single();
         if (contactAfterExec?.flow_state === 'ai_handling' || contactAfterExec?.ai_active || res?.message?.includes('AI handling state')) {
-          console.log(`[START-FLOW] Started or moved to AI handling state. Triggering AI response for ${waId}`);
+          console.log(`[START-FLOW] Started or moved to AI handling state. Checking wait_response for ${waId}`);
           
           // Se o prompt não estiver no contato, tentamos forçar a atualização a partir do nó
           if (!contactAfterExec.ai_agent_prompt && startNode.type === 'aiAgent' && startNode.data?.prompt) {
@@ -2429,9 +2429,20 @@ async function fetchAndStoreIncomingMedia(
              contactAfterExec.ai_agent_prompt = startNode.data.prompt;
           }
           
-          // Dispara a IA mesmo sem texto do cliente para que ela se apresente
-          await processAiAgentResponse(supabase, contactAfterExec, waId, params.text || "Inicie o atendimento se apresentando.", params.sourceMessageId, contactAfterExec.user_id || userId);
+          // Se o nó IA está configurado para aguardar resposta antes da primeira interação
+          const waitBeforeStart = contactAfterExec.metadata?.wait_response_before_start === true;
+          if (waitBeforeStart) {
+             console.log(`[START-FLOW] AI Agent configured to wait for first response. Setting state for ${waId}.`);
+             await supabase.from('crm_contacts').update({ 
+               flow_state: 'waiting_response',
+               metadata: { ...contactAfterExec.metadata, has_waited_initial_response: true }
+             }).eq('id', contactId);
+          } else {
+             // Dispara a IA mesmo sem texto do cliente para que ela se apresente
+             await processAiAgentResponse(supabase, contactAfterExec, waId, params.text || "Inicie o atendimento se apresentando.", params.sourceMessageId, contactAfterExec.user_id || userId);
+          }
         }
+
         
         return jsonResponse(res)
       } else {
@@ -2571,15 +2582,19 @@ async function fetchAndStoreIncomingMedia(
               const { data: updatedContact } = await supabase.from('crm_contacts').select('*').eq('id', contactId).single();
               if (updatedContact) {
                 // Se o nó IA está configurado para aguardar resposta antes da primeira interação
+                // Verificamos o metadata do contato ou diretamente os dados do nó se estiverem acessíveis
                 const waitBeforeStart = updatedContact.metadata?.wait_response_before_start === true;
-                if (waitBeforeStart && !updatedContact.metadata?.has_waited_initial_response) {
-                   console.log(`[AI-AGENT] Wait response before start is enabled. Setting waiting_response.`);
+                const hasWaited = updatedContact.metadata?.has_waited_initial_response === true;
+
+                if (waitBeforeStart && !hasWaited) {
+                   console.log(`[AI-AGENT] Wait response before start is enabled. Setting waiting_response for ${waId}.`);
                    await supabase.from('crm_contacts').update({ 
                      flow_state: 'waiting_response',
                      metadata: { ...updatedContact.metadata, has_waited_initial_response: true }
                    }).eq('id', contactId);
                    return;
                 }
+
 
                 // Delay para parecer mais natural
                 await new Promise(resolve => setTimeout(resolve, 3000));
