@@ -1326,6 +1326,12 @@ const CRM = () => {
     });
 
     try {
+      // Desativa o agente de IA automaticamente ao enviar mensagem manual
+      if (selectedContact.ai_active) {
+        console.log('[CRM] Desativando IA para contato', targetContactId);
+        await updateContactStatus(targetContactId, { ai_active: false });
+      }
+
       console.log('[CRM][sendText] →', { to: targetWaId, len: textToSend.length, preview: textToSend.slice(0, 80) });
       const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
         body: { action: 'sendMessage', to: targetWaId, text: textToSend }
