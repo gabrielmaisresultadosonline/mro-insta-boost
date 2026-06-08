@@ -494,7 +494,7 @@ const CRM = () => {
           meta_verified_name: data.verified_name || prev.meta_verified_name,
         }));
         toast({ title: 'WhatsApp conectado!', description: `WABA: ${data.waba_id || '—'} · Phone: ${data.phone_number_id || '—'}` });
-        await fetchData();
+        await fetchData(false);
       } catch (e: any) {
         addConnectionLog('error', 'Erro ao finalizar conexão no CRM', { message: e?.message || String(e) });
         toast({ title: 'Erro ao conectar', description: e?.message || String(e), variant: 'destructive' });
@@ -794,15 +794,16 @@ const CRM = () => {
         if (localStorage.getItem(`crm_whatsapp_connected_${session.user.id}`) === 'true') {
           setWhatsAppConnectionConfirmed(true);
         }
-       fetchData();
+       fetchData(true);
      };
      checkAuth();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('App visível, atualizando dados...');
-        fetchData();
+        fetchData(false);
         fetchContacts();
+
         if (selectedContactRef.current?.id) {
           fetchMessages(selectedContactRef.current.id, true);
         }
@@ -1002,11 +1003,13 @@ const CRM = () => {
     setFilteredContacts(filtered);
   }, [statusFilter, contacts, activeTab]);
 
-   const fetchData = async () => {
-     setLoading(true);
+  const fetchData = async (isInitialLoad = false) => {
+     if (isInitialLoad) setLoading(true);
+
      try {
        const { data: { user } } = await supabase.auth.getUser();
        if (!user) return;
+
  
         let settingsData = null;
         const { data: cloudSettings, error: cloudSettingsError } = await supabase.functions.invoke('meta-whatsapp-crm', {
@@ -1077,6 +1080,7 @@ const CRM = () => {
     }
   };
 
+
    const handleSaveSettings = async () => {
      setSaving(true);
      try {
@@ -1095,8 +1099,10 @@ const CRM = () => {
        // Sync with Admin Central if needed (mocked for now)
        console.log('Syncing settings with Admin Central for token activation...');
 
-       toast({ title: "Configurações salvas!" });
-       fetchData();
+        toast({ title: "Configurações salvas!" });
+       fetchData(false);
+
+
      } catch (error) {
        console.error("Erro ao salvar:", error);
        toast({ title: "Erro ao salvar", variant: "destructive" });
@@ -1152,6 +1158,7 @@ const CRM = () => {
         
         // Atualiza a lista local de contatos
         await fetchContacts();
+
       } else {
         console.error('[SYNC] Erro retornado pela função:', data.error);
         throw new Error(data.error || "Erro desconhecido na sincronização");
@@ -1216,7 +1223,9 @@ const CRM = () => {
         throw error;
       }
       toast({ title: "Status atualizado!" });
-      fetchData();
+      fetchData(false);
+
+
     } catch (err) {
       toast({ title: "Erro ao atualizar", variant: "destructive" });
     }
@@ -1590,6 +1599,7 @@ const CRM = () => {
 
       toast({ title: "Webhook criado!" });
       fetchWebhooks();
+
       setIsNewWebhookDialogOpen(false);
       setNewWebhook({ name: '', response_type: 'text', template_id: '', secret_token: '', is_active: true, default_status: 'new' });
     } catch (err: any) {
@@ -2356,7 +2366,9 @@ const CRM = () => {
       const { error } = await supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'getTemplates' } });
       if (error) throw error;
       toast({ title: "Templates Sincronizados" });
-      fetchData();
+      fetchData(false);
+
+
     } catch (err) {
       toast({ title: "Erro ao sincronizar", variant: "destructive" });
     } finally {
@@ -2456,7 +2468,8 @@ const CRM = () => {
       if (error) throw error;
       if (!data.success) throw new Error(data.error || "Erro ao criar template na Meta");
       toast({ title: "Template enviado para aprovação!" });
-      fetchData();
+      fetchData(false);
+
     } catch (err: any) {
       toast({ title: "Erro ao criar template", description: err.message, variant: "destructive" });
     } finally {
@@ -2471,7 +2484,8 @@ const CRM = () => {
       });
       if (error) throw error;
       toast({ title: "Template excluído" });
-      fetchData();
+      fetchData(false);
+
     } catch (err) {
       toast({ title: "Erro ao excluir", variant: "destructive" });
     }
@@ -2744,7 +2758,9 @@ const CRM = () => {
       toast({ title: "Fluxo salvo com sucesso!" });
       setIsFlowEditorOpen(false);
       setEditingFlow(null);
-      fetchData();
+      fetchData(false);
+
+
     } catch (err: any) {
       toast({ 
         title: "Erro ao salvar fluxo", 
@@ -2795,7 +2811,10 @@ const CRM = () => {
       }
       
       toast({ title: "Fluxo duplicado com sucesso!" });
-      fetchData();
+      fetchData(false);
+
+      fetchData(false);
+
     } catch (err: any) {
       console.error("Erro ao duplicar fluxo:", err);
       toast({ 
@@ -5005,7 +5024,8 @@ const CRM = () => {
                                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={async () => {
                                         if (confirm('Deseja excluir este fluxo?')) {
                                           await supabase.from('crm_flows').delete().eq('id', flow.id);
-                                          fetchData();
+      fetchData(false);
+
                                         }
                                       }}>
                                         <Trash2 className="h-3.5 w-3.5" />
