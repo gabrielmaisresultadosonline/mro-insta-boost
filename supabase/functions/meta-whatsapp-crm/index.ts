@@ -689,6 +689,8 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     return jsonResponse(result || { success: true });
   }
 
+  // CRITICAL: Ensure we capture messages for AI processing
+  // Check if contact is in an AI node or AI state
   if (contact && (isAiHandling || (hasActiveFlow && (isInAiNode || isAiActive)))) {
     console.log(`[WEBHOOK] CAPTURING message from ${waId} for AI Agent. State: ${contact.flow_state}, Node: ${contact.current_node_id}, AI Active: ${contact.ai_active}`);
     
@@ -697,10 +699,12 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
       console.warn(`[WEBHOOK-AI-DEBUG] Contact ${waId} is in AI state but has NO prompt saved. NodeID: ${contact.current_node_id}`);
     }
     
+    // Always call processAiAgentResponse which has built-in duplicate check and history management
     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     console.log(`[WEBHOOK-AI-DEBUG] processAiAgentResponse result for ${waId}:`, JSON.stringify(result));
     return jsonResponse(result);
   } else if (contact && contact.flow_state === 'waiting_response' && hasActiveFlow) {
+
     // MODIFICAÇÃO: Se for uma resposta de texto a uma pergunta, tentamos continuar o fluxo.
     // Se o próximo nó for um aiAgent, ele será acionado via executeVisualNode.
     console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Text: ${text}`);
