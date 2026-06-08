@@ -2570,6 +2570,17 @@ async function fetchAndStoreIncomingMedia(
             setTimeout(async () => {
               const { data: updatedContact } = await supabase.from('crm_contacts').select('*').eq('id', contactId).single();
               if (updatedContact) {
+                // Se o nó IA está configurado para aguardar resposta antes da primeira interação
+                const waitBeforeStart = updatedContact.metadata?.wait_response_before_start === true;
+                if (waitBeforeStart && !updatedContact.metadata?.has_waited_initial_response) {
+                   console.log(`[AI-AGENT] Wait response before start is enabled. Setting waiting_response.`);
+                   await supabase.from('crm_contacts').update({ 
+                     flow_state: 'waiting_response',
+                     metadata: { ...updatedContact.metadata, has_waited_initial_response: true }
+                   }).eq('id', contactId);
+                   return;
+                }
+
                 // Delay para parecer mais natural
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 await processAiAgentResponse(supabase, updatedContact, waId, text, sourceMessageId, updatedContact.user_id);
@@ -2885,6 +2896,17 @@ async function fetchAndStoreIncomingMedia(
         }
       }
       return jsonResponse({ success: true });
+    }
+
+    if (action === 'clearHistory') {
+      const { contactId } = params;
+      const { error } = await supabase
+        .from('crm_messages')
+        .delete()
+        .eq('contact_id', contactId);
+      
+      if (error) throw error;
+      return jsonResponse({ success: true, message: 'History cleared' });
     }
 
     throw new Error(`Unhandled action: ${action}`);

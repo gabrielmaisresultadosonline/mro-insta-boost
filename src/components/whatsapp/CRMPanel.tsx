@@ -255,6 +255,24 @@ export default function CRMPanel({ callProxy, onSelectContact }: CRMPanelProps) 
                 >
                   <Flame className="w-3 h-3" /> {editingContact.is_hot_lead ? 'Lead Quente' : 'Marcar Quente'}
                 </button>
+                <button
+                  onClick={async () => {
+                    if (confirm('Tem certeza que deseja apagar todo o histórico desta conversa?')) {
+                      try {
+                        const res = await callProxy('clearHistory', { contactId: editingContact.id });
+                        if (res.success) {
+                          toast({ title: 'Histórico apagado com sucesso!' });
+                          onSelectContact?.(editingContact.phone);
+                        }
+                      } catch (e) {
+                        toast({ title: 'Erro ao apagar histórico', variant: 'destructive' });
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-1 text-red-400 text-xs hover:underline"
+                >
+                  <Trash2 className="w-3 h-3" /> Limpar Conversa
+                </button>
               </div>
             </div>
 
