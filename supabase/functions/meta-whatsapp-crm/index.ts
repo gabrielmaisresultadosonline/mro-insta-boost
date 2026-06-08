@@ -2221,9 +2221,8 @@ async function fetchAndStoreIncomingMedia(
         .single();
         
       if (currentContact?.flow_state === 'running' || currentContact?.flow_state === 'waiting_response' || currentContact?.flow_state === 'ai_handling') {
-        return new Response(JSON.stringify({ success: true, message: 'Flow already active' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        console.log(`[START-FLOW] Flow already active for ${waId} (state: ${currentContact.flow_state}). Force restarting...`);
+        // Opcional: permitir reiniciar mesmo se já estiver rodando
       }
 
       const { data: flow } = await supabase
