@@ -1676,8 +1676,8 @@ async function fetchAndStoreIncomingMedia(
      if (!action && body.object === 'whatsapp_business_account' && userSettings) {
        return await handleProcessWebhook(supabase, body.entry, false, userId);
      }
-    if (action === 'processScheduled' || action === 'processAiAgent' || action === 'sendMessage' || action === 'sendTemplate' || action === 'continueFlow' || action === 'startFlow') {
-      console.log(`[ACTION-LOG] Processing action: ${action}`);
+    if (action === 'processScheduled' || action === 'processAiAgent') {
+      console.log(`[BACKGROUND-LOG] Processing action: ${action}`);
       const now = new Date().toISOString();
       
       // Select only what's needed and use a more strict query
