@@ -746,39 +746,43 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   const arrayBuffer = await mediaResponse.arrayBuffer();
   const responseContentType = mediaResponse.headers.get('content-type') || '';
   
-  // A Meta é extremamente exigente com áudio PTT. 
-  // Deve ser obrigatoriamente audio/ogg; codecs=opus ou audio/aac.
-  // Se o arquivo vier como webm, a Meta frequentemente rejeita com "Media upload error" após o upload.
   let contentType = responseContentType || media.mime;
   let fileName = media.fileName;
 
   if (media.type === 'audio') {
-    // Forçamos o MIME type que a Meta espera para mensagens de voz
-    if (contentType.includes('webm')) {
-      contentType = 'audio/ogg; codecs=opus';
-    }
-    fileName = 'voice.ogg';
+    // IMPORTANTE: A Meta rejeita webm para PTT. 
+    // Se o arquivo for webm, tentamos enviar como audio normal (sem PTT) 
+    // ou o navegador deve garantir o formato correto.
+    // Se for opus/ogg, a Meta aceita como PTT.
+    const isWebm = contentType.includes('webm') || media.url.endsWith('.webm');
     
-    console.log(`[UPLOAD-PTT] Preparando áudio: originalMime=${responseContentType}, forçandoMime=${contentType}, size=${arrayBuffer.byteLength}`);
+    if (isWebm) {
+      console.log(`[UPLOAD-AUDIO] Detectado WEBM. Enviando como áudio padrão (não PTT) para evitar erro da Meta.`);
+      contentType = 'audio/webm';
+      fileName = 'audio.webm';
+    } else {
+      console.log(`[UPLOAD-PTT] Preparando áudio PTT: originalMime=${responseContentType}, contentType=${contentType}`);
+      fileName = 'voice.ogg';
+    }
     
     const blob = new Blob([arrayBuffer], { type: contentType });
-    const pttForm = new FormData();
-    pttForm.append('messaging_product', 'whatsapp');
-    pttForm.append('file', blob, fileName);
-    pttForm.append('type', 'audio'); // Algumas documentações sugerem manter o type no form
+    const form = new FormData();
+    form.append('messaging_product', 'whatsapp');
+    form.append('file', blob, fileName);
+    form.append('type', 'audio');
     
-    const pttResponse = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/media`, {
+    const response = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/media`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}` },
-      body: pttForm,
+      body: form,
     });
     
-    const pttResult = await pttResponse.json().catch(() => ({}));
-    if (!pttResponse.ok) {
-      console.error(`[UPLOAD-PTT] Erro Meta detalhado:`, JSON.stringify(pttResult));
-      throw new Error(pttResult?.error?.message || 'Erro ao subir PTT na Meta');
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      console.error(`[UPLOAD-AUDIO] Erro Meta detalhado:`, JSON.stringify(result));
+      throw new Error(result?.error?.message || 'Erro ao subir áudio na Meta');
     }
-    return pttResult.id;
+    return result.id;
   }
 
   const blob = new Blob([arrayBuffer], { type: contentType })

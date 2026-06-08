@@ -1727,21 +1727,21 @@ const CRM = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // WhatsApp exige especificamente audio/ogg; codecs=opus para PTT (gravado na hora).
-      // Se o navegador não suportar nativamente (como Safari ou Chrome em alguns OS),
-      // enviamos o que ele suportar, mas tentamos forçar o mimeType correto.
-      let mimeType = 'audio/ogg; codecs=opus';
+      // WhatsApp Cloud API exige especificamente audio/ogg; codecs=opus para PTT (gravado na hora).
+      // Se tentarmos enviar .webm como audio/ogg, a Meta rejeita após o upload.
+      // Tentamos detectar o melhor formato suportado pelo navegador que a Meta aceita.
+      let mimeType = 'audio/ogg; codecs=opus'; // Padrão WhatsApp PTT
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm; codecs=opus';
+        mimeType = 'audio/webm; codecs=opus'; // Padrão Chrome/Android
       }
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = ''; // Deixa o navegador escolher o melhor
+        mimeType = 'audio/mp4'; // Padrão iOS/Safari
       }
 
       console.log(`[RECORDER] Iniciando gravação. MimeType solicitado: ${mimeType || 'padrão'}`);
       
       const recorder = new MediaRecorder(stream, {
-        mimeType: mimeType || undefined
+        mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : undefined
       });
       
       const chunks: Blob[] = [];
