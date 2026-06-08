@@ -569,13 +569,32 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   const isWaitingResponse = contact?.flow_state === 'waiting_response';
   const hasActiveFlow = !!contact?.current_flow_id;
 
+  // PRIORIDADE: Se houver um clique em botão de INTERACTIVE, SEMPRE tenta continuar o fluxo primeiro
+  if (contact && hasActiveFlow && message.type === 'interactive' && isWaitingResponse) {
+    console.log(`[WEBHOOK] CONTINUING Flow for ${waId} due to BUTTON CLICK. Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
+    
+    const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      body: { 
+        action: 'continueFlow', 
+        contactId: contact.id, 
+        waId, 
+        buttonId: buttonId || null, 
+        text, 
+        sourceMessageId: message.id 
+      }
+    });
+
+    if (flowErr) console.error('[WEBHOOK] Error invoking continueFlow via button:', flowErr);
+    return jsonResponse(result || { success: true });
+  }
+
   if (contact && (isAiHandling || (hasActiveFlow && (isInAiNode || isAiActive)))) {
     console.log(`[WEBHOOK] CAPTURING message from ${waId} for AI Agent. State: ${contact.flow_state}, Node: ${contact.current_node_id}, AI Active: ${contact.ai_active}`);
-    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     return jsonResponse(result);
   } else if (contact && isWaitingResponse && hasActiveFlow) {
     // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
-    console.log(`[WEBHOOK] CONTINUING Flow for ${waId}. Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
+    console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
     
     // Invocamos continueFlow para processar a resposta do usuário no fluxo
     const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
