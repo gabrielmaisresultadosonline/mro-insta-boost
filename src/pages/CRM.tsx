@@ -1088,11 +1088,19 @@ const CRM = () => {
        if (!user) return;
  
        const { id, created_at, updated_at, webhook_verify_token, vps_status, user_id, ...rest } = metaSettings;
-       const { error } = await supabase.from('crm_settings').upsert({
+       
+       // Garante que o ID do webhook seja preservado ou gerado
+       const settingsToSave = {
          ...rest,
          user_id: user.id,
          updated_at: new Date().toISOString()
-       }, { onConflict: 'user_id' });
+       };
+
+       if (!settingsToSave.webhook_identifier) {
+         settingsToSave.webhook_identifier = Math.random().toString(36).substring(2, 15);
+       }
+
+       const { error } = await supabase.from('crm_settings').upsert(settingsToSave, { onConflict: 'user_id' });
        
        if (error) throw error;
 
