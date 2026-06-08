@@ -566,12 +566,34 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   const isInAiNode = contact?.current_node_id?.includes('aiAgent');
   const isAiHandling = contact?.flow_state === 'ai_handling';
   const isAiActive = contact?.ai_active === true;
+  const isWaitingResponse = contact?.flow_state === 'waiting_response';
   const hasActiveFlow = !!contact?.current_flow_id;
 
   if (contact && (isAiHandling || (hasActiveFlow && (isInAiNode || isAiActive)))) {
     console.log(`[WEBHOOK] CAPTURING message from ${waId} for AI Agent. State: ${contact.flow_state}, Node: ${contact.current_node_id}, AI Active: ${contact.ai_active}`);
-     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     return jsonResponse(result);
+  } else if (contact && isWaitingResponse && hasActiveFlow) {
+    // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
+    console.log(`[WEBHOOK] CONTINUING Flow for ${waId}. Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
+    
+    // Invocamos continueFlow para processar a resposta do usuário no fluxo
+    const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      body: { 
+        action: 'continueFlow', 
+        contactId: contact.id, 
+        waId, 
+        buttonId: buttonId || null, 
+        text, 
+        sourceMessageId: message.id 
+      }
+    });
+
+    if (flowErr) {
+      console.error('[WEBHOOK] Error invoking continueFlow:', flowErr);
+    }
+    
+    return jsonResponse(result || { success: true });
   } else if (contact && contact.ai_active && contact.flow_state === 'idle') {
     console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent...`);
     
