@@ -2111,7 +2111,14 @@ async function fetchAndStoreIncomingMedia(
         .eq('wa_id', params.to)
         .single();
         
-      const response = await handleInternalSendMessage(supabase, meta_phone_number_id, meta_access_token, params, contact, settings?.vps_transcoder_url);
+      const response = await handleInternalSendMessage(
+        supabase, 
+        meta_phone_number_id || settings?.meta_phone_number_id, 
+        meta_access_token || settings?.meta_access_token, 
+        params, 
+        contact, 
+        settings?.vps_transcoder_url
+      );
       console.log(`[ACTION] sendMessage finalizado para ${params.to}. Status: ${response.status}`);
       return response;
     }
