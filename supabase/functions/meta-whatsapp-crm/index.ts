@@ -868,7 +868,15 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   
   if (params.interactive) {
     payload.type = 'interactive';
-    payload.interactive = params.interactive;
+    // Deep clone and clean interactive payload
+    const interactive = JSON.parse(JSON.stringify(params.interactive));
+    if (interactive.action) {
+      // Remove numeric keys that might have been accidentally added by frontend or object mapping
+      Object.keys(interactive.action).forEach(key => {
+        if (/^\d+$/.test(key)) delete interactive.action[key];
+      });
+    }
+    payload.interactive = interactive;
   } else if (media) {
     console.log(`[MEDIA-DETECT] Tipo: ${media.type}, isVoice: ${isVoice}, VPS: ${vpsTranscoderUrl ? 'SIM' : 'NÃO'}`);
     if (media.type === 'audio' && vpsTranscoderUrl) {
