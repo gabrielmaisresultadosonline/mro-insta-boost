@@ -1632,13 +1632,19 @@ async function fetchAndStoreIncomingMedia(
           // return new Response(...)
         }
 
-        let { data: settings, error } = await supabase
-          .from('crm_settings')
-          .select('*')
-          .eq('user_id', userId || 'fallback-id') // ajuste temporário se necessário
-         .maybeSingle()
+        let error = null;
+        if (!settings) {
+          const { data: fetchedSettings, error: fetchError } = await supabase
+            .from('crm_settings')
+            .select('*')
+            .eq('user_id', userId || 'fallback-id')
+            .maybeSingle()
+          
+          settings = fetchedSettings;
+          error = fetchError;
+        }
 
-       if (!settings && !error) {
+       if (!settings && !error && userId) {
          const created = await supabase
            .from('crm_settings')
            .insert({ user_id: userId, webhook_identifier: crypto.randomUUID() })
