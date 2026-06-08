@@ -13,6 +13,9 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
         
         await supabase.functions.invoke('meta-whatsapp-crm', {
+          headers: {
+            'Authorization': `Bearer ${flow.user_id ? 'INTERNAL_BYPASS' : ''}` // Verificaremos isso na edge
+          },
           body: { 
             action: 'sendMessage', 
             to: waId, 
