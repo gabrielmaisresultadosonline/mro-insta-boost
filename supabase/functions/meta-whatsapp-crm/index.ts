@@ -2235,6 +2235,7 @@ async function fetchAndStoreIncomingMedia(
       await supabase.from('crm_scheduled_messages').delete().eq('contact_id', contactId);
 
       if (flow.nodes && flow.nodes.length > 0) {
+        // Encontra o nó inicial (nó que não é alvo de nenhuma aresta) ou o primeiro nó se não houver um óbvio
         const nodeIdsWithTarget = new Set(flow.edges?.map((e: any) => e.target) || [])
         const startNode = flow.nodes.find((n: any) => !nodeIdsWithTarget.has(n.id)) || flow.nodes[0]
         
@@ -2245,7 +2246,7 @@ async function fetchAndStoreIncomingMedia(
           flow_state: 'running',
           last_flow_interaction: new Date().toISOString(),
           next_execution_time: null,
-          status: (flow.trigger_tag && flow.trigger_tag !== 'none') ? flow.trigger_tag : undefined
+          status: (flow.trigger_tag && flow.trigger_tag !== 'none') ? flow.trigger_tag : (currentContact?.status || 'new')
         }).eq('id', contactId);
         
         if (updateError) {
@@ -2257,14 +2258,12 @@ async function fetchAndStoreIncomingMedia(
         const res: any = await executeVisualNode(supabase, flow, startNode, contactId, waId);
         console.log(`[START-FLOW] executeVisualNode result:`, JSON.stringify(res));
         
-        // Se o fluxo começou em um nó de Agente IA, processamos a resposta imediatamente
-        if (res?.message?.includes('AI handling state')) {
-          console.log(`[START-FLOW] Started in AI handling state. Triggering AI response for ${waId}`);
-          const { data: updatedContact } = await supabase.from('crm_contacts').select('*').eq('id', contactId).single();
-           if (updatedContact) {
-             // IMPORTANTE: Dispara a IA mesmo sem texto do cliente para que ela se apresente
-             await processAiAgentResponse(supabase, updatedContact, waId, params.text || "Inicie o atendimento se apresentando.", params.sourceMessageId, updatedContact.user_id);
-           }
+        // IMPORTANTE: Se o fluxo começou em um nó de Agente IA ou foi para ai_handling, processamos a resposta imediatamente
+        const { data: contactAfterExec } = await supabase.from('crm_contacts').select('*').eq('id', contactId).single();
+        if (contactAfterExec?.flow_state === 'ai_handling' || res?.message?.includes('AI handling state')) {
+          console.log(`[START-FLOW] Started or moved to AI handling state. Triggering AI response for ${waId}`);
+          // Dispara a IA mesmo sem texto do cliente para que ela se apresente
+          await processAiAgentResponse(supabase, contactAfterExec, waId, params.text || "Inicie o atendimento se apresentando.", params.sourceMessageId, contactAfterExec.user_id);
         }
         
         return jsonResponse(res)
