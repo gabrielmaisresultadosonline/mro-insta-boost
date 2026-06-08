@@ -164,6 +164,8 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
         ]
       : `Histórico da conversa:\n${history}\n\nNova mensagem do cliente: ${messageText || "(Nenhuma mensagem recente - inicie o atendimento)"}`;
 
+    console.log(`[AI-AGENT] Calling OpenAI for ${waId}. Model: gpt-4o-mini. System prompt length: ${systemPrompt.length}`);
+    
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -179,9 +181,16 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
         temperature: 0.7
       }),
     });
-    
+
     const aiData = await aiResponse.json();
+    
+    if (!aiResponse.ok) {
+      console.error(`[AI-AGENT] OpenAI Error for ${waId}:`, JSON.stringify(aiData));
+      return { success: false, error: "OpenAI API returned error" };
+    }
+    
     const reply = aiData.choices?.[0]?.message?.content || "";
+    console.log(`[AI-AGENT] OpenAI reply for ${waId}: ${reply.slice(0, 100)}...`);
     
     if (reply.includes('[[TRANSFER_TO_HUMAN]]') && history.split('\n').filter(line => line.startsWith('Assistente:')).length >= 2) {
       console.log(`[AI-AGENT] AI decided to transfer contact ${waId} to human.`);
@@ -613,7 +622,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
   if (contact && (isAiHandling || (hasActiveFlow && (isInAiNode || isAiActive)))) {
     console.log(`[WEBHOOK] CAPTURING message from ${waId} for AI Agent. State: ${contact.flow_state}, Node: ${contact.current_node_id}, AI Active: ${contact.ai_active}`);
-     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    
+    // Log detalhado para depurar por que a IA pode não estar respondendo
+    if (!contact.ai_agent_prompt && !contact.metadata?.ai_agent_prompt) {
+      console.warn(`[WEBHOOK-AI-DEBUG] Contact ${waId} is in AI state but has NO prompt saved. NodeID: ${contact.current_node_id}`);
+    }
+    
+    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    console.log(`[WEBHOOK-AI-DEBUG] processAiAgentResponse result for ${waId}:`, JSON.stringify(result));
     return jsonResponse(result);
   } else if (contact && isWaitingResponse && hasActiveFlow) {
     // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
