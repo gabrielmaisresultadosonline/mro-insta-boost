@@ -796,7 +796,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                                   updateNodeData(selectedNode.id, { buttons: newButtons });
                                 }}
                                 placeholder="https://..."
-                                className="text-[10px] h-7 bg-white"
+                                className="text-[10px] h-7 bg-slate-50 text-slate-900 border-slate-200"
                               />
                             )}
                             <p className="text-[8px] text-muted-foreground leading-tight italic">
