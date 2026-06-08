@@ -31,9 +31,20 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           }
         });
       } else if (text) {
-        await supabase.functions.invoke('meta-whatsapp-crm', {
+        console.log(`[EXECUTOR] Enviando mensagem de texto simples para ${waId}`);
+        const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
           body: { action: 'sendMessage', to: waId, text, contactId }
         });
+        
+        if (invokeError) {
+          console.error(`[EXECUTOR] Erro ao invocar meta-whatsapp-crm para texto:`, invokeError);
+          throw invokeError;
+        }
+        
+        if (result && !result.success) {
+          console.error(`[EXECUTOR] meta-whatsapp-crm retornou erro no envio de texto:`, result.error);
+          throw new Error(result.error || "Erro no envio de texto");
+        }
       }
 
       // If it's just a message (not waiting for response), we don't return here, 
