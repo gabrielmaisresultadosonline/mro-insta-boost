@@ -613,7 +613,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
   if (contact && (isAiHandling || (hasActiveFlow && (isInAiNode || isAiActive)))) {
     console.log(`[WEBHOOK] CAPTURING message from ${waId} for AI Agent. State: ${contact.flow_state}, Node: ${contact.current_node_id}, AI Active: ${contact.ai_active}`);
-     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    
+    // Log detalhado para depurar por que a IA pode não estar respondendo
+    if (!contact.ai_agent_prompt && !contact.metadata?.ai_agent_prompt) {
+      console.warn(`[WEBHOOK-AI-DEBUG] Contact ${waId} is in AI state but has NO prompt saved. NodeID: ${contact.current_node_id}`);
+    }
+    
+    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    console.log(`[WEBHOOK-AI-DEBUG] processAiAgentResponse result for ${waId}:`, JSON.stringify(result));
     return jsonResponse(result);
   } else if (contact && isWaitingResponse && hasActiveFlow) {
     // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
