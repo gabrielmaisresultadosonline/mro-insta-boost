@@ -117,7 +117,8 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 
   // Fallback essencial: se o contato ficou preso no nó de IA sem metadata,
   // busca o prompt diretamente do nó salvo no fluxo visual.
-  if ((!aiPrompt || !labelOnTransfer) && contact.current_flow_id && contact.current_node_id) {
+  if (!aiPrompt && contact.current_flow_id && contact.current_node_id) {
+    console.log(`[AI-AGENT] Attempting to fetch prompt from node data for flow ${contact.current_flow_id} node ${contact.current_node_id}`);
     const { data: flowConfig } = await supabase
       .from('crm_flows')
       .select('nodes')
@@ -126,8 +127,11 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 
     const aiNode = flowConfig?.nodes?.find((n: any) => n.id === contact.current_node_id && n.type === 'aiAgent');
     if (aiNode?.data) {
-      aiPrompt = aiPrompt || aiNode.data.prompt || "";
-      labelOnTransfer = labelOnTransfer || aiNode.data.labelOnHumanTransfer || "";
+      console.log(`[AI-AGENT] Found node data for ${contact.current_node_id}. Prompt length: ${aiNode.data.prompt?.length || 0}`);
+      aiPrompt = aiNode.data.prompt || "";
+      labelOnTransfer = aiNode.data.labelOnHumanTransfer || "";
+    } else {
+      console.warn(`[AI-AGENT] No AI node found in flow config for id ${contact.current_node_id}`);
     }
   }
 
@@ -2310,7 +2314,7 @@ async function fetchAndStoreIncomingMedia(
             });
           }
           
-          // Priority 1.5: Match text against button labels if no buttonId matched
+          // Priority 1.5: Match text against button labels
           if (!nextEdge && text && currentNode.data?.buttons) {
             console.log(`[FLOW-DEBUG] Attempting text match for: "${text}"`);
             const matchedButtonIdx = currentNode.data.buttons.findIndex((b: any) => {
@@ -2320,7 +2324,8 @@ async function fetchAndStoreIncomingMedia(
               const match = bText === receivedText || 
                      (bText.length > 20 && receivedText === (bText.substring(0, 17) + "...").toLowerCase()) ||
                      (receivedText.length > 3 && bText.includes(receivedText)) ||
-                     (receivedText.includes('[button reply]') && receivedText.includes(bText));
+                     (receivedText.includes('[button reply]') && receivedText.includes(bText)) ||
+                     (bText.length > 3 && receivedText.includes(bText));
               
               if (match) console.log(`[FLOW-DEBUG] Text match found: "${bText}"`);
               return match;
@@ -2329,8 +2334,8 @@ async function fetchAndStoreIncomingMedia(
             if (matchedButtonIdx !== -1) {
               const b = currentNode.data.buttons[matchedButtonIdx];
               // Tenta encontrar a aresta pelo ID do botão ou pelo handle sequencial
-              const possibleHandles = [b.id, `btn_${matchedButtonIdx}`, `btn-${matchedButtonIdx}`, matchedButtonIdx.toString()];
-              nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && possibleHandles.includes(e.sourceHandle));
+              const possibleHandles = [b.id, `btn_${matchedButtonIdx}`, `btn-${matchedButtonIdx}`, matchedButtonIdx.toString(), `btn-${matchedButtonIdx}-handle` ];
+              nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (possibleHandles.includes(e.sourceHandle) || e.sourceHandle === b.id));
               
               console.log(`[FLOW-DEBUG] Matched text "${text}" to button index ${matchedButtonIdx}. Found edge: ${!!nextEdge}`);
             }
