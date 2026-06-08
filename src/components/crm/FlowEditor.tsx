@@ -796,7 +796,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                                   updateNodeData(selectedNode.id, { buttons: newButtons });
                                 }}
                                 placeholder="https://..."
-                                className="text-[10px] h-7 bg-white"
+                                className="text-[10px] h-7 bg-slate-50 text-slate-900 border-slate-200"
                               />
                             )}
                             <p className="text-[8px] text-muted-foreground leading-tight italic">
@@ -991,7 +991,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                       </Label>
                       <Textarea 
                         placeholder="Ex: Olá! Sou o assistente virtual. Como posso te ajudar a escolher o melhor produto hoje?"
-                        className="text-xs min-h-[80px] bg-white border-slate-200"
+                        className="text-xs min-h-[80px] bg-slate-50 text-slate-900 border-slate-200 focus-visible:ring-violet-500"
                         value={(selectedNode.data.initialMessage as string) || ''}
                         onChange={(e) => updateNodeData(selectedNode.id, { initialMessage: e.target.value })}
                       />
@@ -1006,7 +1006,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                       </Label>
                       <Textarea 
                         placeholder="Ex: Você é um vendedor especialista. Use links de pagamento, tire dúvidas sobre o curso e tente fechar a venda. Se o cliente pedir para falar com um humano, use a saída lateral."
-                        className="text-xs min-h-[150px] bg-violet-50/30 border-violet-100"
+                        className="text-xs min-h-[150px] bg-slate-50 text-slate-900 border-slate-200 focus-visible:ring-violet-500"
                         value={(selectedNode.data.prompt as string) || ''}
                         onChange={(e) => updateNodeData(selectedNode.id, { prompt: e.target.value })}
                       />
