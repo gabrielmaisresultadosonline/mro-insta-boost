@@ -2212,6 +2212,11 @@ const CRM = () => {
     setConfirmSend(null);
     setContactSending(targetContactId, true);
     try {
+      // Desativa o agente de IA automaticamente ao iniciar um fluxo manual
+      if (selectedContact.ai_active) {
+        await updateContactStatus(targetContactId, { ai_active: false });
+      }
+
       const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
         body: { action: 'startFlow', contactId: targetContactId, waId: targetWaId, flowId }
       });
