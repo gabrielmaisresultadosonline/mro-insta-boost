@@ -702,8 +702,9 @@ const CRM = () => {
             } else if (m.direction === 'outbound') {
               const src = (m as any)?.metadata?.source;
               const isEcho = src === 'echo_mobile_app' || src === 'meta_webhook_echo';
-              const isManual = (m as any)?.metadata?.source === 'manual_send';
-              if (isEcho || isManual) continue;
+              const isManual = src === 'manual_send';
+              const isAutomation = src === 'api_automation' || m.message_type === 'template' || m.message_type === 'carousel';
+              if (isEcho || isManual || !isAutomation) continue;
               const inFreeWindow = t - lastInbound < DAY;
               const inPaidWindow = t - lastPaidStart < DAY;
               if (!inFreeWindow && !inPaidWindow) {
