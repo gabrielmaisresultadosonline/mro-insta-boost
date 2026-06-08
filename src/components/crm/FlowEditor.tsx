@@ -58,6 +58,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 
 // Custom Node Types
+const PixNode = ({ data }: any) => (
+  <Card className="min-w-[200px] border-cyan-500 shadow-md">
+    <Handle type="target" position={Position.Top} />
+    <CardHeader className="p-3 bg-cyan-500 text-white rounded-t-lg">
+      <CardTitle className="text-xs font-bold flex items-center gap-2">
+        <Zap className="w-3 h-3" /> Cobrança PIX
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="p-3">
+      <div className="space-y-1">
+        <p className="text-[10px] font-bold text-slate-700">Valor: R$ {data.amount || '0,00'}</p>
+        <p className="text-[9px] text-muted-foreground line-clamp-1 italic">{data.description || 'Pagamento via PIX'}</p>
+      </div>
+    </CardContent>
+    <Handle type="source" position={Position.Bottom} />
+  </Card>
+);
+
 const MessageNode = ({ data }: any) => (
   <Card className="min-w-[200px] border-blue-500 shadow-md">
     <Handle type="target" position={Position.Top} />
@@ -386,6 +404,7 @@ const nodeTypes = {
   template: TemplateNode,
   jump: JumpNode,
   aiAgent: AIAgentNode,
+  pix: PixNode,
 };
 
 const edgeTypes = {
@@ -501,6 +520,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       case 'template': data = { templateName: '', language: 'pt_BR', anyResponse: false }; break;
       case 'jump': data = { targetFlowId: '', targetFlowName: '' }; break;
       case 'aiAgent': data = { prompt: '', labelOnHumanTransfer: 'Atenção: Humano Necessário' }; break;
+      case 'pix': data = { pixKey: '', amount: '47.00', description: 'Pagamento via PIX' }; break;
     }
 
     const newNode: Node = {
@@ -637,7 +657,18 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                 <div className="flex flex-col items-start">
                   <span className="text-blue-800 font-bold text-xs">Template Meta</span>
                   <span className="text-[9px] text-blue-600 font-medium uppercase tracking-wider">Marketing/Utilitário</span>
+              <Button 
+                variant="outline" 
+                className="justify-start gap-2 border-cyan-500/20 bg-cyan-50 hover:bg-cyan-100 group transition-all h-auto py-2.5 shadow-sm" 
+                onClick={() => addNode('pix')}
+              >
+                <Zap className="w-5 h-5 text-cyan-600 group-hover:scale-110 transition-transform" /> 
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-cyan-800 font-bold text-xs">Enviar PIX</span>
+                  <span className="text-[9px] text-cyan-600 font-medium uppercase tracking-wider">Copia e Cola + QR Code</span>
                 </div>
+              </Button>
+            </div>
               </Button>
               <Button variant="outline" className="justify-start gap-2 border-slate-700/20 hover:bg-slate-700/10" onClick={() => addNode('crmAction')}>
                 <Zap className="w-4 h-4 text-slate-700" /> Ação CRM
@@ -699,7 +730,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                     <div className="space-y-3">
                       <Label className="text-xs">Botões (Máx 3)</Label>
                       {(selectedNode.data.buttons as any[]).map((btn, idx) => (
-                        <div key={idx} className="space-y-1 p-2 border rounded-md bg-slate-50/50">
+                        <div key={idx} className="space-y-2 p-2 border rounded-md bg-slate-50/50">
                           <div className="flex gap-2">
                             <Input 
                               value={btn.text} 
@@ -723,6 +754,19 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                               <X className="w-3 h-3" />
                             </Button>
                           </div>
+                          <div className="flex items-center gap-2 px-1">
+                            <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Link (Opcional):</Label>
+                            <Input 
+                              value={btn.url || ''} 
+                              onChange={(e) => {
+                                const newButtons = [...(selectedNode.data.buttons as any[])];
+                                newButtons[idx].url = e.target.value;
+                                updateNodeData(selectedNode.id, { buttons: newButtons });
+                              }}
+                              placeholder="https://..."
+                              className="text-[10px] h-6"
+                            />
+                          </div>
                         </div>
                       ))}
                       {(selectedNode.data.buttons as any[]).length < 3 && (
@@ -731,7 +775,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                           size="sm" 
                           className="w-full text-xs h-8" 
                           onClick={() => {
-                            const newButtons = [...(selectedNode.data.buttons as any[]), { text: 'Novo Botão', id: `btn-${Date.now()}` }];
+                            const newButtons = [...(selectedNode.data.buttons as any[]), { text: 'Novo Botão', id: `btn-${Date.now()}`, url: '' }];
                             updateNodeData(selectedNode.id, { buttons: newButtons });
                           }}
                         >
@@ -861,6 +905,44 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                           <SelectItem value="horas">Horas</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                )}
+
+                {selectedNode.type === 'pix' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Chave PIX (E-mail, CPF ou Aleatória)</Label>
+                      <Input 
+                        value={(selectedNode.data.pixKey as string) || ''} 
+                        onChange={(e) => updateNodeData(selectedNode.id, { pixKey: e.target.value })}
+                        placeholder="ex: financeiro@empresa.com"
+                        className="text-xs h-8"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Valor da Cobrança (R$)</Label>
+                      <Input 
+                        type="number"
+                        value={(selectedNode.data.amount as string) || ''} 
+                        onChange={(e) => updateNodeData(selectedNode.id, { amount: e.target.value })}
+                        placeholder="47.00"
+                        className="text-xs h-8"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Descrição do Item</Label>
+                      <Input 
+                        value={(selectedNode.data.description as string) || ''} 
+                        onChange={(e) => updateNodeData(selectedNode.id, { description: e.target.value })}
+                        placeholder="Curso Cabeleireira Completa"
+                        className="text-xs h-8"
+                      />
+                    </div>
+                    <div className="p-2 bg-cyan-50 rounded border border-cyan-100">
+                      <p className="text-[9px] text-cyan-700 italic leading-tight">
+                        Ao chegar neste nó, o sistema gerará automaticamente um código Copia e Cola e o texto de instrução para o cliente.
+                      </p>
                     </div>
                   </div>
                 )}

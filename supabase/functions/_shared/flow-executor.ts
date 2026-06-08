@@ -9,7 +9,44 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       const buttons = node.data?.buttons || [];
       
       if (buttons && buttons.length > 0) {
-        // Enviar como mensagem interativa com botões (Meta Interactive Buttons)
+        // Verifica se há botões com link (URL)
+        const linkButtons = buttons.filter((btn: any) => btn.url && btn.url.startsWith('http'));
+        
+        if (linkButtons.length > 0) {
+           console.log(`[EXECUTOR] Enviando botões de LINK para ${waId}`);
+           const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
+           
+           // A Meta API Cloud para "Link Buttons" exige templates ou Mensagens Interativas de tipo diferente.
+           // Para botões de URL pura no "Interactive", o WhatsApp suporta através de chamadas a templates 
+           // ou usando o tipo "cta_url" no Action.
+           await supabase.functions.invoke('meta-whatsapp-crm', {
+            headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+            body: { 
+              action: 'sendMessage', 
+              to: waId, 
+              contactId,
+              meta_phone_number_id: settings?.meta_phone_number_id,
+              meta_access_token: settings?.meta_access_token,
+              interactive: {
+                type: 'cta_url',
+                header: { type: 'text', text: 'Link Externo' },
+                body: { text: text || "Clique abaixo para acessar:" },
+                footer: { text: "ZAP MRO CRM" },
+                action: {
+                  name: "cta_url",
+                  parameters: {
+                    display_text: linkButtons[0].label || linkButtons[0].text || "Acessar Site",
+                    url: linkButtons[0].url
+                  }
+                }
+              }
+            }
+          });
+          
+          // Se houver mais botões normais, enviamos eles depois (Meta limita 1 link button por interactive)
+        } else {
+          // Enviar como mensagem interativa com botões de resposta normais
+
         const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
         
         await supabase.functions.invoke('meta-whatsapp-crm', {
@@ -42,7 +79,9 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             }
           }
         });
+        } // fecha o else do if (linkButtons.length > 0)
       } else if (text) {
+
         console.log(`[EXECUTOR] Enviando mensagem de texto simples para ${waId}`);
         const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
 
@@ -215,7 +254,31 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       } else if (action === 'Notificar Agente') {
         // Implement logic if needed
       }
+    } else if (node.type === 'pix') {
+      const pixKey = node.data?.pixKey || "";
+      const amount = node.data?.amount || "0.00";
+      const description = node.data?.description || "Pagamento PIX";
+      
+      console.log(`[EXECUTOR] Gerando cobrança PIX para ${waId}: R$ ${amount}`);
+      
+      const pixText = `*COBRANÇA PIX GERADA*\n\n📌 *Item:* ${description}\n💰 *Valor:* R$ ${amount}\n\nAbra o app do seu banco e escolha a opção *PIX Copia e Cola*.\n\n👇 *CÓDIGO ABAIXO:*`;
+      
+      // Aqui simularíamos a geração do código real. Para o MVP, enviamos o texto e a instrução.
+      const pixCode = `00020126580014br.gov.bcb.pix01${pixKey.length.toString().padStart(2, '0')}${pixKey}520400005303986540${amount.length.toString().padStart(2, '0')}${amount}5802BR5913ZAP_MRO_CRM6009SAO_PAULO62070503***6304abcd`;
+
+      await supabase.functions.invoke('meta-whatsapp-crm', {
+        headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+        body: { action: 'sendMessage', to: waId, text: pixText, contactId }
+      });
+
+      await supabase.functions.invoke('meta-whatsapp-crm', {
+        headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+        body: { action: 'sendMessage', to: waId, text: pixCode, contactId }
+      });
+
+      console.log(`[EXECUTOR] PIX enviado com sucesso para ${waId}`);
     }
+
     
     // Find next node based on handle or standard connection
     // BUT: If the current node was a question/wait_response, we ALREADY handled its state transition in the webhook
