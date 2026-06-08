@@ -51,6 +51,9 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         };
         console.log(`[EXECUTOR] Invoking meta-whatsapp-crm action=sendMessage for text`);
         const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
+          headers: {
+            'Authorization': `Bearer INTERNAL_BYPASS`
+          },
           body
         });
         
