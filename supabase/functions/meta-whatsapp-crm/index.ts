@@ -871,11 +871,15 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
     }
     
     // CRUCIAL: Para aparecer como "Gravado na hora" (PTT), a Meta exige que o tipo seja 'audio'
-    // mas com o arquivo sendo um OGG/OPUS e nós NÃO enviamos legenda.
+    // e o objeto audio contenha "ptt: true". O arquivo deve ser OGG/OPUS.
     payload.type = media.type;
     if (media.type === 'audio') {
-      payload.audio = { id: mediaId };
-      console.log(`[MEDIA] Enviando ID ${mediaId} como áudio (PTT).`);
+      const isPTT = params.isVoice === true || !!params.audioUrl;
+      payload.audio = { 
+        id: mediaId,
+        ptt: isPTT 
+      };
+      console.log(`[MEDIA] Enviando ID ${mediaId} como áudio. PTT=${isPTT}.`);
     } else if (media.type === 'document') {
       payload.document = { id: mediaId, filename: media.fileName };
     } else {
