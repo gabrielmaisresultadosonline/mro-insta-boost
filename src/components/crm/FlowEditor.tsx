@@ -730,7 +730,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                     <div className="space-y-3">
                       <Label className="text-xs">Botões (Máx 3)</Label>
                       {(selectedNode.data.buttons as any[]).map((btn, idx) => (
-                        <div key={idx} className="space-y-1 p-2 border rounded-md bg-slate-50/50">
+                        <div key={idx} className="space-y-2 p-2 border rounded-md bg-slate-50/50">
                           <div className="flex gap-2">
                             <Input 
                               value={btn.text} 
@@ -754,6 +754,19 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                               <X className="w-3 h-3" />
                             </Button>
                           </div>
+                          <div className="flex items-center gap-2 px-1">
+                            <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Link (Opcional):</Label>
+                            <Input 
+                              value={btn.url || ''} 
+                              onChange={(e) => {
+                                const newButtons = [...(selectedNode.data.buttons as any[])];
+                                newButtons[idx].url = e.target.value;
+                                updateNodeData(selectedNode.id, { buttons: newButtons });
+                              }}
+                              placeholder="https://..."
+                              className="text-[10px] h-6"
+                            />
+                          </div>
                         </div>
                       ))}
                       {(selectedNode.data.buttons as any[]).length < 3 && (
@@ -762,7 +775,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                           size="sm" 
                           className="w-full text-xs h-8" 
                           onClick={() => {
-                            const newButtons = [...(selectedNode.data.buttons as any[]), { text: 'Novo Botão', id: `btn-${Date.now()}` }];
+                            const newButtons = [...(selectedNode.data.buttons as any[]), { text: 'Novo Botão', id: `btn-${Date.now()}`, url: '' }];
                             updateNodeData(selectedNode.id, { buttons: newButtons });
                           }}
                         >
