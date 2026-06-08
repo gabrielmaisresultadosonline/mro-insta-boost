@@ -317,7 +317,11 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       await supabase.from('crm_contacts').update({ 
         flow_state: 'ai_handling',
         ai_active: true,
-        last_interaction: new Date().toISOString()
+        last_interaction: new Date().toISOString(),
+        metadata: { 
+          ...(contact.metadata || {}),
+          has_waited_initial_response: true 
+        }
       }).eq('id', contact.id);
     }
     
@@ -2590,7 +2594,10 @@ async function fetchAndStoreIncomingMedia(
                    console.log(`[AI-AGENT] Wait response before start is enabled. Setting waiting_response for ${waId}.`);
                    await supabase.from('crm_contacts').update({ 
                      flow_state: 'waiting_response',
-                     metadata: { ...updatedContact.metadata, has_waited_initial_response: true }
+                     metadata: { 
+                       ...(updatedContact.metadata || {}), 
+                       has_waited_initial_response: true 
+                     }
                    }).eq('id', contactId);
                    return;
                 }
