@@ -892,7 +892,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   console.log(`[META-SEND] OK messageId=${result?.messages?.[0]?.id} to=${to} type=${payload.type}`);
 
   if (contact && !params.skipLocalSave) {
-    await supabase.from('crm_messages').insert({
+    const { data: savedMessage, error: insertError } = await supabase.from('crm_messages').insert({
       contact_id: contact.id,
       user_id: contact.user_id || null,
       direction: 'outbound',
@@ -905,7 +905,14 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
         ...(media?.type === 'audio' ? { is_voice: !!params.isVoice } : {}),
         ...(params.interactive ? { interactive: params.interactive } : {})
       },
-    })
+    }).select().single()
+
+    if (insertError) {
+      console.error('[META-SEND] Erro ao salvar mensagem enviada no banco:', insertError)
+    } else {
+      console.log('[META-SEND] Mensagem enviada salva com sucesso:', savedMessage.id)
+    }
+
     await supabase.from('crm_contacts').update({ last_interaction: new Date().toISOString() }).eq('id', contact.id)
   }
 
@@ -1161,7 +1168,7 @@ async function internalSendTemplate(
       }
     }
 
-    await supabase.from('crm_messages').insert({
+    const { data: savedMessage, error: insertError } = await supabase.from('crm_messages').insert({
       contact_id: contact.id,
       user_id: contact.user_id || null,
       direction: 'outbound',
@@ -1173,7 +1180,14 @@ async function internalSendTemplate(
         template_name: templateName,
         ...(carouselMetadata || {})
       }
-    })
+    }).select().single()
+
+    if (insertError) {
+      console.error('[TEMPLATE] Erro ao salvar template enviado no banco:', insertError)
+    } else {
+      console.log('[TEMPLATE] Template enviado salvo com sucesso:', savedMessage.id)
+    }
+
     await supabase.from('crm_contacts').update({ last_interaction: new Date().toISOString() }).eq('id', contact.id)
   }
 
