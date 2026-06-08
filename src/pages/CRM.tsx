@@ -566,7 +566,9 @@ const CRM = () => {
             // Mensagens enviadas pelo app do celular (echoes) NÃO são cobradas
             // pela Meta — não contam como conversa paga.
             const src = (m as any)?.metadata?.source;
-            if (src === 'echo_mobile_app' || src === 'meta_webhook_echo') continue;
+            const isEcho = src === 'echo_mobile_app' || src === 'meta_webhook_echo';
+            const isManual = (m as any)?.metadata?.source === 'manual_send';
+            if (isEcho || isManual) continue;
             // Regra oficial do WhatsApp: A janela de 24h só reseta quando o cliente responde.
             // O envio de mensagens outbound não estende a janela de atendimento livre.
             const inFreeWindow = t - lastInbound < DAY;
@@ -633,7 +635,9 @@ const CRM = () => {
               if (mDate === dateStr) contactActiveForDay = true;
             } else if (m.direction === 'outbound') {
               const src = (m as any)?.metadata?.source;
-              if (src === 'echo_mobile_app' || src === 'meta_webhook_echo') return;
+              const isEcho = src === 'echo_mobile_app' || src === 'meta_webhook_echo';
+              const isManual = (m as any)?.metadata?.source === 'manual_send';
+              if (isEcho || isManual) return;
               const inFreeWindow = mt - lastInbound < DAY;
               const inPaidWindow = mt - lastPaidStart < DAY;
               if (!inFreeWindow && !inPaidWindow) {
@@ -695,7 +699,9 @@ const CRM = () => {
               lastInbound = t;
             } else if (m.direction === 'outbound') {
               const src = (m as any)?.metadata?.source;
-              if (src === 'echo_mobile_app' || src === 'meta_webhook_echo') continue;
+              const isEcho = src === 'echo_mobile_app' || src === 'meta_webhook_echo';
+              const isManual = (m as any)?.metadata?.source === 'manual_send';
+              if (isEcho || isManual) continue;
               const inFreeWindow = t - lastInbound < DAY;
               const inPaidWindow = t - lastPaidStart < DAY;
               if (!inFreeWindow && !inPaidWindow) {
@@ -1342,7 +1348,7 @@ const CRM = () => {
 
       console.log('[CRM][sendText] →', { to: targetWaId, len: textToSend.length, preview: textToSend.slice(0, 80) });
       const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-        body: { action: 'sendMessage', to: targetWaId, text: textToSend }
+        body: { action: 'sendMessage', to: targetWaId, text: textToSend, metadata: { source: 'manual_send' } }
       });
       console.log('[CRM][sendText] ← resp', { error, data });
       if (error) throw error;
@@ -1894,7 +1900,7 @@ const CRM = () => {
           media_url: publicUrl,
           status,
           meta_message_id: metaMsgId,
-          metadata: { source, original_mime: contentType || null, is_voice: isVoice }
+          metadata: { source: 'manual_send', original_mime: contentType || null, is_voice: isVoice }
         })
         .select()
         .single();
