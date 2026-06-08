@@ -1530,7 +1530,7 @@ async function fetchAndStoreIncomingMedia(
       }
       
       const { action, ...params } = body;
-      console.log(`[REQUEST-DEBUG] Method: ${req.method}, Action: ${action || 'Webhook'}, Full Body keys: ${Object.keys(body).join(', ')}`);
+      console.log(`[REQUEST-DEBUG] Method: ${req.method}, Action: ${action || 'Webhook'}, AuthUID: ${userId}`);
 
       if (action === 'getCloudSettings') {
        if (!userId) {
