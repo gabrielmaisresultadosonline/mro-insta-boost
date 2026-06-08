@@ -806,22 +806,6 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   return uploadResult.id
 }
 
-  console.log(`[UPLOAD] Enviando mídia comum: type=${media.type}, contentType=${media.mime}, fileName=${media.fileName}`);
-  const uploadResponse = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/media`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}` },
-    body: form,
-  })
-  const uploadResult = await uploadResponse.json().catch(() => ({}))
-  console.log(`[UPLOAD] Resposta Meta (${uploadResponse.status}):`, JSON.stringify(uploadResult));
-  
-  if (!uploadResponse.ok) {
-    console.error(`[UPLOAD] Erro Meta detalhado:`, JSON.stringify(uploadResult));
-    throw new Error(uploadResult?.error?.message || `Erro ${uploadResponse.status} ao subir mídia na Meta`);
-  }
-  return uploadResult.id
-}
-
 async function handleInternalSendMessage(supabase: any, phoneNumberId: string, accessToken: string, params: any, contact: any, vpsTranscoderUrl?: string) {
   if (!phoneNumberId || !accessToken) throw new Error('Credenciais Meta não configuradas')
   const to = normalizePhone(params.to)
