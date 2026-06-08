@@ -74,17 +74,6 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
                       title: title
                     }
                   };
-                }),
-                ...buttons.slice(0, 3).map((btn: any, index: number) => {
-                  const rawTitle = btn.label || btn.text || `Opção ${index + 1}`;
-                  const title = rawTitle.length > 20 ? rawTitle.substring(0, 17) + "..." : rawTitle;
-                  return {
-                    type: 'reply',
-                    reply: {
-                      id: `btn-${index}`, // Fallback ID pattern common in edges
-                      title: title
-                    }
-                  };
                 })
               }
             }
