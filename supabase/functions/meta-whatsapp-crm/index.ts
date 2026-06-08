@@ -2289,10 +2289,15 @@ async function fetchAndStoreIncomingMedia(
           
           // Priority 1.5: Match text against button labels if no buttonId matched
           if (!nextEdge && text && currentNode.data?.buttons) {
-            const matchedButtonIdx = currentNode.data.buttons.findIndex((b: any) => 
-              b.text?.toLowerCase().trim() === text.toLowerCase().trim() ||
-              (text.toLowerCase().includes('[button reply]') && text.toLowerCase().includes(b.text?.toLowerCase().trim()))
-            );
+            const matchedButtonIdx = currentNode.data.buttons.findIndex((b: any) => {
+              const bText = (b.label || b.text || "").toLowerCase().trim();
+              const receivedText = text.toLowerCase().trim();
+              // Match exato ou se o botão foi truncado com "..." (regra dos 20 chars)
+              return bText === receivedText || 
+                     (bText.length > 20 && receivedText === (bText.substring(0, 17) + "...").toLowerCase()) ||
+                     (receivedText.length > 3 && bText.includes(receivedText)) ||
+                     (receivedText.includes('[button reply]') && receivedText.includes(bText));
+            });
             
             if (matchedButtonIdx !== -1) {
               const handleId = currentNode.data.buttons[matchedButtonIdx].id || `btn-${matchedButtonIdx}`;
