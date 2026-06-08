@@ -3735,7 +3735,19 @@ const CRM = () => {
                                     )}
                                   </p>
                                 </div>
-                                <div className="flex items-center gap-1 shrink-0 ml-auto">
+                                <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                                  {contact.ai_active && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateContactStatus(contact.id, { ai_active: false });
+                                      }}
+                                      className="p-1 hover:bg-blue-50 rounded-full transition-colors group"
+                                      title="Desativar Agente IA"
+                                    >
+                                      <Bot className="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
+                                    </button>
+                                  )}
                                   <span className={cn(
                                     "text-[10px] whitespace-nowrap opacity-70",
                                     contact.last_message_received_at && (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000) ? "text-[#25D366] font-bold opacity-100" : "text-muted-foreground"
@@ -3823,12 +3835,12 @@ const CRM = () => {
                                  {(contact.next_execution_time || contact.flow_state === 'waiting_response' || (contact.ai_active && contact.flow_state === 'ai_handling')) && (!contact.last_message_received_at || (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000)) && (
                                    <div className={cn(
                                      "flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded-sm tabular-nums whitespace-nowrap overflow-hidden shadow-sm",
-                                     contact.ai_active ? "bg-yellow-400 text-black" : "bg-red-600 text-white"
+                                     contact.ai_active ? "hidden" : "bg-red-600 text-white"
                                    )}>
-                                     {contact.ai_active ? <Bot className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />}
+                                     {contact.ai_active ? null : <Clock className="w-2.5 h-2.5" />}
                                      {(() => {
                                        if (contact.ai_active && contact.flow_state === 'ai_handling') {
-                                         return 'AGENTE I.A';
+                                         return null;
                                        }
                                        if (contact.flow_state === 'waiting_response') {
                                          const timeoutMinutes = contact.flow_timeout_minutes || 20;
@@ -3900,7 +3912,7 @@ const CRM = () => {
                                       size="icon"
                                       className={cn(
                                         "h-6 w-6 rounded-full transition-all shrink-0",
-                                        selectedContact.ai_active && metaSettings.ai_agent_enabled ? "text-[#00a884] bg-[#00a884]/10" : "text-muted-foreground grayscale"
+                                        selectedContact.ai_active && metaSettings.ai_agent_enabled ? "text-blue-500 bg-blue-500/10" : "text-muted-foreground grayscale"
                                       )}
                                       onClick={async () => {
                                         const newStatus = !selectedContact.ai_active;
