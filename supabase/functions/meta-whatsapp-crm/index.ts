@@ -1434,14 +1434,22 @@ async function fetchAndStoreIncomingMedia(
      if (hubMode === 'subscribe' && hubVerifyToken && webhookIdentifier) {
        const { data: settings } = await supabase
          .from('crm_settings')
-         .select('webhook_verify_token')
+         .select('user_id, meta_waba_id, meta_access_token, webhook_verify_token')
          .eq('webhook_identifier', webhookIdentifier)
-         .single();
+         .maybeSingle();
        
        if (settings && (settings.webhook_verify_token === hubVerifyToken || !settings.webhook_verify_token)) {
+         console.log('[WEBHOOK-SETUP] Hub verification success for identifier', webhookIdentifier);
+         if (settings.meta_waba_id && settings.meta_access_token) {
+            // Auto-subscribe the WABA to our app to ensure we receive notifications
+            await ensureWabaSubscribed(settings.meta_waba_id, settings.meta_access_token);
+         }
          return new Response(hubChallenge, { status: 200 });
+       } else {
+         console.warn('[WEBHOOK-SETUP] Hub verification failed or token mismatch', { webhookIdentifier, hubVerifyToken });
        }
      }
+
      return new Response('Forbidden', { status: 403 });
    }
  
