@@ -2238,16 +2238,24 @@ async function fetchAndStoreIncomingMedia(
         const nodeIdsWithTarget = new Set(flow.edges?.map((e: any) => e.target) || [])
         const startNode = flow.nodes.find((n: any) => !nodeIdsWithTarget.has(n.id)) || flow.nodes[0]
         
-        await supabase.from('crm_contacts').update({
+        console.log(`[START-FLOW] Setting contact ${contactId} to running state for flow ${flowId}, start node ${startNode.id}`);
+        const { error: updateError } = await supabase.from('crm_contacts').update({
           current_flow_id: flowId,
           current_node_id: startNode.id,
           flow_state: 'running',
           last_flow_interaction: new Date().toISOString(),
           next_execution_time: null,
           status: (flow.trigger_tag && flow.trigger_tag !== 'none') ? flow.trigger_tag : undefined
-        }).eq('id', contactId)
+        }).eq('id', contactId);
         
+        if (updateError) {
+          console.error(`[START-FLOW] Error updating contact ${contactId}:`, updateError);
+          throw updateError;
+        }
+        
+        console.log(`[START-FLOW] Executing initial node ${startNode.id} for contact ${contactId}`);
         const res: any = await executeVisualNode(supabase, flow, startNode, contactId, waId);
+        console.log(`[START-FLOW] executeVisualNode result:`, JSON.stringify(res));
         
         // Se o fluxo começou em um nó de Agente IA, processamos a resposta imediatamente
         if (res?.message?.includes('AI handling state')) {
