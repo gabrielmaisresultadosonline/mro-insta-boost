@@ -123,14 +123,20 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   if (!messageText) {
     const { data: lastMessage } = await supabase
       .from('crm_messages')
-      .select('content')
+      .select('content, message_type, media_url')
       .eq('contact_id', contact.id)
       .eq('direction', 'inbound')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
     
-    messageText = lastMessage?.content || "";
+    if (lastMessage?.message_type === 'audio' && lastMessage.media_url) {
+      console.log(`[AI-AGENT] Transcribing main message audio for ${waId}...`);
+      const transcription = await transcribeAudioForAi(OPENAI_API_KEY, lastMessage.media_url);
+      if (transcription) messageText = transcription;
+    } else {
+      messageText = lastMessage?.content || "";
+    }
   }
 
   // 2. Obter contexto da conversa (histórico)
@@ -141,14 +147,17 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
     .order('created_at', { ascending: false })
     .limit(15);
 
+  const processedRecentMessages = [];
   for (const msg of recentMessages || []) {
     if (msg.direction === 'inbound' && msg.message_type === 'audio' && msg.media_url && (!msg.content || msg.content === '[Mensagem de Áudio]')) {
+      console.log(`[AI-AGENT] Transcribing history audio for ${waId}...`);
       const transcription = await transcribeAudioForAi(OPENAI_API_KEY, msg.media_url);
       if (transcription) msg.content = `[Transcrição de áudio]: ${transcription}`;
     }
+    processedRecentMessages.push(msg);
   }
     
-  const history = (recentMessages || [])
+  const history = processedRecentMessages
     .reverse()
     .map((m: any) => `${m.direction === 'inbound' ? 'Cliente' : 'Assistente'}: ${describeMessageForHistory(m)}`)
     .join('\n');
