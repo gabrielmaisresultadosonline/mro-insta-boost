@@ -38,15 +38,17 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         console.log(`[EXECUTOR] Enviando mensagem de texto simples para ${waId}`);
         const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
 
+        const body: any = { 
+          action: 'sendMessage', 
+          to: waId, 
+          text, 
+          contactId,
+          meta_phone_number_id: settings?.meta_phone_number_id,
+          meta_access_token: settings?.meta_access_token
+        };
+        console.log(`[EXECUTOR] Invoking meta-whatsapp-crm action=sendMessage for text`);
         const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
-          body: { 
-            action: 'sendMessage', 
-            to: waId, 
-            text, 
-            contactId,
-            meta_phone_number_id: settings?.meta_phone_number_id,
-            meta_access_token: settings?.meta_access_token
-          }
+          body
         });
         
         if (invokeError) {
