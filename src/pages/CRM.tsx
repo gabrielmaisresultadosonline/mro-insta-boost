@@ -1853,7 +1853,7 @@ const CRM = () => {
     const optimisticMessage = {
       id: `temp-media-${Date.now()}`,
       contact_id: targetContactId,
-      content: isVoice ? '[Mensagem de Áudio...]' : `[${type.toUpperCase()}...]`,
+      content: actuallyIsVoice ? '[Mensagem de Áudio...]' : `[${type.toUpperCase()}...]`,
       direction: 'outbound',
       message_type: type,
       created_at: new Date().toISOString(),
