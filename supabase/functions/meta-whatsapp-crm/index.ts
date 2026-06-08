@@ -25,14 +25,17 @@ function describeMessageForHistory(message: any) {
 
 async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   try {
+    console.log(`[AI-AGENT] Downloading audio for transcription: ${audioUrl.slice(0, 100)}...`);
     const audioRes = await fetch(audioUrl);
     if (!audioRes.ok) throw new Error(`Falha ao baixar áudio (${audioRes.status})`);
 
     const audioBlob = await audioRes.blob();
     const formData = new FormData();
+    // OpenAI expects a file with a proper extension to guess format
     formData.append('file', audioBlob, 'audio.ogg');
     formData.append('model', 'whisper-1');
 
+    console.log(`[AI-AGENT] Calling OpenAI Whisper...`);
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}` },
@@ -40,9 +43,14 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
     });
 
     const data = await res.json();
+    if (!res.ok) {
+      console.error('[AI-AGENT] Whisper error:', JSON.stringify(data));
+      return '';
+    }
+    console.log(`[AI-AGENT] Transcription success: ${data.text?.slice(0, 50)}...`);
     return data.text || '';
   } catch (err) {
-    console.error('[AI-AGENT] Audio transcription error:', err);
+    console.error('[AI-AGENT] Audio transcription exception:', err);
     return '';
   }
 }
