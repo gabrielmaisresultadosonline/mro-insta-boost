@@ -8,7 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import {
   Users, Search, Flame, Tag, Filter, Loader2, ChevronDown,
   Phone, MessageSquare, Star, UserCheck, UserPlus, BarChart3,
-  X, Save, Edit2, RefreshCw, Share2, Settings2, CheckCircle2, Plus
+  X, Save, Edit2, RefreshCw, Share2, Settings2, CheckCircle2, Plus, Trash2
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
