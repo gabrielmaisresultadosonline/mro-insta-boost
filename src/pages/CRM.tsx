@@ -984,8 +984,10 @@ const CRM = () => {
   useEffect(() => {
     let filtered = contacts;
     
-    // In the "Conversations" tab, only show contacts that actually have an interaction history
-    if (activeTab === 'contacts') {
+    // In the "Conversations" (chat) tab, we only show contacts that have at least one message.
+    // However, we should be careful not to hide them if they just arrived.
+    if (activeTab === 'dashboard' || activeTab === 'contacts') {
+      // For contacts list/conversations view, we show all that have interaction
       filtered = filtered.filter(c => c.last_interaction !== null || c.total_messages_received > 0);
     }
 
