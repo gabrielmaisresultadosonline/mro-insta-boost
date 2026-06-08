@@ -1420,6 +1420,7 @@ async function internalSendTemplate(
       meta_message_id: result?.messages?.[0]?.id || null,
       metadata: { 
         template_name: templateName,
+        source: 'api_automation',
         ...(carouselMetadata || {})
       }
     }).select().single()
