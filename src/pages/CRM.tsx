@@ -4593,7 +4593,7 @@ const CRM = () => {
                                        <audio src={recordedAudioUrl} controls className="h-8 flex-1 min-w-0" />
                                        <div className="flex gap-1 shrink-0">
                                          <Button variant="ghost" size="icon" onClick={cancelAudioPreview} className="text-destructive h-8 w-8 hover:bg-destructive/10"><XCircle className="w-4 h-4" /></Button>
-                                         <Button size="icon" onClick={sendRecordedAudio} className="h-8 w-8 bg-green-600 hover:bg-green-700 text-white shadow-lg"><Send className="w-4 h-4" /></Button>
+                                         <Button size="icon" onClick={() => sendRecordedAudio()} className="h-8 w-8 bg-green-600 hover:bg-green-700 text-white shadow-lg"><Send className="w-4 h-4" /></Button>
                                        </div>
                                      </div>
                                      <p className="text-[9px] text-center text-muted-foreground font-medium uppercase tracking-tighter truncate">Envie ou descarte o áudio</p>
