@@ -82,7 +82,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     if (settings) {
       setCountdownEnabled(settings.countdown_trigger_enabled || false);
       setCountdownThreshold(settings.countdown_trigger_threshold_minutes || 60);
-      setCountdownType(settings.countdown_trigger_message_type || 'message');
+      setCountdownType(settings.countdown_trigger_message_type as 'message' | 'template' | 'flow' || 'message');
       setCountdownContent(settings.countdown_trigger_content || '');
       setCountdownTemplate(settings.countdown_trigger_template_id || '');
       setCountdownFlow(settings.countdown_trigger_flow_id || '');
