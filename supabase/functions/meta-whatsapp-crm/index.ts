@@ -236,6 +236,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
         if (lastOutbound?.content === reply) {
           console.log(`[AI-AGENT] Duplicated response detected for contact ${waId}. Skipping send.`);
         } else {
+          console.log(`[AI-AGENT] Sending reply to ${waId}: ${reply.substring(0, 50)}...`);
           await handleInternalSendMessage(
             supabase, 
             settings.meta_phone_number_id, 
@@ -244,6 +245,21 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
             contact,
             settings.vps_transcoder_url
           );
+        }
+      } else {
+        console.warn(`[AI-AGENT] Settings not available for user ${userId || contact.user_id}. Attempting to resolve for ${waId}.`);
+        const { data: retrySettings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token, vps_transcoder_url').eq('user_id', userId || contact.user_id).maybeSingle();
+        if (retrySettings?.meta_phone_number_id && retrySettings?.meta_access_token) {
+           await handleInternalSendMessage(
+            supabase, 
+            retrySettings.meta_phone_number_id, 
+            retrySettings.meta_access_token, 
+            { to: waId, text: reply }, 
+            contact,
+            retrySettings.vps_transcoder_url
+          );
+        } else {
+          console.error(`[AI-AGENT] Could not resolve settings to send reply to ${waId}`);
         }
       }
       
