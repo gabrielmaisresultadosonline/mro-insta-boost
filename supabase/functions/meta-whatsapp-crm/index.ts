@@ -112,10 +112,10 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
     .map((m: any) => `${m.direction === 'inbound' ? 'Cliente' : 'Assistente'}: ${describeMessageForHistory(m)}`)
     .join('\n');
     
-  let aiPrompt = contact.metadata?.ai_agent_prompt || "";
+  let aiPrompt = contact.ai_agent_prompt || contact.metadata?.ai_agent_prompt || "";
   let labelOnTransfer = contact.metadata?.ai_agent_label_on_transfer || "";
 
-  // Fallback essencial: se o contato ficou preso no nó de IA sem metadata,
+  // Fallback essencial: se o contato ficou preso no nó de IA sem prompt salvo,
   // busca o prompt diretamente do nó salvo no fluxo visual.
   if (!aiPrompt && contact.current_flow_id && contact.current_node_id) {
     console.log(`[AI-AGENT] Attempting to fetch prompt from node data for flow ${contact.current_flow_id} node ${contact.current_node_id}`);
@@ -130,6 +130,9 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       console.log(`[AI-AGENT] Found node data for ${contact.current_node_id}. Prompt length: ${aiNode.data.prompt?.length || 0}`);
       aiPrompt = aiNode.data.prompt || "";
       labelOnTransfer = aiNode.data.labelOnHumanTransfer || "";
+      
+      // Persiste o prompt no contato para as próximas mensagens
+      await supabase.from('crm_contacts').update({ ai_agent_prompt: aiPrompt }).eq('id', contact.id);
     } else {
       console.warn(`[AI-AGENT] No AI node found in flow config for id ${contact.current_node_id}`);
     }
@@ -2280,7 +2283,7 @@ async function fetchAndStoreIncomingMedia(
         const startNode = flow.nodes.find((n: any) => !nodeIdsWithTarget.has(n.id)) || flow.nodes[0]
         
         console.log(`[START-FLOW] Setting contact ${contactId} to running state for flow ${flowId}, start node ${startNode.id}`);
-        const { error: updateError } = await supabase.from('crm_contacts').update({
+        const updateData: any = {
           current_flow_id: flowId,
           current_node_id: startNode.id,
           flow_state: 'running',
@@ -2288,7 +2291,14 @@ async function fetchAndStoreIncomingMedia(
           next_execution_time: null,
           status: (flow.trigger_tag && flow.trigger_tag !== 'none') ? flow.trigger_tag : (currentContact?.status || 'new'),
           ai_active: startNode.type === 'aiAgent'
-        }).eq('id', contactId);
+        };
+
+        // Se o nó inicial for Agente IA, já salvamos o prompt no contato
+        if (startNode.type === 'aiAgent' && startNode.data?.prompt) {
+          updateData.ai_agent_prompt = startNode.data.prompt;
+        }
+
+        const { error: updateError } = await supabase.from('crm_contacts').update(updateData).eq('id', contactId);
         
         if (updateError) {
           console.error(`[START-FLOW] Error updating contact ${contactId}:`, updateError);
@@ -2414,14 +2424,24 @@ async function fetchAndStoreIncomingMedia(
         }
 
         if (nextNode) {
-          await supabase
-            .from('crm_contacts')
-            .update({ 
+            const updateData: any = { 
               current_node_id: nextNode.id, 
               last_flow_interaction: new Date().toISOString(),
               flow_state: 'running'
-            })
-            .eq('id', contactId)
+            };
+
+            // Se o próximo nó for Agente IA, atualizamos o prompt e o estado ai_active
+            if (nextNode.type === 'aiAgent') {
+              updateData.ai_active = true;
+              if (nextNode.data?.prompt) {
+                updateData.ai_agent_prompt = nextNode.data.prompt;
+              }
+            }
+
+            await supabase
+              .from('crm_contacts')
+              .update(updateData)
+              .eq('id', contactId)
           
           const res: any = await executeVisualNode(supabase, flow, nextNode, contactId, waId);
           
