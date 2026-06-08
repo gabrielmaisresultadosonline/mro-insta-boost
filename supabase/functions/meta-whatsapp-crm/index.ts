@@ -26,16 +26,26 @@ function describeMessageForHistory(message: any) {
 async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   try {
     console.log(`[AI-AGENT] Downloading audio for transcription: ${audioUrl.slice(0, 100)}...`);
+    
+    // Validate URL
+    if (!audioUrl || !audioUrl.startsWith('http')) {
+      console.error('[AI-AGENT] Invalid audio URL for transcription:', audioUrl);
+      return '';
+    }
+
     const audioRes = await fetch(audioUrl);
     if (!audioRes.ok) throw new Error(`Falha ao baixar áudio (${audioRes.status})`);
 
     const audioBlob = await audioRes.blob();
     const formData = new FormData();
-    // OpenAI expects a file with a proper extension to guess format
-    formData.append('file', audioBlob, 'audio.ogg');
+    
+    // Determinando a extensão correta se possível, mas OpenAI Whisper aceita .ogg / .mp3 / .wav etc.
+    // WhatsApp costuma enviar .ogg ou .m4a dependendo da plataforma
+    const filename = audioUrl.split('/').pop()?.split('?')[0] || 'audio.ogg';
+    formData.append('file', audioBlob, filename);
     formData.append('model', 'whisper-1');
 
-    console.log(`[AI-AGENT] Calling OpenAI Whisper...`);
+    console.log(`[AI-AGENT] Calling OpenAI Whisper for file: ${filename}...`);
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}` },
@@ -47,7 +57,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       console.error('[AI-AGENT] Whisper error:', JSON.stringify(data));
       return '';
     }
-    console.log(`[AI-AGENT] Transcription success: ${data.text?.slice(0, 50)}...`);
+    console.log(`[AI-AGENT] Transcription success: ${data.text?.slice(0, 100)}...`);
     return data.text || '';
   } catch (err) {
     console.error('[AI-AGENT] Audio transcription exception:', err);
@@ -139,9 +149,15 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       .maybeSingle();
     
     if (lastMessage?.message_type === 'audio' && lastMessage.media_url) {
-      console.log(`[AI-AGENT] Transcribing main message audio for ${waId}...`);
+      console.log(`[AI-AGENT] Transcribing main message audio for ${waId}... URL: ${lastMessage.media_url.slice(0, 50)}`);
       const transcription = await transcribeAudioForAi(OPENAI_API_KEY, lastMessage.media_url);
-      if (transcription) messageText = transcription;
+      if (transcription) {
+        messageText = transcription;
+        // Salva a transcrição no banco para evitar re-transcrever e para histórico visual
+        await supabase.from('crm_messages').update({ content: transcription }).eq('contact_id', contact.id).eq('media_url', lastMessage.media_url).eq('direction', 'inbound');
+      } else {
+        messageText = lastMessage?.content || "";
+      }
     } else {
       messageText = lastMessage?.content || "";
     }
