@@ -1615,6 +1615,14 @@ async function fetchAndStoreIncomingMedia(
           userId = contact.user_id;
           console.log('[AUTH-DEBUG] Resolvido userId a partir do contactId:', userId);
         }
+      } else if (!userId && params.waId) {
+        // Fallback: tentar resolver userId pelo waId (telefone) do contato
+        const normalizedWaId = normalizePhone(params.waId);
+        const { data: contactByWaId } = await supabase.from('crm_contacts').select('user_id').eq('phone', normalizedWaId).maybeSingle();
+        if (contactByWaId?.user_id) {
+          userId = contactByWaId.user_id;
+          console.log('[AUTH-DEBUG] Resolvido userId a partir do waId:', userId);
+        }
       }
       
       // Carregar configurações se o userId estiver disponível
@@ -2329,8 +2337,16 @@ async function fetchAndStoreIncomingMedia(
         const { data: contactAfterExec } = await supabase.from('crm_contacts').select('*').eq('id', contactId).single();
         if (contactAfterExec?.flow_state === 'ai_handling' || contactAfterExec?.ai_active || res?.message?.includes('AI handling state')) {
           console.log(`[START-FLOW] Started or moved to AI handling state. Triggering AI response for ${waId}`);
+          
+          // Se o prompt não estiver no contato, tentamos forçar a atualização a partir do nó
+          if (!contactAfterExec.ai_agent_prompt && startNode.type === 'aiAgent' && startNode.data?.prompt) {
+             console.log(`[START-FLOW] Force updating prompt from node to contact ${contactId}`);
+             await supabase.from('crm_contacts').update({ ai_agent_prompt: startNode.data.prompt }).eq('id', contactId);
+             contactAfterExec.ai_agent_prompt = startNode.data.prompt;
+          }
+          
           // Dispara a IA mesmo sem texto do cliente para que ela se apresente
-          await processAiAgentResponse(supabase, contactAfterExec, waId, params.text || "Inicie o atendimento se apresentando.", params.sourceMessageId, contactAfterExec.user_id || currentContact?.user_id);
+          await processAiAgentResponse(supabase, contactAfterExec, waId, params.text || "Inicie o atendimento se apresentando.", params.sourceMessageId, contactAfterExec.user_id || userId);
         }
         
         return jsonResponse(res)
