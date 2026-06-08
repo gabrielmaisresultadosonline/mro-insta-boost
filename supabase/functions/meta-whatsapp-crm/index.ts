@@ -169,9 +169,9 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   const systemPrompt = `${aiPrompt}
   
   REGRAS ADICIONAIS:
-  1. Responda de forma curta e direta no WhatsApp.
-  2. Considere o histórico inteiro e as últimas mensagens do cliente como uma única solicitação, pois ele pode mandar texto, áudio, imagem e vídeo em sequência.
-  3. Aceite imagens, áudios e vídeos como anexos recebidos no atendimento. Se for vídeo, NÃO transfira para humano só por ser vídeo: confirme que recebeu e peça/extraia o contexto necessário para seguir qualificando.
+  1. Responda de forma natural, humana e direta no WhatsApp.
+  2. IMPORTANTE: Você pode enviar até 3 mensagens curtas sequenciais para parecer mais humano (ex: uma saudação, depois a resposta, depois uma pergunta), em vez de um único bloco de texto longo.
+  3. Considere o histórico inteiro e as últimas mensagens do cliente como uma única solicitação.
   4. IMPORTANTE: Você deve interagir com o cliente primeiro. Somente transfira se o cliente explicitamente pedir para falar com um humano OU se você já tiver coletado informações suficientes para o atendimento humano.
   5. Se você identificar que DEVE transferir (conforme regra 4), responda APENAS com a palavra-chave: [[TRANSFER_TO_HUMAN]].
   6. Nunca diga que não consegue receber imagens/vídeos/áudios. Eles ficam registrados para o atendimento e você deve continuar a conversa normalmente.
@@ -204,7 +204,8 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent }
         ],
-        temperature: 0.7
+        temperature: 0.7,
+        n: 1
       }),
     });
 
@@ -218,7 +219,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
     const reply = aiData.choices?.[0]?.message?.content || "";
     console.log(`[AI-AGENT] OpenAI reply for ${waId}: ${reply.slice(0, 100)}...`);
     
-    if (reply.includes('[[TRANSFER_TO_HUMAN]]') && history.split('\n').filter(line => line.startsWith('Assistente:')).length >= 2) {
+    if (reply.includes('[[TRANSFER_TO_HUMAN]]')) {
       console.log(`[AI-AGENT] AI decided to transfer contact ${waId} to human.`);
       
              const { data: flow } = await supabase.from('crm_flows').select('*').eq('id', contact.current_flow_id).eq('user_id', contact.user_id).single();
@@ -272,14 +273,25 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
           console.log(`[AI-AGENT] Duplicated response detected for contact ${waId}. Skipping send.`);
         } else {
           console.log(`[AI-AGENT] Sending reply to ${waId}: ${reply.substring(0, 50)}...`);
-          await handleInternalSendMessage(
-            supabase, 
-            settings.meta_phone_number_id, 
-            settings.meta_access_token, 
-            { to: waId, text: reply }, 
-            contact,
-            settings.vps_transcoder_url
-          );
+          
+          // Split reply into multiple messages if it contains double newlines or is too long, 
+          // to simulate human typing multiple messages. Limit to max 3 messages.
+          const messageParts = reply.split(/\n\n+/).filter(p => p.trim()).slice(0, 3);
+          
+          for (const part of messageParts) {
+            await handleInternalSendMessage(
+              supabase, 
+              settings.meta_phone_number_id, 
+              settings.meta_access_token, 
+              { to: waId, text: part.trim() }, 
+              contact,
+              settings.vps_transcoder_url
+            );
+            // Small delay between messages to feel more human
+            if (messageParts.length > 1) {
+              await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+          }
         }
       } else {
         console.warn(`[AI-AGENT] Settings not available for user ${userId || contact.user_id}. Attempting to resolve for ${waId}.`);
