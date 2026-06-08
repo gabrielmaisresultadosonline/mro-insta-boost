@@ -258,6 +258,9 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       }).eq('id', contact.id);
       
     } else if (reply) {
+      // Use the settings resolved at the start of the function
+      const settings = aiSettings || await getCrmSettings(supabase, userId);
+      
       if (settings) {
         // MODIFICAÇÃO: Verifica se a resposta da IA é igual à última mensagem enviada para evitar duplicidade
         const { data: lastOutbound } = await supabase
