@@ -343,7 +343,7 @@ const AIAgentNode = ({ data }: any) => (
     <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-violet-600 !border-2 !border-white" />
     <CardHeader className="p-3 bg-violet-600 text-white rounded-t-sm">
       <CardTitle className="text-xs font-bold flex items-center gap-2">
-        <BrainCircuit className="w-4 h-4 animate-pulse" /> Agente I.A
+        <BrainCircuit className="w-4 h-4 animate-pulse" /> Atendente e Vendedor I.A
       </CardTitle>
     </CardHeader>
     <CardContent className="p-3 space-y-3 bg-white">
