@@ -1725,22 +1725,23 @@ const CRM = () => {
 
   const startRecording = async () => {
     try {
-      // Solicita permissão e inicia captura
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Tenta usar Opus se disponível (nativo no Chrome/Edge/Firefox)
+      // WhatsApp exige especificamente audio/ogg; codecs=opus para PTT (gravado na hora).
+      // Se o navegador não suportar nativamente (como Safari ou Chrome em alguns OS),
+      // enviamos o que ele suportar, mas tentamos forçar o mimeType correto.
       let mimeType = 'audio/ogg; codecs=opus';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         mimeType = 'audio/webm; codecs=opus';
       }
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/mp4'; // Fallback para Safari
+        mimeType = ''; // Deixa o navegador escolher o melhor
       }
 
-      console.log(`[RECORDER] Usando MimeType: ${mimeType}`);
+      console.log(`[RECORDER] Iniciando gravação. MimeType solicitado: ${mimeType || 'padrão'}`);
       
       const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : undefined
+        mimeType: mimeType || undefined
       });
       
       const chunks: Blob[] = [];
@@ -1749,14 +1750,16 @@ const CRM = () => {
       };
 
       recorder.onstop = () => {
-        const audioBlob = new Blob(chunks, { type: mimeType });
-        console.log(`Audio recording stopped. Size: ${audioBlob.size} bytes, Type: ${mimeType}`);
+        // Importante: Manter o type correto para que a Edge Function saiba como tratar
+        const finalType = chunks[0]?.type || mimeType || 'audio/webm';
+        const audioBlob = new Blob(chunks, { type: finalType });
+        console.log(`[RECORDER] Gravação finalizada. Tamanho: ${audioBlob.size} bytes, Tipo real: ${finalType}`);
+        
         const audioUrl = URL.createObjectURL(audioBlob);
         setRecordedAudioBlob(audioBlob);
         setRecordedAudioUrl(audioUrl);
         setIsPreviewingAudio(true);
         
-        // Para o stream para liberar o microfone
         stream.getTracks().forEach(track => track.stop());
       };
 

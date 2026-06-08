@@ -744,41 +744,63 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   if (!mediaResponse.ok) throw new Error(`Falha ao baixar mídia (${mediaResponse.status})`)
   
   const arrayBuffer = await mediaResponse.arrayBuffer();
-  // Para áudio e vídeo, usamos o MIME esperado pela Meta; alguns arquivos do storage
-  // podem vir com content-type incorreto (ex: video salvo como image/jpeg).
   const responseContentType = mediaResponse.headers.get('content-type') || '';
-  const contentType = media.type === 'audio'
-    ? 'audio/ogg; codecs=opus'
-    : (media.type === 'video' ? media.mime : (responseContentType || media.mime));
-  const fileName = media.type === 'audio' ? 'audio.ogg' : media.fileName;
   
-  const blob = new Blob([arrayBuffer], { type: contentType })
-  const form = new FormData()
-  form.append('messaging_product', 'whatsapp')
-  form.append('file', blob, fileName)
-  form.append('type', media.type)
+  // A Meta é extremamente exigente com áudio PTT. 
+  // Deve ser obrigatoriamente audio/ogg; codecs=opus ou audio/aac.
+  // Se o arquivo vier como webm, a Meta frequentemente rejeita com "Media upload error" após o upload.
+  let contentType = responseContentType || media.mime;
+  let fileName = media.fileName;
 
-  console.log(`[UPLOAD] Enviando para Meta PTT: type=${media.type}, contentType=${contentType}, size=${arrayBuffer.byteLength}, fileName=${fileName}`);
-  // Para mensagens de voz, a Meta recomenda enviar sem o parâmetro 'type' no FormData se o Blob já tem o tipo correto e fileName é voice.ogg
-  // ou garantir que o campo 'type' seja o primeiro.
   if (media.type === 'audio') {
-    // Re-build FormData for PTT (Push-to-Talk)
+    // Forçamos o MIME type que a Meta espera para mensagens de voz
+    if (contentType.includes('webm')) {
+      contentType = 'audio/ogg; codecs=opus';
+    }
+    fileName = 'voice.ogg';
+    
+    console.log(`[UPLOAD-PTT] Preparando áudio: originalMime=${responseContentType}, forçandoMime=${contentType}, size=${arrayBuffer.byteLength}`);
+    
+    const blob = new Blob([arrayBuffer], { type: contentType });
     const pttForm = new FormData();
     pttForm.append('messaging_product', 'whatsapp');
-    pttForm.append('file', blob, 'audio.ogg');
+    pttForm.append('file', blob, fileName);
+    pttForm.append('type', 'audio'); // Algumas documentações sugerem manter o type no form
     
     const pttResponse = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/media`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}` },
       body: pttForm,
     });
+    
     const pttResult = await pttResponse.json().catch(() => ({}));
     if (!pttResponse.ok) {
-      console.error(`[UPLOAD-PTT] Erro Meta:`, JSON.stringify(pttResult));
+      console.error(`[UPLOAD-PTT] Erro Meta detalhado:`, JSON.stringify(pttResult));
       throw new Error(pttResult?.error?.message || 'Erro ao subir PTT na Meta');
     }
     return pttResult.id;
   }
+
+  const blob = new Blob([arrayBuffer], { type: contentType })
+  const form = new FormData()
+  form.append('messaging_product', 'whatsapp')
+  form.append('file', blob, fileName)
+  form.append('type', media.type)
+
+  console.log(`[UPLOAD] Enviando mídia comum: type=${media.type}, contentType=${contentType}, fileName=${fileName}`);
+  const uploadResponse = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form,
+  })
+  const uploadResult = await uploadResponse.json().catch(() => ({}))
+  
+  if (!uploadResponse.ok) {
+    console.error(`[UPLOAD] Erro Meta detalhado:`, JSON.stringify(uploadResult));
+    throw new Error(uploadResult?.error?.message || `Erro ${uploadResponse.status} ao subir mídia na Meta`);
+  }
+  return uploadResult.id
+}
 
   console.log(`[UPLOAD] Enviando mídia comum: type=${media.type}, contentType=${media.mime}, fileName=${media.fileName}`);
   const uploadResponse = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/media`, {
