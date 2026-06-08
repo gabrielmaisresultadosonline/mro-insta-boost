@@ -566,12 +566,34 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   const isInAiNode = contact?.current_node_id?.includes('aiAgent');
   const isAiHandling = contact?.flow_state === 'ai_handling';
   const isAiActive = contact?.ai_active === true;
+  const isWaitingResponse = contact?.flow_state === 'waiting_response';
   const hasActiveFlow = !!contact?.current_flow_id;
 
   if (contact && (isAiHandling || (hasActiveFlow && (isInAiNode || isAiActive)))) {
     console.log(`[WEBHOOK] CAPTURING message from ${waId} for AI Agent. State: ${contact.flow_state}, Node: ${contact.current_node_id}, AI Active: ${contact.ai_active}`);
-     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     return jsonResponse(result);
+  } else if (contact && isWaitingResponse && hasActiveFlow) {
+    // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
+    console.log(`[WEBHOOK] CONTINUING Flow for ${waId}. Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
+    
+    // Invocamos continueFlow para processar a resposta do usuário no fluxo
+    const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      body: { 
+        action: 'continueFlow', 
+        contactId: contact.id, 
+        waId, 
+        buttonId: buttonId || null, 
+        text, 
+        sourceMessageId: message.id 
+      }
+    });
+
+    if (flowErr) {
+      console.error('[WEBHOOK] Error invoking continueFlow:', flowErr);
+    }
+    
+    return jsonResponse(result || { success: true });
   } else if (contact && contact.ai_active && contact.flow_state === 'idle') {
     console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent...`);
     
@@ -2261,21 +2283,37 @@ async function fetchAndStoreIncomingMedia(
           // Find next node based on buttonId or standard connection
           let nextEdge = null;
           if (buttonId) {
-            // Priority 1: Match specific button ID
-            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && e.sourceHandle === buttonId)
+            // Priority 1: Match specific button ID (exato ou prefixado ou index)
+            nextEdge = flow.edges.find((e: any) => {
+              if (e.source !== currentNode.id) return false;
+              const handle = e.sourceHandle;
+              return handle === buttonId || handle === `btn_${buttonId}` || handle?.includes(buttonId);
+            });
           }
           
           // Priority 1.5: Match text against button labels if no buttonId matched
           if (!nextEdge && text && currentNode.data?.buttons) {
-            const matchedButtonIdx = currentNode.data.buttons.findIndex((b: any) => 
-              b.text?.toLowerCase().trim() === text.toLowerCase().trim() ||
-              (text.toLowerCase().includes('[button reply]') && text.toLowerCase().includes(b.text?.toLowerCase().trim()))
-            );
+            console.log(`[FLOW-DEBUG] Attempting text match for: "${text}"`);
+            const matchedButtonIdx = currentNode.data.buttons.findIndex((b: any) => {
+              const bText = (b.label || b.text || "").toLowerCase().trim();
+              const receivedText = text.toLowerCase().trim();
+              
+              const match = bText === receivedText || 
+                     (bText.length > 20 && receivedText === (bText.substring(0, 17) + "...").toLowerCase()) ||
+                     (receivedText.length > 3 && bText.includes(receivedText)) ||
+                     (receivedText.includes('[button reply]') && receivedText.includes(bText));
+              
+              if (match) console.log(`[FLOW-DEBUG] Text match found: "${bText}"`);
+              return match;
+            });
             
             if (matchedButtonIdx !== -1) {
-              const handleId = currentNode.data.buttons[matchedButtonIdx].id || `btn-${matchedButtonIdx}`;
-              nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && e.sourceHandle === handleId);
-              console.log(`Matched text "${text}" to button index ${matchedButtonIdx} (handle: ${handleId})`);
+              const b = currentNode.data.buttons[matchedButtonIdx];
+              // Tenta encontrar a aresta pelo ID do botão ou pelo handle sequencial
+              const possibleHandles = [b.id, `btn_${matchedButtonIdx}`, `btn-${matchedButtonIdx}`, matchedButtonIdx.toString()];
+              nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && possibleHandles.includes(e.sourceHandle));
+              
+              console.log(`[FLOW-DEBUG] Matched text "${text}" to button index ${matchedButtonIdx}. Found edge: ${!!nextEdge}`);
             }
           }
           if (!nextEdge) {
