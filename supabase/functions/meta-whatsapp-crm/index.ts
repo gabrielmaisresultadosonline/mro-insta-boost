@@ -870,13 +870,12 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       throw uploadError;
     }
     
+    // CRUCIAL: Para aparecer como "Gravado na hora" (PTT), a Meta exige que o tipo seja 'audio'
+    // mas com o arquivo sendo um OGG/OPUS e nós NÃO enviamos legenda.
     payload.type = media.type;
     if (media.type === 'audio') {
-      // Para enviar como mensagem de voz (gravado na hora), usamos o objeto "audio"
-      // Se params.isVoice for true, a Meta tenta exibir como PTT.
-      // Além disso, algumas versões da API usam o campo "voice" ou o tipo "audio" com mime opus.
       payload.audio = { id: mediaId };
-      console.log(`[MEDIA] Enviando ID ${mediaId} como áudio (isVoice: ${!!params.isVoice}).`);
+      console.log(`[MEDIA] Enviando ID ${mediaId} como áudio (PTT).`);
     } else if (media.type === 'document') {
       payload.document = { id: mediaId, filename: media.fileName };
     } else {
