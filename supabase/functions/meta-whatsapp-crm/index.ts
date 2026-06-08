@@ -1755,6 +1755,8 @@ async function fetchAndStoreIncomingMedia(
                 // Re-fetch contact to get updated flow_state and metadata from executeVisualNode
                 const { data: updatedContact } = await supabase.from('crm_contacts').select('*').eq('id', contact.id).single();
                  if (updatedContact) {
+                     // Adicionamos um pequeno delay para garantir que a mensagem de abertura foi entregue antes da IA responder
+                     await new Promise(r => setTimeout(r, 2000));
                      await processAiAgentResponse(supabase, updatedContact, contact.wa_id, undefined, undefined, contact.user_id);
                  }
               }
