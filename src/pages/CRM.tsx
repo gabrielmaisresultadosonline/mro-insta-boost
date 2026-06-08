@@ -1924,17 +1924,15 @@ const CRM = () => {
       const isAudio = type === 'audio';
       setMediaUploadProgress(prev => ({ ...prev, [targetContactId]: 10 }));
       
-      let fileExt = 'bin';
-      let contentType = file.type || (isAudio ? (recordedAudioBlob?.type || 'audio/webm') : undefined);
+      let fileExt = 'ogg';
+      let contentType = 'audio/ogg; codecs=opus';
       
       if (isAudio) {
-        if (contentType?.includes('ogg')) fileExt = 'ogg';
-        else if (contentType?.includes('webm')) fileExt = 'webm';
-        else if (contentType?.includes('mp4') || contentType?.includes('aac')) fileExt = 'm4a';
-        else if (contentType?.includes('mpeg')) fileExt = 'mp3';
-        else fileExt = 'ogg';
+        fileExt = 'ogg';
+        contentType = 'audio/ogg; codecs=opus';
       } else if (file instanceof File) {
         fileExt = file.name.split('.').pop() || 'bin';
+        contentType = file.type;
       }
 
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;

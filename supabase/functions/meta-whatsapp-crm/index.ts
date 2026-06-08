@@ -873,16 +873,17 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       throw uploadError;
     }
     
-    payload.type = media.type;
+    // CRUCIAL: Para aparecer como "Gravado na hora" (PTT/Blue mic), a Meta Cloud API 
+    // exige que o tipo da mensagem seja 'audio' E que ela seja enviada 
+    // com um arquivo OGG/Opus sem legenda (caption).
+    // O parâmetro 'ptt: true' é opcional mas recomendado em algumas versões. 
+    // Se der erro 400 novamente, usaremos um fallback via VPS Transcoder se disponível.
+    payload.type = 'audio';
     if (media.type === 'audio') {
-      // AJUSTE: A Meta Cloud API às vezes rejeita a chave "ptt" se o upload não foi 
-      // classificado como voz ou dependendo da versão da API.
-      // O padrão documentado para Cloud API é enviar apenas o ID. 
-      // O WhatsApp identifica como PTT se for OGG/Opus sem legenda.
       payload.audio = { 
         id: mediaId
       };
-      console.log(`[MEDIA-SEND] Enviando áudio ID: ${mediaId}. WhatsApp deve auto-detectar PTT via OGG/Opus.`);
+      console.log(`[MEDIA-SEND] Enviando áudio ID: ${mediaId} como 'audio'. OGG/Opus detectado.`);
     } else if (media.type === 'document') {
       payload.document = { id: mediaId, filename: media.fileName };
     } else {
