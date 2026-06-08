@@ -2561,19 +2561,28 @@ async function fetchAndStoreIncomingMedia(
           
           const res: any = await executeVisualNode(supabase, flow, nextNode, contactId, waId);
           
-          // Se o próximo nó é um Agente IA, processamos a resposta com um pequeno delay 
-          // para garantir que a mensagem do nó anterior chegue primeiro no WhatsApp do cliente.
+          // Se o próximo nó é um Agente IA, verificamos se ele deve responder agora ou esperar.
+          // O Agente IA só responde automaticamente se NÃO houver uma mensagem de pergunta/botões ativa.
           if (res?.message?.includes('AI handling state') && text) {
+            // Se o nó de IA foi ativado por uma resposta do cliente (o que o 'text' indica),
+            // então ele deve processar a resposta agora.
             console.log(`[CONTINUE-FLOW] Moved to AI handling state. Scheduling AI response with delay for ${waId}`);
-            // Usamos setTimeout para não bloquear a resposta do webhook, mas processar logo em seguida
             setTimeout(async () => {
               const { data: updatedContact } = await supabase.from('crm_contacts').select('*').eq('id', contactId).single();
               if (updatedContact) {
-                // Delay de 3 segundos para parecer mais natural e não atropelar a mensagem inicial
+                // Delay para parecer mais natural
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 await processAiAgentResponse(supabase, updatedContact, waId, text, sourceMessageId, updatedContact.user_id);
               }
             }, 500);
+          } else if (res?.message?.includes('AI handling state') && !text) {
+            // Se NÃO há texto (foi uma transição automática do nó anterior para o IA),
+            // colocamos o estado em 'waiting_response' para que o IA responda apenas após a próxima mensagem do cliente.
+            console.log(`[CONTINUE-FLOW] AI Agent reached via auto-transition. Setting state to waiting_response for ${waId}`);
+            await supabase.from('crm_contacts').update({ 
+              flow_state: 'waiting_response',
+              ai_active: true 
+            }).eq('id', contactId);
           }
           
           return jsonResponse(res)
