@@ -2038,7 +2038,10 @@ const CRM = () => {
           skipLocalSave: type === 'audio' ? true : undefined,
           meta_phone_number_id: metaSettings.meta_phone_number_id,
           meta_access_token: metaSettings.meta_access_token
-        } 
+        },
+        headers: {
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
       });
       console.log('[CRM][sendMedia] resp edge', { error, data });
       if (error) throw error;
