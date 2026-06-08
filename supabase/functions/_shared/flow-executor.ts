@@ -137,11 +137,11 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       if (mediaUrl) {
         console.log(`[EXECUTOR] Chamando meta-whatsapp-crm para enviar ${node.type}: ${mediaUrl}`);
         const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
+          headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
           body: { 
             action: 'sendMessage', 
             to: waId, 
-            [node.type + 'Url']: mediaUrl,
-            contactId,
+...
             isVoice: node.type === 'audio'
           }
         });
