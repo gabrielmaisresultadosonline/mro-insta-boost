@@ -112,10 +112,10 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
     .map((m: any) => `${m.direction === 'inbound' ? 'Cliente' : 'Assistente'}: ${describeMessageForHistory(m)}`)
     .join('\n');
     
-  let aiPrompt = contact.metadata?.ai_agent_prompt || "";
+  let aiPrompt = contact.ai_agent_prompt || contact.metadata?.ai_agent_prompt || "";
   let labelOnTransfer = contact.metadata?.ai_agent_label_on_transfer || "";
 
-  // Fallback essencial: se o contato ficou preso no nó de IA sem metadata,
+  // Fallback essencial: se o contato ficou preso no nó de IA sem prompt salvo,
   // busca o prompt diretamente do nó salvo no fluxo visual.
   if (!aiPrompt && contact.current_flow_id && contact.current_node_id) {
     console.log(`[AI-AGENT] Attempting to fetch prompt from node data for flow ${contact.current_flow_id} node ${contact.current_node_id}`);
@@ -130,6 +130,9 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       console.log(`[AI-AGENT] Found node data for ${contact.current_node_id}. Prompt length: ${aiNode.data.prompt?.length || 0}`);
       aiPrompt = aiNode.data.prompt || "";
       labelOnTransfer = aiNode.data.labelOnHumanTransfer || "";
+      
+      // Persiste o prompt no contato para as próximas mensagens
+      await supabase.from('crm_contacts').update({ ai_agent_prompt: aiPrompt }).eq('id', contact.id);
     } else {
       console.warn(`[AI-AGENT] No AI node found in flow config for id ${contact.current_node_id}`);
     }
