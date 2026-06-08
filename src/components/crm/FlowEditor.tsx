@@ -895,6 +895,44 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                   </div>
                 )}
 
+                {selectedNode.type === 'pix' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Chave PIX (E-mail, CPF ou Aleatória)</Label>
+                      <Input 
+                        value={selectedNode.data.pixKey || ''} 
+                        onChange={(e) => updateNodeData(selectedNode.id, { pixKey: e.target.value })}
+                        placeholder="ex: financeiro@empresa.com"
+                        className="text-xs h-8"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Valor da Cobrança (R$)</Label>
+                      <Input 
+                        type="number"
+                        value={selectedNode.data.amount || ''} 
+                        onChange={(e) => updateNodeData(selectedNode.id, { amount: e.target.value })}
+                        placeholder="47.00"
+                        className="text-xs h-8"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Descrição do Item</Label>
+                      <Input 
+                        value={selectedNode.data.description || ''} 
+                        onChange={(e) => updateNodeData(selectedNode.id, { description: e.target.value })}
+                        placeholder="Curso Cabeleireira Completa"
+                        className="text-xs h-8"
+                      />
+                    </div>
+                    <div className="p-2 bg-cyan-50 rounded border border-cyan-100">
+                      <p className="text-[9px] text-cyan-700 italic leading-tight">
+                        Ao chegar neste nó, o sistema gerará automaticamente um código Copia e Cola e o texto de instrução para o cliente.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {selectedNode.type === 'aiAgent' && (
                   <div className="space-y-4">
                     <div className="space-y-2">
