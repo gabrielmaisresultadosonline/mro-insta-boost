@@ -6319,9 +6319,38 @@ const CRM = () => {
                       </CardHeader>
                       <CardContent className="p-4 md:p-6 space-y-6">
                         <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">OpenAI API Key</Label>
-                          <Input type="password" placeholder="sk-..." className="bg-muted/30 border-none h-11 rounded-xl" value={metaSettings.openai_api_key} onChange={e => setMetaSettings({...metaSettings, openai_api_key: e.target.value})} />
-                          <p className="text-[10px] text-muted-foreground">A ativação geral do robô deve ser feita na aba <strong>Agente IA</strong>.</p>
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                            OpenAI API Key
+                            {!metaSettings.openai_api_key && (
+                              <Badge variant="destructive" className="text-[9px] animate-pulse">Token Necessário</Badge>
+                            )}
+                          </Label>
+                          <div className="relative">
+                            <Input 
+                              type={myDataShowPassword ? "text" : "password"} 
+                              placeholder="sk-..." 
+                              className={cn(
+                                "bg-muted/30 border-none h-11 rounded-xl pr-10",
+                                !metaSettings.openai_api_key && "ring-2 ring-red-500/50"
+                              )} 
+                              value={metaSettings.openai_api_key || ''} 
+                              onChange={e => setMetaSettings({...metaSettings, openai_api_key: e.target.value})} 
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setMyDataShowPassword(!myDataShowPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              {myDataShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          {!metaSettings.openai_api_key ? (
+                            <p className="text-[10px] text-red-500 font-bold flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> Configure seu token no agente IA e salve para usar o agente i.a MRO.
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground">A ativação geral do robô deve ser feita na aba <strong>Agente IA</strong>.</p>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
