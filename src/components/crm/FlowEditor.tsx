@@ -58,6 +58,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 
 // Custom Node Types
+const PixNode = ({ data }: any) => (
+  <Card className="min-w-[200px] border-cyan-500 shadow-md">
+    <Handle type="target" position={Position.Top} />
+    <CardHeader className="p-3 bg-cyan-500 text-white rounded-t-lg">
+      <CardTitle className="text-xs font-bold flex items-center gap-2">
+        <Zap className="w-3 h-3" /> Cobrança PIX
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="p-3">
+      <div className="space-y-1">
+        <p className="text-[10px] font-bold text-slate-700">Valor: R$ {data.amount || '0,00'}</p>
+        <p className="text-[9px] text-muted-foreground line-clamp-1 italic">{data.description || 'Pagamento via PIX'}</p>
+      </div>
+    </CardContent>
+    <Handle type="source" position={Position.Bottom} />
+  </Card>
+);
+
 const MessageNode = ({ data }: any) => (
   <Card className="min-w-[200px] border-blue-500 shadow-md">
     <Handle type="target" position={Position.Top} />
