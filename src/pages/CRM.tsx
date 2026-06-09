@@ -7358,21 +7358,43 @@ const CRM = () => {
                       </p>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <Label className="text-xs font-bold text-zinc-700">Selecione o Template Aprovado</Label>
-                      <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
-                        <SelectTrigger className="h-11 rounded-xl bg-zinc-100 border-none text-zinc-900">
-                          <SelectValue placeholder="Escolha um modelo..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          {templates.filter(t => t.status === 'APPROVED').map(t => (
-                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[10px] text-emerald-600 font-medium italic flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Templates podem ser agendados para qualquer contato (Mesmo janelas expiradas).
-                      </p>
+                      {templates.filter(t => t.status === 'APPROVED').length > 0 ? (
+                        <>
+                          <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
+                            <SelectTrigger className="h-11 rounded-xl bg-zinc-100 border-none text-zinc-900">
+                              <SelectValue placeholder="Escolha um modelo..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              {templates.filter(t => t.status === 'APPROVED').map(t => (
+                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[10px] text-emerald-600 font-medium italic flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Templates podem ser agendados para qualquer contato (Mesmo janelas expiradas).
+                          </p>
+                        </>
+                      ) : (
+                        <div className="p-4 rounded-2xl bg-zinc-50 border border-dashed border-zinc-200 text-center space-y-3">
+                          <div className="flex flex-col items-center gap-2">
+                            <AlertCircle className="w-6 h-6 text-zinc-400" />
+                            <p className="text-sm font-medium text-zinc-600">Você ainda não possui modelos aprovados pela Meta.</p>
+                          </div>
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            className="w-full rounded-xl bg-primary text-white font-bold"
+                            onClick={() => {
+                              setIsSchedulingOpen(false);
+                              setActiveTab('templates');
+                            }}
+                          >
+                            Criar meu primeiro Template
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
