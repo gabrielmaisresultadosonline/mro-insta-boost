@@ -6,10 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import {
-  Users, Search, Flame, Tag, Filter, Loader2, ChevronDown,
+  Users, Search, Flame, Tag, Filter, Loader2, ChevronDown, ChevronRight,
   Phone, MessageSquare, Star, UserCheck, UserPlus, BarChart3,
-  X, Save, Edit2, RefreshCw, Share2, Settings2, CheckCircle2, Plus, Trash2
+  X, Save, Edit2, RefreshCw, Share2, Settings2, CheckCircle2, Plus, Trash2,
+  UserX, CheckSquare, Square
 } from 'lucide-react';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
