@@ -6158,7 +6158,6 @@ const CRM = () => {
                     <p className="text-muted-foreground text-xs md:text-sm font-medium">Gerencie as integrações e chaves de API do seu CRM.</p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                   <div className="space-y-4">
                     <Accordion type="single" collapsible className="w-full space-y-4">
                       <AccordionItem value="whatsapp-api" className="border rounded-2xl bg-card overflow-hidden shadow-sm">
