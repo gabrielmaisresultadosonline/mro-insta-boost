@@ -5450,6 +5450,25 @@ const CRM = () => {
                         <RefreshCcw className={cn("w-3.5 h-3.5 md:w-4 md:h-4 mr-2", syncingTemplates && "animate-spin")} />
                         Sincronizar Meta
                       </Button>
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 sm:flex-none h-10 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs md:text-sm font-bold"
+                        onClick={() => {
+                          const wabaId = metaSettings.meta_waba_id;
+                          if (wabaId) {
+                            window.open(`https://business.facebook.com/wa/static/shipping-and-payment/?waba_id=${wabaId}`, '_blank');
+                          } else {
+                            toast({ 
+                              title: "WABA ID não configurado", 
+                              description: "Conecte sua conta do WhatsApp Business primeiro para acessar os pagamentos.",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        <CreditCard className="w-3.5 h-3.5 md:w-4 md:h-4 mr-2" />
+                        Pagamentos
+                      </Button>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button className="flex-1 sm:flex-none h-10 bg-[#00a884] hover:bg-[#008f6f] shadow-lg shadow-[#00a884]/20 text-xs md:text-sm font-bold rounded-xl transition-all active:scale-95">
