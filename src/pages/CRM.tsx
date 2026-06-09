@@ -3540,14 +3540,7 @@ const CRM = () => {
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                    {(kanbanStatuses.length > 0 ? kanbanStatuses : [
-                      { value: 'new', label: 'Novo Lead', color: 'blue' },
-                      { value: 'responded', label: 'Em Atendimento', color: 'yellow' },
-                      { value: 'qualified', label: 'Qualificado', color: 'purple' },
-                      { value: 'human', label: '+ HUMANO', color: 'orange' },
-                      { value: 'closed', label: 'Venda Fechada', color: 'green' },
-                      { value: 'lost', label: 'Perdido', color: 'red' }
-                    ]).map(status => (
+                    {kanbanStatuses.map(status => (
                       <div 
                         key={status.value} 
                         className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden" 
