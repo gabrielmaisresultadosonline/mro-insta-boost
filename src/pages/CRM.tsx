@@ -5378,58 +5378,6 @@ const CRM = () => {
                       </Card>
                     </AccordionItem>
 
-                    <AccordionItem value="payments" className="border-none">
-                      <Card className="rounded-2xl shadow-sm border overflow-hidden">
-                        <CardHeader className="bg-amber-50 dark:bg-amber-900/10 border-b p-0">
-                          <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-amber-700 transition-all">
-                            <div className="flex flex-col items-start text-left gap-1">
-                              <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                                <CreditCard className="w-4 h-4 shrink-0" /> Saldo e Pagamentos Meta
-                              </CardTitle>
-                              <CardDescription>Gerencie seus créditos para disparos em massa</CardDescription>
-                            </div>
-                          </AccordionTrigger>
-                        </CardHeader>
-                        <AccordionContent>
-                          <CardContent className="p-6 pt-6 space-y-4">
-                            <div className="bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-xl flex items-start gap-3">
-                              <div className="w-8 h-8 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center shrink-0">
-                                <Zap className="w-4 h-4 text-amber-700 dark:text-amber-400 fill-amber-700 dark:fill-amber-400" />
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-sm font-bold text-amber-800 dark:text-amber-400">Aviso sobre Custos de Envio</h4>
-                                <p className="text-xs text-amber-700/80 dark:text-amber-400/70 leading-relaxed">
-                                  Para realizar disparos em massa (Broadcasting) e agendamentos, a Meta cobra uma taxa por mensagem enviada.
-                                  Em média, o custo de uma mensagem de marketing é de <strong>R$ 0,33</strong>.
-                                </p>
-                                <p className="text-[11px] text-amber-700/80 dark:text-amber-400/70">
-                                  Certifique-se de adicionar saldo ou um cartão de crédito na sua conta de anúncios da Meta para evitar falhas no envio.
-                                </p>
-                              </div>
-                            </div>
-
-                            <Button 
-                              className="w-full h-12 bg-[#00875A] hover:bg-[#00875A]/90 text-white font-bold rounded-xl shadow-lg shadow-[#00875A]/20 gap-2"
-                              onClick={() => {
-                                const wabaId = metaSettings.meta_waba_id;
-                                if (wabaId) {
-                                  window.open(`https://business.facebook.com/wa/static/shipping-and-payment/?waba_id=${wabaId}`, '_blank');
-                                } else {
-                                  toast({ 
-                                    title: "WABA ID não configurado", 
-                                    description: "Conecte sua conta do WhatsApp Business primeiro para acessar os pagamentos.",
-                                    variant: "destructive"
-                                  });
-                                }
-                              }}
-                            >
-                              <CreditCard className="w-5 h-5" />
-                              Ir para Central de Pagamentos Meta
-                            </Button>
-                          </CardContent>
-                        </AccordionContent>
-                      </Card>
-                    </AccordionItem>
 
                     <AccordionItem value="knowledge" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
