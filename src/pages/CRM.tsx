@@ -230,7 +230,7 @@ const CRM = () => {
     meta_app_secret: '',
     meta_display_phone_number: '',
     meta_verified_name: '',
-    google_client_id: '811195616147-3v5531d27p0v61st1e75m6lshk1m1n7f.apps.googleusercontent.com',
+    google_client_id: '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com',
     google_client_secret: '',
     openai_api_key: '',
     ai_agent_enabled: false,
@@ -1141,12 +1141,10 @@ const CRM = () => {
    };
 
   const handleConnectGoogle = () => {
-    if (!metaSettings.google_client_id) {
-      toast({ title: "Aviso", description: "Configure o Google Client ID nas configurações primeiro.", variant: "destructive" });
-      return;
-    }
-     // Usamos um callback único /google-callback. O usuário deve registrar este URL no Google Cloud Console.
-     const redirectUri = encodeURIComponent(window.location.origin + '/google-callback');
+    const clientId = metaSettings.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
+    
+    // Usamos um callback único /google-callback. O usuário deve registrar este URL no Google Cloud Console.
+    const redirectUri = encodeURIComponent(window.location.origin + '/google-callback');
     
     // Escopos: incluímos o de email/profile para identificar a conta e o de contatos para sincronizar
     const scopes = [
@@ -1156,7 +1154,7 @@ const CRM = () => {
     ].join(' ');
     
     const scope = encodeURIComponent(scopes);
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${metaSettings.google_client_id}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
     window.location.href = url;
   };
 
