@@ -469,13 +469,24 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl shadow-xl border border-white/5 overflow-hidden bg-[#111b21]">
-            <CardHeader className="bg-[#202c33] border-b border-white/5 p-4">
-              <CardTitle className="text-base md:text-lg flex items-center gap-2 text-[#00a884]">
-                <Plus className="w-5 h-5" /> Nova Campanha
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6">
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+
+            <AccordionItem value="new-campaign" className="border-none">
+              <Card className="rounded-2xl shadow-xl border border-white/5 overflow-hidden bg-[#111b21]">
+                <CardHeader className="bg-[#202c33] border-b border-white/5 p-0">
+                  <AccordionTrigger className="flex-1 p-4 hover:no-underline [&[data-state=open]>div>h3]:text-[#00a884] transition-all">
+                    <div className="text-left">
+                      <CardTitle className="text-base md:text-lg flex items-center gap-2 text-[#00a884]">
+                        <Plus className="w-5 h-5" /> Nova Campanha
+                      </CardTitle>
+                    </div>
+                  </AccordionTrigger>
+                </CardHeader>
+                <AccordionContent>
+                  <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6">
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-2">
                   <Label className="text-xs md:text-sm">Nome da Campanha</Label>
