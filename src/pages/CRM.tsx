@@ -7320,15 +7320,15 @@ const CRM = () => {
                     </Label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Nome Completo</Label>
-                        <Input placeholder="Nome do aniversariante" value={birthdayName} onChange={e => setBirthdayName(e.target.value)} className="h-10 rounded-xl bg-background" />
+                        <Label className="text-[10px] text-zinc-600">Nome Completo</Label>
+                        <Input placeholder="Nome do aniversariante" value={birthdayName} onChange={e => setBirthdayName(e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px]">WhatsApp (com DDI)</Label>
-                        <Input placeholder="Ex: 5511999999999" value={birthdayNumber} onChange={e => setBirthdayNumber(e.target.value)} className="h-10 rounded-xl bg-background" />
+                        <Label className="text-[10px] text-zinc-600">WhatsApp (com DDI)</Label>
+                        <Input placeholder="Ex: 5511999999999" value={birthdayNumber} onChange={e => setBirthdayNumber(e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400" />
                       </div>
                     </div>
-                    <p className="text-[9px] text-muted-foreground italic">* O aniversariante será cadastrado automaticamente como um novo contato.</p>
+                    <p className="text-[9px] text-zinc-500 italic">* O aniversariante será cadastrado automaticamente como um novo contato.</p>
                   </div>
                 </div>
               )}
