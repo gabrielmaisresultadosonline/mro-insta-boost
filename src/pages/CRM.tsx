@@ -5142,20 +5142,18 @@ const CRM = () => {
                                 <Zap className="w-4 h-4 text-amber-500" /> Modo de Operação
                               </Label>
                               <Select 
-                                value={metaSettings.ai_operation_mode || 'chat'} 
-                                onValueChange={(val) => setMetaSettings({...metaSettings, ai_operation_mode: val})}
+                                value="chat" 
+                                disabled
                               >
                                 <SelectTrigger>
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="chat">Apenas Conversar (I.A. Ativa)</SelectItem>
-                                  <SelectItem value="monitor">Apenas Qualificar (Passiva)</SelectItem>
-                                  <SelectItem value="hybrid">Híbrido (Conversa e Qualifica)</SelectItem>
                                 </SelectContent>
                               </Select>
                               <p className="text-[10px] text-muted-foreground italic">
-                                "Passiva" fará com que a IA não envie mensagens, apenas analise o contato.
+                                O agente IA está configurado para o modo de conversação ativa.
                               </p>
                             </div>
 
