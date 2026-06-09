@@ -7335,12 +7335,10 @@ const CRM = () => {
 
               {/* Tipo de Agendamento */}
               <div className="space-y-3">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">2. O que deseja agendar?</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-zinc-500">2. O que deseja agendar?</Label>
                 <Tabs value={scheduleType} onValueChange={(val: any) => setScheduleType(val)} className="w-full">
-                  <TabsList className="grid grid-cols-3 h-12 bg-muted/30 rounded-xl p-1 gap-1">
-                    <TabsTrigger value="message" disabled={selectedCampaignType === 'birthday'} className="rounded-lg text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">Mensagem</TabsTrigger>
-                    <TabsTrigger value="template" className="rounded-lg text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">Template</TabsTrigger>
-                    <TabsTrigger value="flow" disabled={selectedCampaignType === 'birthday'} className="rounded-lg text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">Fluxo</TabsTrigger>
+                  <TabsList className="grid grid-cols-1 h-12 bg-zinc-100 rounded-xl p-1 gap-1">
+                    <TabsTrigger value="template" className="rounded-lg text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-white">Template Aprovado</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
