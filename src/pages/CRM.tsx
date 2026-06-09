@@ -340,6 +340,7 @@ const CRM = () => {
   const [isNewWebhookDialogOpen, setIsNewWebhookDialogOpen] = useState(false);
   const [newWebhook, setNewWebhook] = useState({ name: '', response_type: 'text' as 'text' | 'template', template_id: '', secret_token: '', is_active: true, default_status: 'new' });
   const [googleContactsEnabled, setGoogleContactsEnabled] = useState(localStorage.getItem('google_contacts_connected') === 'true');
+  const [googleAccountInfo, setGoogleAccountInfo] = useState<{ email: string } | null>(null);
   const [mediaUploadProgress, setMediaUploadProgress] = useState<{ [key: string]: number }>({});
 
   const [scheduledMessages, setScheduledMessages] = useState<any[]>([]);
@@ -1082,6 +1083,16 @@ const CRM = () => {
       await fetchWebhooks();
       await fetchStatuses();
       await fetchAllScheduledMessages();
+
+      // Busca informações da conta Google se estiver conectado
+      if (localStorage.getItem('google_contacts_connected') === 'true') {
+        const { data: googleAcc } = await supabase
+          .from('crm_google_accounts')
+          .select('email')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (googleAcc) setGoogleAccountInfo({ email: googleAcc.email });
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -1147,6 +1158,27 @@ const CRM = () => {
     const scope = encodeURIComponent(scopes);
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${metaSettings.google_client_id}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
     window.location.href = url;
+  };
+
+  const handleDisconnectGoogle = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { error } = await supabase
+        .from('crm_google_accounts')
+        .delete()
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      localStorage.removeItem('google_contacts_connected');
+      setGoogleContactsEnabled(false);
+      setGoogleAccountInfo(null);
+      toast({ title: "Google desconectado" });
+    } catch (err: any) {
+      toast({ title: "Erro ao desconectar", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleSyncGoogleContacts = async () => {
@@ -5652,24 +5684,36 @@ const CRM = () => {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-[10px] font-bold uppercase text-primary leading-none mb-1">Google Contatos</span>
-                              <div className="flex items-center gap-2">
-                                <Switch 
-                                  id="google-sync-list" 
-                                  checked={metaSettings.google_auto_sync} 
-                                  onCheckedChange={async (checked) => {
-                                    setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
-                                    const { id, created_at, updated_at, webhook_verify_token, vps_status, ...rest } = metaSettings;
-                                    await supabase.from('crm_settings').upsert({
-                                      ...rest,
-                                      google_auto_sync: checked,
-                                      id: '00000000-0000-0000-0000-000000000001',
-                                      updated_at: new Date().toISOString()
-                                    });
-                                    toast({ title: checked ? "Sincronização automática ativada" : "Sincronização automática desativada" });
-                                  }}
-                                />
-                                <Label htmlFor="google-sync-list" className="text-[11px] font-bold cursor-pointer whitespace-nowrap">Sincronizar automático</Label>
-                              </div>
+                              {googleAccountInfo ? (
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{googleAccountInfo.email}</span>
+                                  <button 
+                                    onClick={handleDisconnectGoogle}
+                                    className="text-[10px] text-destructive hover:underline text-left font-bold"
+                                  >
+                                    SAIR
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Switch 
+                                    id="google-sync-list" 
+                                    checked={metaSettings.google_auto_sync} 
+                                    onCheckedChange={async (checked) => {
+                                      setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
+                                      const { id, created_at, updated_at, webhook_verify_token, vps_status, ...rest } = metaSettings;
+                                      await supabase.from('crm_settings').upsert({
+                                        ...rest,
+                                        google_auto_sync: checked,
+                                        id: '00000000-0000-0000-0000-000000000001',
+                                        updated_at: new Date().toISOString()
+                                      });
+                                      toast({ title: checked ? "Sincronização automática ativada" : "Sincronização automática desativada" });
+                                    }}
+                                  />
+                                  <Label htmlFor="google-sync-list" className="text-[11px] font-bold cursor-pointer whitespace-nowrap">Sincronizar automático</Label>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
