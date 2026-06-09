@@ -3755,7 +3755,105 @@ const CRM = () => {
                         </Accordion>
                       </div>
                       <ScrollArea className="flex-1 min-h-0 bg-white dark:bg-[#111b21]">
+                        {/* Fila de Contatos Sem Nome */}
+                        {(() => {
+                          const unnamed = contacts.filter(c => !c.name || c.name === c.wa_id);
+                          if (unnamed.length === 0) return null;
+                          return (
+                            <div className="border-b border-border/10">
+                              <button 
+                                onClick={() => setShowUnnamedContacts(!showUnnamedContacts)}
+                                className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <LucideIcons.UserX className="w-4 h-4 text-orange-500" />
+                                  <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Contatos sem nome</span>
+                                  <Badge className="bg-orange-500 text-white border-none h-4 px-1.5 text-[9px] font-bold">
+                                    {unnamed.length}
+                                  </Badge>
+                                </div>
+                                {showUnnamedContacts ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+                              </button>
+                              
+                              {showUnnamedContacts && (
+                                <div className="p-3 space-y-3 bg-muted/10 animate-in slide-in-from-top-1 duration-200">
+                                  <div className="flex gap-2">
+                                    <Input 
+                                      placeholder="Nome base (ex: Cliente)" 
+                                      value={bulkName}
+                                      onChange={(e) => setBulkName(e.target.value)}
+                                      className="h-8 text-[11px] rounded-lg border-muted/50"
+                                    />
+                                    <Button 
+                                      size="sm" 
+                                      disabled={selectedContactIds.length === 0 || !bulkName || isBulkNaming}
+                                      onClick={async () => {
+                                        setIsBulkNaming(true);
+                                        try {
+                                          await supabase.functions.invoke('meta-whatsapp-crm', {
+                                            body: { action: 'update-contacts-bulk', contactIds: selectedContactIds, name: bulkName.trim() }
+                                          });
+                                          toast({ title: `${selectedContactIds.length} contatos atualizados!` });
+                                          fetchContacts();
+                                          setSelectedContactIds([]);
+                                          setBulkName('');
+                                        } catch (e) {
+                                          toast({ title: 'Erro ao atualizar', variant: 'destructive' });
+                                        } finally {
+                                          setIsBulkNaming(false);
+                                        }
+                                      }}
+                                      className="h-8 bg-[#00a884] hover:bg-[#00a884]/90 text-[10px] rounded-lg px-2"
+                                    >
+                                      {isBulkNaming ? <RefreshCcw className="w-3 h-3 animate-spin" /> : 'Salvar massa'}
+                                    </Button>
+                                  </div>
+                                  
+                                  <div className="space-y-1 max-h-[200px] overflow-y-auto pr-1">
+                                    {unnamed.map(contact => (
+                                      <div 
+                                        key={contact.id}
+                                        className={cn(
+                                          "flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all border",
+                                          selectedContactIds.includes(contact.id) 
+                                            ? 'bg-primary/5 border-primary/20 ring-1 ring-primary/20' 
+                                            : 'bg-background border-transparent hover:border-border/50'
+                                        )}
+                                        onClick={() => {
+                                          setSelectedContactIds(prev => 
+                                            prev.includes(contact.id) ? prev.filter(i => i !== contact.id) : [...prev, contact.id]
+                                          );
+                                        }}
+                                      >
+                                        <div className="shrink-0">
+                                          {selectedContactIds.includes(contact.id) ? (
+                                            <CheckSquare className="w-3.5 h-3.5 text-primary" />
+                                          ) : (
+                                            <Square className="w-3.5 h-3.5 text-muted-foreground/30" />
+                                          )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[11px] font-bold tabular-nums truncate">{contact.wa_id}</p>
+                                        </div>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          onClick={(e) => { e.stopPropagation(); openChat(contact); }}
+                                          className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                        >
+                                          <MessageCircle className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                         {filteredContacts.length > 0 ? (
+
                           filteredContacts.map(contact => (
                             <button 
                               key={contact.id} 
