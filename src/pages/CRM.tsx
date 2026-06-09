@@ -7278,7 +7278,7 @@ const CRM = () => {
                           }}
                           className={cn(
                             "flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer",
-                            selectedContactsForScheduling.includes(contact.id) ? "border-primary bg-primary/5" : "border-transparent bg-muted/20"
+                            selectedContactsForScheduling.includes(contact.id) ? "border-primary bg-primary/5" : "border-transparent bg-zinc-100/50 hover:bg-zinc-100"
                           )}
                         >
                           <div className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0", selectedContactsForScheduling.includes(contact.id) ? "bg-primary border-primary" : "border-muted-foreground/30")}>
