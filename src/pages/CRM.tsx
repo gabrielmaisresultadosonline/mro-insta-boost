@@ -7195,7 +7195,7 @@ const CRM = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input 
                       placeholder="Pesquisar..." 
-                      className="pl-9 h-11 rounded-xl bg-muted/30 border-none"
+                      className="pl-9 h-11 rounded-xl bg-zinc-100 border-none text-zinc-900 placeholder:text-zinc-400"
                       value={scheduleSearch}
                       onChange={e => setScheduleSearch(e.target.value)}
                     />
