@@ -341,6 +341,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4 md:space-y-6 pb-24 md:pb-8 p-3 md:p-8 animate-in fade-in duration-500 overflow-x-hidden">
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#111b21] p-4 md:p-6 rounded-2xl border border-white/5 shadow-2xl">
         <div className="min-w-0 flex-1">
           <h2 className="text-xl md:text-3xl font-bold tracking-tight text-[#e9edef] truncate">Disparador de Mensagens</h2>
