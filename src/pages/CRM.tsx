@@ -7145,28 +7145,40 @@ const CRM = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
             <Button 
               variant={selectedCampaignType === 'individual' ? 'default' : 'outline'}
-              className={cn("h-11 rounded-xl text-[10px] font-bold px-1", selectedCampaignType === 'individual' && "bg-primary text-white shadow-lg shadow-primary/20")}
-              onClick={() => { setSelectedCampaignType('individual'); setSelectedContactsForScheduling([]); }}
+              className={cn("h-11 rounded-xl text-[10px] font-bold px-1 transition-all", 
+                selectedCampaignType === 'individual' 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary" 
+                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50")}
+              onClick={() => { setSelectedCampaignType('individual'); setSelectedContactsForScheduling([]); setScheduleType('template'); }}
             >
               <User className="w-4 h-4 mr-1.5" /> Individual
             </Button>
             <Button 
               variant={selectedCampaignType === 'batch' ? 'default' : 'outline'}
-              className={cn("h-11 rounded-xl text-[10px] font-bold px-1", selectedCampaignType === 'batch' && "bg-primary text-white shadow-lg shadow-primary/20")}
-              onClick={() => { setSelectedCampaignType('batch'); setSelectedContactsForScheduling([]); }}
+              className={cn("h-11 rounded-xl text-[10px] font-bold px-1 transition-all", 
+                selectedCampaignType === 'batch' 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary" 
+                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50")}
+              onClick={() => { setSelectedCampaignType('batch'); setSelectedContactsForScheduling([]); setScheduleType('template'); }}
             >
               <Users className="w-4 h-4 mr-1.5" /> Massa
             </Button>
             <Button 
               variant={selectedCampaignType === 'list' ? 'default' : 'outline'}
-              className={cn("h-11 rounded-xl text-[10px] font-bold px-1", selectedCampaignType === 'list' && "bg-primary text-white shadow-lg shadow-primary/20")}
-              onClick={() => { setSelectedCampaignType('list'); setSelectedContactsForScheduling([]); }}
+              className={cn("h-11 rounded-xl text-[10px] font-bold px-1 transition-all", 
+                selectedCampaignType === 'list' 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary" 
+                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50")}
+              onClick={() => { setSelectedCampaignType('list'); setSelectedContactsForScheduling([]); setScheduleType('template'); }}
             >
               <FileText className="w-4 h-4 mr-1.5" /> vCard / TXT
             </Button>
             <Button 
               variant={selectedCampaignType === 'birthday' ? 'default' : 'outline'}
-              className={cn("h-11 rounded-xl text-[10px] font-bold px-1", selectedCampaignType === 'birthday' && "bg-primary text-white shadow-lg shadow-primary/20")}
+              className={cn("h-11 rounded-xl text-[10px] font-bold px-1 transition-all", 
+                selectedCampaignType === 'birthday' 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 border-primary" 
+                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50")}
               onClick={() => { setSelectedCampaignType('birthday'); setSelectedContactsForScheduling([]); setScheduleType('template'); }}
             >
               <Calendar className="w-4 h-4 mr-1.5" /> Aniversário
