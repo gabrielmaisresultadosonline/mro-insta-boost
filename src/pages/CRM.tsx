@@ -4557,15 +4557,20 @@ const CRM = () => {
                                         </>
                                       )}
                                       {m.direction === 'outbound' && m.status === 'failed' && (
-                                        <div className="mt-2 flex items-start gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-[10px] leading-snug text-destructive clear-both">
-                                          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                                        <div className={cn(
+                                          "mt-2 flex items-start gap-1.5 rounded-md border p-2 text-[10px] leading-snug clear-both transition-colors",
+                                          isBusinessVerificationError(m)
+                                            ? "bg-white text-zinc-950 border-white/20 shadow-sm"
+                                            : "bg-destructive/10 text-destructive border-destructive/30"
+                                        )}>
+                                          <AlertCircle className={cn("w-3 h-3 mt-0.5 shrink-0", isBusinessVerificationError(m) ? "text-zinc-950" : "text-destructive")} />
                                           <div className="flex-1">
                                             <span>{getMetaDeliveryErrorMessage(m)}</span>
                                             {isBusinessVerificationError(m) && (
                                               <button
                                                 type="button"
                                                 onClick={() => window.open('https://business.facebook.com/', '_blank', 'noopener,noreferrer')}
-                                                className="mt-1.5 inline-flex items-center gap-1 rounded border border-destructive/40 bg-white/60 dark:bg-black/20 px-1.5 py-0.5 text-[10px] font-semibold text-destructive hover:bg-white"
+                                                className="mt-1.5 inline-flex items-center gap-1 rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-900 hover:bg-zinc-100 transition-colors"
                                               >
                                                 <ExternalLink className="w-3 h-3" />
                                                 Meta Business
