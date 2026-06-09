@@ -2821,6 +2821,9 @@ async function fetchAndStoreIncomingMedia(
        const { code, redirectUri: paramsRedirectUri } = params;
        const google_client_id = settings?.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
        const google_client_secret = settings?.google_client_secret || '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';
+       
+       console.log(`[OAUTH] Using ClientID: ${google_client_id}, Secret length: ${google_client_secret?.length || 0}`);
+       console.log(`[OAUTH] Redirect URI used: ${finalRedirectUri}`);
  
        // Se não vier redirectUri no parâmetro, usamos o padrão da Cloud
        const finalRedirectUri = paramsRedirectUri || 'https://zapmro.com.br/google-callback';
