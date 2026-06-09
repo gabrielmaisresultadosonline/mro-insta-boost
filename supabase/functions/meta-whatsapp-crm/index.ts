@@ -2894,8 +2894,8 @@ async function fetchAndStoreIncomingMedia(
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
-            client_id: settings.google_client_id,
-            client_secret: settings.google_client_secret,
+            client_id: settings?.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com',
+            client_secret: settings?.google_client_secret,
             refresh_token: account.refresh_token,
             grant_type: 'refresh_token',
           }),
