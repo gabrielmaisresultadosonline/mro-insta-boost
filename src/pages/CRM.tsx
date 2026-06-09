@@ -1090,13 +1090,14 @@ const CRM = () => {
   };
 
 
-   const handleSaveSettings = async () => {
+   const handleSaveSettings = async (customSettings?: any) => {
      setSaving(true);
      try {
        const { data: { user } } = await supabase.auth.getUser();
        if (!user) return;
  
-       const { id, created_at, updated_at, webhook_verify_token, vps_status, user_id, ...rest } = metaSettings;
+       const targetSettings = customSettings || metaSettings;
+       const { id, created_at, updated_at, webhook_verify_token, vps_status, user_id, ...rest } = targetSettings;
        
        // Garante que o ID do webhook seja preservado ou gerado
        const settingsToSave = {
