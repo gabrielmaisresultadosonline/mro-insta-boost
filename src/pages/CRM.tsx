@@ -3750,23 +3750,16 @@ const CRM = () => {
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                                  {contact.ai_active && (
+                                  {contact.ai_active && metaSettings.ai_agent_enabled && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         updateContactStatus(contact.id, { ai_active: false });
                                       }}
-                                      className={cn(
-                                        "p-1 rounded-full transition-colors group",
-                                        metaSettings.ai_agent_enabled ? "hover:bg-blue-50" : "opacity-50 cursor-not-allowed"
-                                      )}
-                                      title={metaSettings.ai_agent_enabled ? "Desativar Agente IA" : "Agente Global Desativado"}
-                                      disabled={!metaSettings.ai_agent_enabled}
+                                      className="p-1 hover:bg-blue-50 rounded-full transition-colors group"
+                                      title="Desativar Agente IA"
                                     >
-                                      <Bot className={cn(
-                                        "w-4 h-4",
-                                        metaSettings.ai_agent_enabled ? "text-blue-500 group-hover:text-blue-600" : "text-gray-400"
-                                      )} />
+                                      <Bot className="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
                                     </button>
                                   )}
                                   <span className={cn(
