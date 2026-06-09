@@ -4564,10 +4564,6 @@ const CRM = () => {
                           <div className="p-1 sm:p-2 bg-[#f0f2f5] dark:bg-[#202c33] border-t shadow-lg z-10 space-y-1 sm:space-y-2 shrink-0 w-full min-w-0 overflow-hidden">
                             {selectedContact ? (
                               <>
-                                 {/* Painel de Configurações IA removido como solicitado para limpar o layout */}
-
-                                  </div>
-                                </div>
                                   {isPreviewingAudio && recordedAudioUrl ? (
                                    <div className="flex flex-col gap-2 p-2 bg-primary/5 rounded-xl border border-primary/20 animate-in fade-in slide-in-from-bottom-2 shrink-0">
                                      <div className="flex items-center gap-2 overflow-hidden">
