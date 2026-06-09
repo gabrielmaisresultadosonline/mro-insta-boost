@@ -3683,7 +3683,7 @@ const CRM = () => {
                             </AccordionTrigger>
                             <AccordionContent>
                                <div className="flex gap-1.5 pb-2 pt-1 overflow-x-auto scrollbar-hide py-1">
-                                {['all', ...(kanbanStatuses.length > 0 ? kanbanStatuses.map(s => s.value) : ['new', 'responded', 'human', 'qualified', 'closed', 'lost'])].map(s => {
+                                {['all', ...kanbanStatuses.map(s => s.value)].map(s => {
                                   const statusObj = kanbanStatuses.find(status => status.value === s);
                                   const label = s === 'all' ? '🚀 Todos' : (statusObj ? statusObj.label : s.toUpperCase());
                                   
