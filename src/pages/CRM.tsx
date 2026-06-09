@@ -6145,86 +6145,49 @@ const CRM = () => {
                         </div>
                       </CardHeader>
                       <CardContent className="p-4 md:p-6 space-y-5">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Access Token Permanente</Label>
-                          <Input type="password" placeholder="EAA..." className="bg-muted/30 border-none h-11 rounded-xl" value={metaSettings.meta_access_token} onChange={e => setMetaSettings({...metaSettings, meta_access_token: e.target.value})} />
+                        <div className="flex items-center gap-2 pt-2">
+                          <div className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2",
+                            (metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id)
+                              ? "bg-red-500 text-white animate-pulse" 
+                              : "bg-muted text-muted-foreground"
+                          )}>
+                            <div className={cn("w-2 h-2 rounded-full", (metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) ? "bg-white" : "bg-muted-foreground")} />
+                            {(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) ? "ATIVADO LIGADO" : "AGUARDANDO CONFIGURAÇÃO"}
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Phone Number ID</Label>
-                          <Input placeholder="Ex: 109..." className="bg-muted/30 border-none h-11 rounded-xl" value={metaSettings.meta_phone_number_id} onChange={e => setMetaSettings({...metaSettings, meta_phone_number_id: e.target.value})} />
-                        </div>
-                         <div className="space-y-2">
-                           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Business Account ID (WABA)</Label>
-                           <Input placeholder="Ex: 105..." className="bg-muted/30 border-none h-11 rounded-xl" value={metaSettings.meta_waba_id} onChange={e => setMetaSettings({...metaSettings, meta_waba_id: e.target.value})} />
-                         </div>
- 
-                         <div className="space-y-2 p-3 bg-primary/5 rounded-xl border border-primary/10">
-                           <Label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
-                             <Webhook className="w-3 h-3" />
-                             Webhook URL
-                           </Label>
-                           <div className="flex gap-2">
-                             <Input 
-                               readOnly 
-                               value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-whatsapp-crm?id=${metaSettings.webhook_identifier}`} 
-                               className="bg-background/50 border-none text-[10px] h-9" 
-                             />
-                             <Button 
-                               variant="outline" 
-                               size="sm" 
-                               className="h-9 px-2"
-                               onClick={() => {
-                                 const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-whatsapp-crm?id=${metaSettings.webhook_identifier}`;
-                                 navigator.clipboard.writeText(url);
-                                 toast({ title: "Copiado!" });
-                               }}
-                             >
-                               <Copy className="w-4 h-4" />
-                             </Button>
-                           </div>
-                           <p className="text-[10px] text-muted-foreground">Configure esta URL no Painel da Meta para receber mensagens.</p>
-                         </div>
- 
-                         <div className="flex items-center gap-2 pt-2">
-                           <div className={cn(
-                             "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2",
-                             (metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id)
-                               ? "bg-red-500 text-white animate-pulse" 
-                               : "bg-muted text-muted-foreground"
-                           )}>
-                             <div className={cn("w-2 h-2 rounded-full", (metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) ? "bg-white" : "bg-muted-foreground")} />
-                             {(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) ? "ATIVADO LIGADO" : "AGUARDANDO CONFIGURAÇÃO"}
-                           </div>
-                         </div>
 
-                          {(metaSettings.meta_display_phone_number || metaSettings.meta_verified_name) && (
-                            <div className="mt-2 p-3 rounded-xl bg-green-500/10 border border-green-500/30">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 mb-1">Número conectado</p>
-                              {metaSettings.meta_display_phone_number && (
-                                <p className="text-sm font-semibold text-foreground">{metaSettings.meta_display_phone_number}</p>
-                              )}
-                              {metaSettings.meta_verified_name && (
-                                <p className="text-xs text-muted-foreground">{metaSettings.meta_verified_name}</p>
-                              )}
-                            </div>
-                          )}
+                        {(metaSettings.meta_display_phone_number || metaSettings.meta_verified_name) && (
+                          <div className="mt-2 p-3 rounded-xl bg-green-500/10 border border-green-500/30">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400 mb-1">Número conectado</p>
+                            {metaSettings.meta_display_phone_number && (
+                              <p className="text-sm font-semibold text-foreground">{metaSettings.meta_display_phone_number}</p>
+                            )}
+                            {metaSettings.meta_verified_name && (
+                              <p className="text-xs text-muted-foreground">{metaSettings.meta_verified_name}</p>
+                            )}
+                          </div>
+                        )}
 
-                         <div className="pt-3 border-t border-border/60 space-y-2">
-                           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                             <Facebook className="w-3 h-3" /> Embedded Signup (Meta Tech Provider)
-                           </Label>
-                           <p className="text-[11px] text-muted-foreground">
-                             Conecte uma conta WhatsApp Business diretamente pelo Facebook — preenche WABA, Phone Number ID e Access Token automaticamente.
-                           </p>
-                           <Button
-                             type="button"
-                             className="w-full h-11 rounded-xl bg-[#1877F2] hover:bg-[#1668d8] text-white font-semibold"
-                             onClick={() => startEmbeddedSignup()}
-                           >
-                             <Facebook className="w-4 h-4 mr-2" />
-                             Conectar com Facebook
-                           </Button>
-                         </div>
+                        {!(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) && (
+                          <div className="pt-3 border-t border-border/60 space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                              <Facebook className="w-3 h-3" /> Embedded Signup (Meta Tech Provider)
+                            </Label>
+                            <p className="text-[11px] text-muted-foreground">
+                              Conecte uma conta WhatsApp Business diretamente pelo Facebook — preenche WABA, Phone Number ID e Access Token automaticamente.
+                            </p>
+                            <Button
+                              type="button"
+                              className="w-full h-11 rounded-xl bg-[#1877F2] hover:bg-[#1668d8] text-white font-semibold"
+                              onClick={() => startEmbeddedSignup()}
+                            >
+                              <Facebook className="w-4 h-4 mr-2" />
+                              Conectar com Facebook
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
                       </CardContent>
                     </Card>
                     
