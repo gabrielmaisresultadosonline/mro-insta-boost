@@ -740,9 +740,13 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     ))
                   )}
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                    </ScrollArea>
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+          </Accordion>
+
           
           {/* Tutorial Card */}
           <Card className="rounded-2xl shadow-xl border border-white/5 overflow-hidden bg-[#202c33]">
