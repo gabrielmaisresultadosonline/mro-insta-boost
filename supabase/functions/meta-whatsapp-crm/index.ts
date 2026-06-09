@@ -2841,11 +2841,13 @@ async function fetchAndStoreIncomingMedia(
       if (!response.ok) throw new Error(`Google OAuth error: ${tokens.error_description || tokens.error}`);
 
       // Get user info to identify the account
+      console.log("[OAUTH] Fetching user info...");
       const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { 'Authorization': `Bearer ${tokens.access_token}` },
       });
       const userInfo = await userResponse.json();
       const email = userInfo.email;
+      console.log(`[OAUTH] Connected email: ${email}`);
 
        // Store in crm_google_accounts
        const { data: account, error: accError } = await supabase
