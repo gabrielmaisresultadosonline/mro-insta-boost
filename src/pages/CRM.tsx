@@ -3540,7 +3540,13 @@ const CRM = () => {
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                    {kanbanStatuses.map(status => (
+                    {kanbanStatuses.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-50">
+                        <Tag className="w-12 h-12 mb-4" />
+                        <h3 className="text-lg font-bold">Nenhuma etiqueta configurada</h3>
+                        <p className="text-sm">Clique no botão "+" no topo para criar sua primeira etapa do Kanban.</p>
+                      </div>
+                    ) : kanbanStatuses.map(status => (
                       <div 
                         key={status.value} 
                         className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden" 
