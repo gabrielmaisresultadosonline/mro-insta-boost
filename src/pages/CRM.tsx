@@ -7345,56 +7345,35 @@ const CRM = () => {
 
               {/* Conteúdo dinâmico baseado no tipo */}
               <div className="space-y-4 animate-in fade-in duration-300">
-                {scheduleType === 'message' && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold">Texto da Mensagem</Label>
-                    <Textarea 
-                      placeholder="Olá, como posso ajudar?..." 
-                      className="min-h-[100px] rounded-xl bg-muted/30 border-none resize-none"
-                      value={newMessage}
-                      onChange={e => setNewMessage(e.target.value)}
-                    />
-                    <p className="text-[10px] text-muted-foreground italic flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" /> Apenas contatos em janela de 24h receberão mensagens comuns.
-                    </p>
-                  </div>
-                )}
-
                 {scheduleType === 'template' && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold">Selecione o Template Aprovado</Label>
-                    <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
-                      <SelectTrigger className="h-11 rounded-xl bg-muted/30 border-none">
-                        <SelectValue placeholder="Escolha um modelo..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        {templates.filter(t => t.status === 'APPROVED').map(t => (
-                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-emerald-600 font-medium italic flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Templates podem ser agendados para qualquer contato (Mesmo janelas expiradas).
-                    </p>
-                  </div>
-                )}
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+                      <div className="flex items-center gap-2 text-amber-800">
+                        <AlertCircle className="w-4 h-4" />
+                        <p className="text-xs font-bold uppercase tracking-wider">Aviso de Cobrança</p>
+                      </div>
+                      <p className="text-xs text-amber-700 leading-relaxed">
+                        Agendamentos serão enviados apenas com <span className="font-bold">templates aprovados pela Meta</span>. 
+                        Isso gera um custo médio de <span className="font-bold text-amber-900">R$ 0,33</span> por disparo enviado.
+                      </p>
+                    </div>
 
-                {scheduleType === 'flow' && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold">Selecione o Fluxo Visual</Label>
-                    <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
-                      <SelectTrigger className="h-11 rounded-xl bg-muted/30 border-none">
-                        <SelectValue placeholder="Escolha um fluxo..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        {flows.filter(f => f.is_active).map(f => (
-                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-muted-foreground italic flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" /> Fluxos só podem ser agendados para contatos em janela de 24h.
-                    </p>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-zinc-700">Selecione o Template Aprovado</Label>
+                      <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
+                        <SelectTrigger className="h-11 rounded-xl bg-zinc-100 border-none text-zinc-900">
+                          <SelectValue placeholder="Escolha um modelo..." />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          {templates.filter(t => t.status === 'APPROVED').map(t => (
+                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-emerald-600 font-medium italic flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Templates podem ser agendados para qualquer contato (Mesmo janelas expiradas).
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
