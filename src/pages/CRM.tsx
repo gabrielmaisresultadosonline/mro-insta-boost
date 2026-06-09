@@ -4564,56 +4564,7 @@ const CRM = () => {
                           <div className="p-1 sm:p-2 bg-[#f0f2f5] dark:bg-[#202c33] border-t shadow-lg z-10 space-y-1 sm:space-y-2 shrink-0 w-full min-w-0 overflow-hidden">
                             {selectedContact ? (
                               <>
-                                <div className="flex flex-col gap-1 p-1 sm:p-2 bg-muted/20 rounded-xl border border-border/50 w-full min-w-0">
-                                  {/* Atenção: Robô Desativado Geral hidden as requested */}
-
-                                  <div className="flex items-center justify-end gap-2 flex-wrap">
-                                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap opacity-0 pointer-events-none absolute h-0 w-0 overflow-hidden">
-                                      <div className="flex items-center gap-1.5 sm:gap-2">
-                                        <Bot className={cn("w-4 h-4 shrink-0", selectedContact.ai_active && metaSettings.ai_agent_enabled ? "text-primary" : "text-muted-foreground")} />
-                                        <span className="text-[10px] sm:text-[11px] font-bold">Assistente IA</span>
-                                        <Switch 
-                                          checked={selectedContact.ai_active}
-                                          disabled={!metaSettings.ai_agent_enabled}
-                                          onCheckedChange={async (val: boolean) => {
-                                            await updateContactStatus(selectedContact.id, { ai_active: val });
-                                          }}
-                                        />
-                                      </div>
-                                      <div className="w-px h-4 bg-border hidden sm:block" />
-                                      <div className="flex items-center gap-1.5 sm:gap-2">
-                                        <TrendingUp className={cn("w-4 h-4 shrink-0", selectedContact.ai_strategy_active ? "text-indigo-500" : "text-muted-foreground")} />
-                                        <span className="text-[10px] sm:text-[11px] font-bold">Estratégias IA</span>
-                                        <Switch 
-                                          checked={selectedContact.ai_strategy_active}
-                                          onCheckedChange={async (val: boolean) => {
-                                            await updateContactStatus(selectedContact.id, { ai_strategy_active: val });
-                                          }}
-                                        />
-                                      </div>
-                                    </div>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 border border-red-100 rounded-lg sm:w-auto sm:h-7 sm:px-3 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-wider ml-auto"
-                                      onClick={async () => {
-                                        if (confirm('Tem certeza que deseja apagar todo o histórico desta conversa?')) {
-                                          try {
-                                            const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-                                              body: { action: 'clearHistory', contactId: selectedContact.id }
-                                            });
-                                            if (error) throw error;
-                                            toast({ title: 'Histórico apagado com sucesso!' });
-                                            // Limpa o chat localmente
-                                            setChatMessages([]);
-                                          } catch (err: any) {
-                                            toast({ title: 'Erro ao apagar histórico', variant: 'destructive' });
-                                          }
-                                        }
-                                      }}
-                                    >
-                                      <Trash2 className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Limpar Conversa</span>
-                                    </Button>
+                                 {/* Painel de Configurações IA removido como solicitado para limpar o layout */}
 
                                   </div>
                                 </div>
