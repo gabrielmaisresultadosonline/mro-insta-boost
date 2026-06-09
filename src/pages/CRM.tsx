@@ -7299,7 +7299,7 @@ const CRM = () => {
                   </Label>
                   <Textarea 
                     placeholder="Cole aqui os números (um por linha) ou o conteúdo de um arquivo vCard..."
-                    className="min-h-[120px] rounded-xl bg-muted/30 border-none resize-none font-mono text-[11px]"
+                    className="min-h-[120px] rounded-xl bg-zinc-100 border-none resize-none font-mono text-[11px] text-zinc-900 placeholder:text-zinc-400"
                     value={contactListText}
                     onChange={e => setContactListText(e.target.value)}
                   />
