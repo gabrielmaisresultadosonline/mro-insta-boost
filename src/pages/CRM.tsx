@@ -6699,7 +6699,7 @@ const CRM = () => {
                     <Card className="rounded-2xl border shadow-sm overflow-hidden">
                       <CardHeader className="bg-purple-500/5 border-b">
                         <CardTitle className="flex items-center gap-2">
-                          <Bot className="w-5 h-5 text-purple-500" /> Agente IA e Análises
+                          <Bot className="w-5 h-5 text-purple-500" /> Agente IA
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-6 space-y-4">
@@ -6708,14 +6708,14 @@ const CRM = () => {
                             <div className="p-2 rounded-lg bg-purple-100 text-purple-600"><Bot className="w-4 h-4" /></div>
                             <div>
                               <h5 className="text-xs font-bold">Assistente Inteligente</h5>
-                              <p className="text-[11px] text-muted-foreground">Responde seus clientes usando o conhecimento dos seus templates e fluxos. Pode ser ativado individualmente por contato.</p>
+                              <p className="text-[11px] text-muted-foreground">Responde seus clientes automaticamente usando o conhecimento configurado no "Cérebro" e nos seus templates.</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600"><TrendingUp className="w-4 h-4" /></div>
+                            <div className="p-2 rounded-lg bg-amber-100 text-amber-600"><CreditCard className="w-4 h-4" /></div>
                             <div>
-                              <h5 className="text-xs font-bold">Análises Estratégicas</h5>
-                              <p className="text-[11px] text-muted-foreground">A IA analisa o histórico completo e diz se o cliente tem interesse, o que faltou oferecer e qual a melhor estratégia de venda para fechar o negócio.</p>
+                              <h5 className="text-xs font-bold">Saldo e Pagamentos</h5>
+                              <p className="text-[11px] text-muted-foreground">O envio de templates aprovados e conversas de marketing via IA possuem um custo médio de R$ 0,33 por mensagem pela Meta.</p>
                             </div>
                           </div>
                         </div>
