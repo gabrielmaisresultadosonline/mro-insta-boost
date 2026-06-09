@@ -1148,10 +1148,10 @@ const CRM = () => {
   const handleConnectGoogle = () => {
     const clientId = metaSettings.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
     
-    // Usamos um callback único /google-callback. O usuário deve registrar este URL no Google Cloud Console.
+    // Usamos o callback que o sistema espera
     const redirectUri = encodeURIComponent(window.location.origin + '/google-callback');
     
-    // Escopos: incluímos o de email/profile para identificar a conta e o de contatos para sincronizar
+    // Escopos necessários para ler contatos
     const scopes = [
       'https://www.googleapis.com/auth/contacts.readonly',
       'https://www.googleapis.com/auth/userinfo.email',

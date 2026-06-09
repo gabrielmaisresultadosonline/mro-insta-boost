@@ -2818,10 +2818,13 @@ async function fetchAndStoreIncomingMedia(
     }
 
      if (action === 'exchangeGoogleCode') {
-       const { code, redirectUri } = params;
-        const google_client_id = settings?.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
-        const google_client_secret = settings?.google_client_secret || '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';
+       const { code, redirectUri: paramsRedirectUri } = params;
+       const google_client_id = settings?.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
+       const google_client_secret = settings?.google_client_secret || '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';
  
+       // Se não vier redirectUri no parâmetro, usamos o padrão da Cloud
+       const finalRedirectUri = paramsRedirectUri || 'https://zapmro.com.br/google-callback';
+
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -2829,7 +2832,7 @@ async function fetchAndStoreIncomingMedia(
           code,
           client_id: google_client_id,
           client_secret: google_client_secret,
-          redirect_uri: redirectUri,
+          redirect_uri: finalRedirectUri,
           grant_type: 'authorization_code',
         }),
       });
