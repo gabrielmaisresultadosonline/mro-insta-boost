@@ -4595,7 +4595,7 @@ const CRM = () => {
                                     <Button 
                                       variant="ghost" 
                                       size="icon" 
-                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 border border-red-100 rounded-lg sm:w-auto sm:h-7 sm:px-3 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-wider"
+                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 border border-red-100 rounded-lg sm:w-auto sm:h-7 sm:px-3 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-wider ml-auto"
                                       onClick={async () => {
                                         if (confirm('Tem certeza que deseja apagar todo o histórico desta conversa?')) {
                                           try {
