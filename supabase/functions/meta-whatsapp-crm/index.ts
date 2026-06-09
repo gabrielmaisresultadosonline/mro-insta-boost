@@ -257,9 +257,10 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   6. Para transferir apenas após a confirmação explícita do desejo do cliente, você DEVE incluir a palavra-chave [[TRANSFER_TO_HUMAN]] logo após o seu texto de resposta. Exemplo: "Um momento, vou chamar alguém. [[TRANSFER_TO_HUMAN]]"
   7. IMPORTANTE: Não force a transferência se o cliente apenas mencionar um nome ou fizer uma pergunta sobre quem está falando. Continue o atendimento com IA até que o pedido de falar com humano seja claro e direto.
   8. Considere o histórico inteiro e as últimas mensagens do cliente como uma única solicitação.
-  9. MÍDIAS (ÁUDIO/IMAGEM): Você é capaz de entender áudios e imagens perfeitamente. O sistema transcreve os áudios para você e fornece as imagens. NUNCA diga "não consigo ouvir seu áudio" ou "não consigo ver sua imagem". Se receber um áudio, responda baseando-se na transcrição fornecida no histórico.
-  10. LINKS: Ao enviar um link, envie apenas a URL pura (ex: https://site.com). Nunca use markdown para links como [texto](url) e nunca repita o link. Digite o link uma única vez.
-  11. Nunca saia do personagem.`;
+    9. MÍDIAS (ÁUDIO/IMAGEM): Você é capaz de entender áudios e imagens perfeitamente. O sistema transcreve os áudios para você e fornece as imagens. NUNCA diga "não consigo ouvir seu áudio" ou "não consigo ver sua imagem". Se receber um áudio, responda baseando-se na transcrição fornecida no histórico.
+    10. LINKS: Ao enviar um link, envie apenas a URL pura (ex: https://site.com). Nunca use markdown para links como [texto](url) e nunca repita o link. Digite o link uma única vez.
+    11. SAUDAÇÕES: Não envie saudações (como "Oi!", "Olá!", "Bom dia") se você já estiver conversando com o cliente no histórico recente. Se o histórico já contém interações, pule a saudação inicial e vá direto para a resposta ou pergunta.
+    12. Nunca saia do personagem.`;
   
   try {
     const visualAttachments = (recentMessages || [])
