@@ -5662,8 +5662,8 @@ const CRM = () => {
                       <p className="text-muted-foreground text-xs md:text-sm">Gerencie todos os seus contatos salvos e importados.</p>
                     </div>
                     
-                    <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-4 items-stretch sm:items-center">
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-3 py-3 md:px-4 md:py-2 bg-primary/5 rounded-2xl border border-primary/20 shadow-sm flex-1 lg:flex-none">
+                    <div className="flex flex-col xl:flex-row w-full lg:w-auto gap-4 items-stretch xl:items-center">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-3 py-3 md:px-4 md:py-2 bg-primary/5 rounded-2xl border border-primary/20 shadow-sm flex-1">
                         <div className="flex items-center justify-between sm:justify-start gap-3 sm:pr-4 sm:border-r border-primary/10">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm flex-shrink-0">
@@ -5706,7 +5706,7 @@ const CRM = () => {
                         </Button>
                       </div>
                       
-                      <div className="flex flex-row gap-2 w-full sm:w-auto">
+                      <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full lg:w-auto">
                         <Button 
                           variant="outline" 
                           onClick={() => setActiveTab('google-synced')} 
