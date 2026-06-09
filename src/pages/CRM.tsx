@@ -5096,7 +5096,7 @@ const CRM = () => {
                   <Accordion type="single" collapsible className="w-full space-y-4">
                     <AccordionItem value="motor" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
-                        <CardHeader className="bg-zinc-50 dark:bg-zinc-900/50 border-b flex flex-row items-center justify-between p-0">
+                        <CardHeader className="bg-zinc-50 dark:bg-zinc-900/50 border-b p-0">
                           <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-primary transition-all">
                             <div className="flex flex-col items-start text-left gap-1">
                               <CardTitle className="text-lg flex items-center gap-2">
@@ -5105,12 +5105,6 @@ const CRM = () => {
                               <CardDescription>Conexão e Modo de Operação</CardDescription>
                             </div>
                           </AccordionTrigger>
-                          <div className="px-6 shrink-0">
-                            <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-primary hover:bg-primary/90">
-                              {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                              Salvar Motor
-                            </Button>
-                          </div>
                         </CardHeader>
                         <AccordionContent>
                           <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
@@ -5146,6 +5140,13 @@ const CRM = () => {
                                 "Passiva" fará com que a IA não envie mensagens, apenas analise o contato.
                               </p>
                             </div>
+
+                            <div className="md:col-span-2 flex justify-end pt-4 border-t">
+                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
+                                {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Salvar Motor
+                              </Button>
+                            </div>
                           </CardContent>
                         </AccordionContent>
                       </Card>
@@ -5153,7 +5154,7 @@ const CRM = () => {
 
                     <AccordionItem value="triggers" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
-                        <CardHeader className="bg-amber-50 dark:bg-amber-900/10 border-b flex flex-row items-center justify-between p-0">
+                        <CardHeader className="bg-amber-50 dark:bg-amber-900/10 border-b p-0">
                           <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-amber-700 transition-all">
                             <div className="flex flex-col items-start text-left gap-1">
                               <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-500">
@@ -5162,12 +5163,6 @@ const CRM = () => {
                               <CardDescription>Quando e como o agente entra em ação</CardDescription>
                             </div>
                           </AccordionTrigger>
-                          <div className="px-6 shrink-0">
-                            <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-primary hover:bg-primary/90">
-                              {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                              Salvar Gatilhos
-                            </Button>
-                          </div>
                         </CardHeader>
                         <AccordionContent>
                           <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
@@ -5223,6 +5218,13 @@ const CRM = () => {
                                 />
                               </div>
                             </div>
+
+                            <div className="md:col-span-2 flex justify-end pt-4 border-t">
+                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
+                                {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Salvar Gatilhos
+                              </Button>
+                            </div>
                           </CardContent>
                         </AccordionContent>
                       </Card>
@@ -5230,7 +5232,7 @@ const CRM = () => {
 
                     <AccordionItem value="hours" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
-                        <CardHeader className="bg-blue-50 dark:bg-blue-900/10 border-b flex flex-row items-center justify-between p-0">
+                        <CardHeader className="bg-blue-50 dark:bg-blue-900/10 border-b p-0">
                           <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-blue-700 transition-all">
                             <div className="flex flex-col items-start text-left gap-1">
                               <CardTitle className="text-lg flex items-center gap-2 text-blue-700 dark:text-blue-400">
@@ -5239,19 +5241,6 @@ const CRM = () => {
                               <CardDescription>Defina quando o agente deve avisar sobre ausência</CardDescription>
                             </div>
                           </AccordionTrigger>
-                          <div className="flex items-center gap-3 px-6 shrink-0">
-                            <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-lg">
-                              <Label className="text-xs font-bold">Ativar</Label>
-                              <Switch 
-                                checked={metaSettings.business_hours_enabled}
-                                onCheckedChange={(val) => setMetaSettings({...metaSettings, business_hours_enabled: val})}
-                              />
-                            </div>
-                            <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-primary hover:bg-primary/90">
-                              {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                              Salvar Horário
-                            </Button>
-                          </div>
                         </CardHeader>
                         <AccordionContent>
                           <CardContent className="p-6 pt-6">
@@ -5310,6 +5299,20 @@ const CRM = () => {
                                 />
                               </div>
                             </div>
+
+                            <div className="flex items-center justify-between pt-4 border-t">
+                              <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-lg">
+                                <Label className="text-xs font-bold">Ativar</Label>
+                                <Switch 
+                                  checked={metaSettings.business_hours_enabled}
+                                  onCheckedChange={(val) => setMetaSettings({...metaSettings, business_hours_enabled: val})}
+                                />
+                              </div>
+                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
+                                {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Salvar Horário
+                              </Button>
+                            </div>
                           </CardContent>
                         </AccordionContent>
                       </Card>
@@ -5317,7 +5320,7 @@ const CRM = () => {
 
                     <AccordionItem value="brain" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
-                        <CardHeader className="bg-primary/5 border-b flex flex-row items-center justify-between p-0">
+                        <CardHeader className="bg-primary/5 border-b p-0">
                           <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-primary transition-all">
                             <div className="flex flex-col items-start text-left gap-1">
                               <CardTitle className="text-lg flex items-center gap-2">
@@ -5326,12 +5329,6 @@ const CRM = () => {
                               <CardDescription>Defina a personalidade e o objetivo do seu robô</CardDescription>
                             </div>
                           </AccordionTrigger>
-                          <div className="px-6 shrink-0">
-                            <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-primary hover:bg-primary/90">
-                              {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                              Salvar Cérebro
-                            </Button>
-                          </div>
                         </CardHeader>
                         <AccordionContent>
                           <CardContent className="p-6 space-y-6 pt-6">
@@ -5369,6 +5366,13 @@ const CRM = () => {
                                 onChange={(e) => setMetaSettings({...metaSettings, ai_system_prompt: e.target.value})}
                               />
                             </div>
+
+                            <div className="flex justify-end pt-4 border-t">
+                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
+                                {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Salvar Cérebro
+                              </Button>
+                            </div>
                           </CardContent>
                         </AccordionContent>
                       </Card>
@@ -5376,7 +5380,7 @@ const CRM = () => {
 
                     <AccordionItem value="knowledge" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
-                        <CardHeader className="bg-primary/5 border-b flex flex-row items-center justify-between p-0">
+                        <CardHeader className="bg-primary/5 border-b p-0">
                           <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-primary transition-all">
                             <div className="flex flex-col items-start text-left gap-1">
                               <CardTitle className="text-lg flex items-center gap-2">
@@ -5385,12 +5389,6 @@ const CRM = () => {
                               <CardDescription>A IA saberá quais botões e caminhos estão disponíveis</CardDescription>
                             </div>
                           </AccordionTrigger>
-                          <div className="px-6 shrink-0">
-                            <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-primary hover:bg-primary/90">
-                              {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                              Salvar Conhecimento
-                            </Button>
-                          </div>
                         </CardHeader>
                         <AccordionContent>
                           <CardContent className="p-6 pt-6">
@@ -5413,6 +5411,13 @@ const CRM = () => {
                                   />
                                 </div>
                               ))}
+                            </div>
+
+                            <div className="flex justify-end pt-4 border-t mt-6">
+                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
+                                {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Salvar Conhecimento
+                              </Button>
                             </div>
                           </CardContent>
                         </AccordionContent>
