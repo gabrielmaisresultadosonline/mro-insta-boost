@@ -5386,6 +5386,26 @@ const CRM = () => {
                       <p className="text-muted-foreground text-xs md:text-sm">Gerencie seus modelos oficiais aprovados pela Meta.</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-[10px] h-8 text-muted-foreground hover:text-primary transition-colors"
+                        onClick={() => {
+                          const wabaId = metaSettings.meta_waba_id;
+                          if (wabaId) {
+                            window.open(`https://business.facebook.com/wa/static/template-manager/?waba_id=${wabaId}`, '_blank');
+                          } else {
+                            toast({ 
+                              title: "WABA ID não configurado", 
+                              description: "Conecte sua conta primeiro para ver os modelos na Meta.",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        Ver modelos na Meta
+                      </Button>
                       <Button variant="outline" onClick={syncTemplates} disabled={syncingTemplates} className="flex-1 sm:flex-none h-10 text-xs md:text-sm">
                         <RefreshCcw className={cn("w-3.5 h-3.5 md:w-4 md:h-4 mr-2", syncingTemplates && "animate-spin")} />
                         Sincronizar Meta
