@@ -138,16 +138,19 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 
   
   // 1. Obter texto se não fornecido (pegar última mensagem do cliente)
-  if (!messageText) {
+  if (!messageText || messageText === "[Mensagem de Áudio]") {
+    console.log(`[AI-AGENT-DEBUG] messageText is empty or default for ${waId}. Fetching last inbound message.`);
     const { data: lastMessage } = await supabase
       .from('crm_messages')
-      .select('content, message_type, media_url')
+      .select('id, content, message_type, media_url')
       .eq('contact_id', contact.id)
       .eq('direction', 'inbound')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
     
+    console.log(`[AI-AGENT-DEBUG] Last message for ${waId}: type=${lastMessage?.message_type}, hasMedia=${!!lastMessage?.media_url}, content="${lastMessage?.content}"`);
+
     if (lastMessage?.message_type === 'audio' && lastMessage.media_url) {
       console.log(`[AI-AGENT] Transcribing main message audio for ${waId}... URL: ${lastMessage.media_url.slice(0, 50)}`);
       const transcription = await transcribeAudioForAi(OPENAI_API_KEY, lastMessage.media_url);
@@ -155,7 +158,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
         messageText = transcription;
         // Salva a transcrição no banco para evitar re-transcrever e para histórico visual
         console.log(`[AI-AGENT] Saving transcription to DB for ${waId}: ${transcription.slice(0, 50)}...`);
-        await supabase.from('crm_messages').update({ content: transcription }).eq('contact_id', contact.id).eq('media_url', lastMessage.media_url).eq('direction', 'inbound');
+        await supabase.from('crm_messages').update({ content: transcription }).eq('id', lastMessage.id);
       } else {
         console.warn(`[AI-AGENT] Transcription failed for main message of ${waId}`);
         messageText = lastMessage?.content || "";
@@ -198,8 +201,8 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 
   const processedRecentMessages = [];
   for (const msg of recentMessages || []) {
-    if (msg.direction === 'inbound' && msg.message_type === 'audio' && msg.media_url && (!msg.content || msg.content === '[Mensagem de Áudio]' || msg.content === '')) {
-      console.log(`[AI-AGENT] Transcribing history audio for ${waId}...`);
+    if (msg.direction === 'inbound' && msg.message_type === 'audio' && msg.media_url && (!msg.content || msg.content === '[Mensagem de Áudio]' || msg.content === '' || msg.content === '[audio]')) {
+      console.log(`[AI-AGENT-DEBUG] Transcribing history audio for ${waId}. Current content: "${msg.content}"`);
       const transcription = await transcribeAudioForAi(OPENAI_API_KEY, msg.media_url);
       if (transcription) {
         msg.content = transcription;
