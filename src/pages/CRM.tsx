@@ -7139,7 +7139,7 @@ const CRM = () => {
             <DialogTitle className="text-xl font-bold flex items-center gap-2 text-primary">
               <CalendarClock className="w-5 h-5" /> Novo Agendamento
             </DialogTitle>
-            <DialogDescription className="text-zinc-500">Agende templates aprovados para seus contatos.</DialogDescription>
+            <DialogDescription className="text-zinc-500">Agende templates aprovados para seus contatos de forma organizada.</DialogDescription>
           </DialogHeader>
           
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
