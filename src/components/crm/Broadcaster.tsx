@@ -673,14 +673,20 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
 
 
         <div className="lg:col-span-4 space-y-4 md:space-y-6">
-          <Card className="rounded-2xl shadow-xl border border-white/5 overflow-hidden bg-[#111b21] flex flex-col">
-            <CardHeader className="bg-[#202c33] border-b border-white/5 p-4">
-              <CardTitle className="text-base md:text-lg flex items-center gap-2 text-[#00a884]">
-                <History className="w-5 h-5" /> Histórico Recente
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 flex-1">
-              <ScrollArea className="h-[300px] lg:h-[500px]">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="history" className="border-none">
+              <Card className="rounded-2xl shadow-xl border border-white/5 overflow-hidden bg-[#111b21] flex flex-col">
+                <CardHeader className="bg-[#202c33] border-b border-white/5 p-0">
+                  <AccordionTrigger className="p-4 hover:no-underline [&[data-state=open]>div>h3]:text-[#00a884] transition-all">
+                    <CardTitle className="text-base md:text-lg flex items-center gap-2 text-[#00a884]">
+                      <History className="w-5 h-5" /> Histórico Recente
+                    </CardTitle>
+                  </AccordionTrigger>
+                </CardHeader>
+                <AccordionContent>
+                  <CardContent className="p-0 flex-1">
+                    <ScrollArea className="h-[300px] lg:h-[500px]">
+
                 <div className="p-4 space-y-3">
                   {broadcasts.length === 0 ? (
                     <div className="text-center py-10">
