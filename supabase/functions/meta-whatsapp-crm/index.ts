@@ -813,11 +813,12 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     }
     
     return jsonResponse(result || { success: true });
-  } else if (contact && (isAiActive || isAiHandling)) {
+  } else if (contact && (isAiActive || isAiHandling) && hasActiveFlow) {
     // FALLBACK: Se o contato tem IA ativa mas não estava no estado de handling (ex: idle mas ai_active=true)
     console.log(`[WEBHOOK] AI Fallback for ${waId}. isAiActive: ${isAiActive}, isAiHandling: ${isAiHandling}`);
     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     return jsonResponse(result);
+
   } else if (contact && isWaitingResponse && hasActiveFlow) {
     // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
     console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
@@ -839,8 +840,9 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     }
     
     return jsonResponse(result || { success: true });
-  } else if (contact && contact.ai_active && contact.flow_state === 'idle') {
+  } else if (contact && contact.ai_active && contact.flow_state === 'idle' && hasActiveFlow) {
     console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent...`);
+
     
     const { data: recentMessages } = await supabase
       .from('crm_messages')
