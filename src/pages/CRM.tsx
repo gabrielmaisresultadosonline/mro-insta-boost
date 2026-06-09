@@ -7378,10 +7378,9 @@ const CRM = () => {
                 )}
               </div>
 
-              {/* Data e Hora */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold flex items-center gap-2"><Calendar className="w-3 h-3" /> Data</Label>
+                  <Label className="text-xs font-bold flex items-center gap-2 text-zinc-700"><Calendar className="w-3 h-3 text-primary" /> Data</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
