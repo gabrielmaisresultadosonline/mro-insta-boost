@@ -2822,8 +2822,8 @@ async function fetchAndStoreIncomingMedia(
        const { code, redirectUri: paramsRedirectUri } = params;
        
        // Priority: Hardcoded for this specific project if settings are empty
-        const DEFAULT_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
-        const DEFAULT_CLIENT_SECRET = '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'; // Secret verified manually
+         const DEFAULT_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
+         const DEFAULT_CLIENT_SECRET = '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';
        
        const google_client_id = settings?.google_client_id || DEFAULT_CLIENT_ID;
        const google_client_secret = settings?.google_client_secret || DEFAULT_CLIENT_SECRET;
