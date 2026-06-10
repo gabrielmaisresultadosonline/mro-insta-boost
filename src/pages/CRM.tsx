@@ -5538,11 +5538,8 @@ const CRM = () => {
                           if (wabaId) {
                             window.open(`https://business.facebook.com/wa/static/template-manager/?waba_id=${wabaId}`, '_blank');
                           } else {
-                            toast({ 
-                              title: "WABA ID não configurado", 
-                              description: "Conecte sua conta primeiro para ver os modelos na Meta.",
-                              variant: "destructive"
-                            });
+                            // Fallback se não tiver WABA ID configurado
+                            window.open('https://business.facebook.com/wa/static/template-manager/', '_blank');
                           }
                         }}
                       >
