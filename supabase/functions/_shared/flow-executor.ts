@@ -337,12 +337,11 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           
           await supabase.from('crm_contacts').update({
             current_node_id: nextNode.id,
-            next_execution_time: null, // Reset next execution to execute immediately
+            next_execution_time: null,
             flow_state: 'running'
           }).eq('id', contactId);
           
-          // CRITICAL: Execute next node IMMEDIATELY to avoid getting stuck in "idle" or "waiting"
-          return await executeVisualNode(supabase, flow, nextNode, contactId, waId);
+          return { success: true, message: 'Next node scheduled', nextNodeId: nextNode.id, nextNode };
         }
       }
     }
