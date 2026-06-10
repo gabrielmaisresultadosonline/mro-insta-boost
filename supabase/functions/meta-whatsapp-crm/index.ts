@@ -819,7 +819,9 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     }
   }
     return jsonResponse({ success: true, message: 'Processed via AI or Text Flow continuity' });
-  } else if (contact && contact.ai_active && contact.flow_state === 'idle' && hasActiveFlow) {
+  }
+
+  if (contact && contact.ai_active && contact.flow_state === 'idle' && hasActiveFlow) {
     console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent...`);
 
     
