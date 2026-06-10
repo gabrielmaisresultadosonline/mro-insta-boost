@@ -912,6 +912,21 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
   headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 })
 
+const DEFAULT_GOOGLE_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
+
+function getGoogleOAuthCredentials(settings?: any) {
+  const envClientId = Deno.env.get('GOOGLE_CLIENT_ID')?.trim();
+  const envClientSecret = (Deno.env.get('GOOGLE_CLIENT_SECRET') || Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET'))?.trim();
+  const settingsClientId = settings?.google_client_id?.trim?.();
+  const settingsClientSecret = settings?.google_client_secret?.trim?.();
+
+  return {
+    clientId: envClientId || settingsClientId || DEFAULT_GOOGLE_CLIENT_ID,
+    clientSecret: envClientSecret || settingsClientSecret || '',
+    source: envClientSecret ? 'backend-secret' : settingsClientSecret ? 'settings' : 'missing',
+  };
+}
+
 async function getCrmSettings(supabase: any, userId?: string | null) {
   if (userId) {
     const { data, error } = await supabase
