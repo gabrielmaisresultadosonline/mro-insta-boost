@@ -6425,8 +6425,40 @@ const CRM = () => {
                               </Button>
                             </div>
                           )}
+
+                          <div className="pt-4 border-t border-border/60 space-y-4">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                              <LucideIcons.Cloud className="w-3 h-3" /> Credenciais Google Cloud (Oauth)
+                            </Label>
+                            <div className="grid grid-cols-1 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-[10px] text-muted-foreground">Client ID</Label>
+                                <Input 
+                                  value={metaSettings.google_client_id || ''} 
+                                  onChange={e => setMetaSettings({...metaSettings, google_client_id: e.target.value})}
+                                  placeholder="474898024942-..."
+                                  className="h-10 rounded-xl bg-muted/50 border-none text-xs"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px] text-muted-foreground">Client Secret</Label>
+                                <Input 
+                                  type="password"
+                                  value={metaSettings.google_client_secret || ''} 
+                                  onChange={e => setMetaSettings({...metaSettings, google_client_secret: e.target.value})}
+                                  placeholder="GOCSPX-..."
+                                  className="h-10 rounded-xl bg-muted/50 border-none text-xs"
+                                />
+                              </div>
+                              <p className="text-[9px] text-muted-foreground italic leading-relaxed">
+                                * Necessário para sincronizar contatos. Certifique-se de que a Redirect URI no Google Console seja: <br/>
+                                <code className="text-primary font-bold">https://zapmro.com.br/google-callback</code>
+                              </p>
+                            </div>
+                          </div>
                         </AccordionContent>
                       </AccordionItem>
+
 
                       <AccordionItem value="payments" className="border rounded-2xl bg-card overflow-hidden shadow-sm">
                         <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/30 transition-colors">
