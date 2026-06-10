@@ -499,6 +499,7 @@ const CRM = () => {
           meta_phone_number_id: data.phone_number_id || prev.meta_phone_number_id,
           meta_display_phone_number: data.display_phone_number || prev.meta_display_phone_number,
           meta_verified_name: data.verified_name || prev.meta_verified_name,
+          meta_business_id: data.business_id || prev.meta_business_id,
         }));
         toast({ title: 'WhatsApp conectado!', description: `WABA: ${data.waba_id || '—'} · Phone: ${data.phone_number_id || '—'}` });
         await fetchData(false);
