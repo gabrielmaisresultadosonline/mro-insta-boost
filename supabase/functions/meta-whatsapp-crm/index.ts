@@ -2306,13 +2306,14 @@ async function fetchAndStoreIncomingMedia(
             language: template.language,
             status: template.status,
             components: processedComponents,
+            user_id: userId,
             updated_at: new Date().toISOString()
           })
         }
         
         // Remove local templates that are no longer on Meta
         if (metaTemplateIds.length > 0) {
-          await supabase.from('crm_templates').delete().not('id', 'in', metaTemplateIds)
+          await supabase.from('crm_templates').delete().eq('user_id', userId).not('id', 'in', metaTemplateIds)
         }
       }
       
