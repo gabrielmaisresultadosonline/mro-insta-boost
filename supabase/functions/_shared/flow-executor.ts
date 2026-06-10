@@ -1,7 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0"
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function executeVisualNode(supabase: any, flow: any, node: any, contactId: string, waId: string) {
-  console.log(`Executing node ${node.id} (${node.type}) for contact ${contactId}`);
+  console.log(`[EXECUTOR] Executing node ${node.id} (${node.type}) for contact ${contactId}`);
 
   try {
     if (node.type === 'message' || node.type === 'text' || node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse') {
@@ -49,7 +51,8 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
 
         const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
         
-        await supabase.functions.invoke('meta-whatsapp-crm', {
+        console.log(`[EXECUTOR] Invoking meta-whatsapp-crm action=sendMessage for interactive buttons`);
+        const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
           headers: {
             'Authorization': `Bearer ${flow.user_id ? 'INTERNAL_BYPASS' : ''}` // Verificaremos isso na edge
           },
@@ -80,6 +83,19 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             }
           }
         });
+
+        if (invokeError) {
+          console.error(`[EXECUTOR] Error invoking meta-whatsapp-crm for buttons:`, invokeError);
+          throw invokeError;
+        }
+        
+        if (result && !result.success) {
+          console.error(`[EXECUTOR] meta-whatsapp-crm returned error for buttons:`, result.error);
+          throw new Error(result.error || "Erro no envio de botões");
+        }
+
+        console.log(`[EXECUTOR] Interactive buttons sent successfully to ${waId}`);
+        await wait(1000); // Give small time for DB propagation if needed
         } // fecha o else do if (linkButtons.length > 0)
       } else if (text) {
 
