@@ -7,6 +7,7 @@ import { Logo } from '@/components/Logo';
 import { Lock, Mail, AlertCircle, User, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const CRMLogin = () => {
   const [email, setEmail] = useState('');
@@ -16,12 +17,21 @@ const CRMLogin = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
    const [isRegistering, setIsRegistering] = useState(false);
+   const [rememberMe, setRememberMe] = useState(true);
    const location = useLocation();
    useEffect(() => {
      const params = new URLSearchParams(location.search);
      if (params.get('mode') === 'register') {
        setIsRegistering(true);
      }
+     // Prefill remembered email
+     try {
+       const saved = localStorage.getItem('crm_remember_email');
+       if (saved) {
+         setEmail(saved);
+         setRememberMe(true);
+       }
+     } catch {}
    }, [location]);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -91,6 +101,14 @@ const CRMLogin = () => {
         if (signInError) throw signInError;
         
         if (authData.user) {
+          // Persist or clear remembered email
+          try {
+            if (rememberMe) {
+              localStorage.setItem('crm_remember_email', email);
+            } else {
+              localStorage.removeItem('crm_remember_email');
+            }
+          } catch {}
           // Log access
           await supabase.from('crm_access_logs').insert({
             user_id: authData.user.id,
@@ -216,6 +234,20 @@ const CRMLogin = () => {
           >
             {isLoading ? 'Processando...' : isRegistering ? 'Criar Minha Conta' : 'Entrar no CRM'}
           </Button>
+
+          {!isRegistering && (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onCheckedChange={(v) => setRememberMe(v === true)}
+                className="border-green-300 data-[state=checked]:bg-[#22C55E] data-[state=checked]:border-[#22C55E]"
+              />
+              <span className="text-sm text-green-800 font-medium">
+                Manter conectado e memorizar acesso
+              </span>
+            </label>
+          )}
         </form>
 
         <div className="mt-6 text-center">
