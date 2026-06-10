@@ -1115,15 +1115,15 @@ const CRM = () => {
        const { data: { user } } = await supabase.auth.getUser();
        if (!user) return;
  
-       const targetSettings = customSettings || metaSettings;
-       const { id, created_at, updated_at, webhook_verify_token, vps_status, user_id, ...rest } = targetSettings;
-       
-       // Garante que o ID do webhook seja preservado ou gerado
-       const settingsToSave = {
-         ...rest,
-         user_id: user.id,
-         updated_at: new Date().toISOString()
-       };
+        const targetSettings = customSettings || metaSettings;
+        const { id, created_at, updated_at, webhook_verify_token, vps_status, user_id, email, ...rest } = targetSettings;
+        
+        // Garante que o ID do webhook seja preservado ou gerado
+        const settingsToSave = {
+          ...rest,
+          user_id: user.id,
+          updated_at: new Date().toISOString()
+        };
 
        if (!settingsToSave.webhook_identifier) {
          settingsToSave.webhook_identifier = Math.random().toString(36).substring(2, 15);
