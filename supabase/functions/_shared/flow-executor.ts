@@ -57,6 +57,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             action: 'sendMessage', 
             to: waId, 
             contactId,
+            nodeId: node.id,
             meta_phone_number_id: settings?.meta_phone_number_id,
             meta_access_token: settings?.meta_access_token,
             interactive: {
