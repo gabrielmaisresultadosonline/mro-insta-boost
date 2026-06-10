@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0"
 import { executeVisualNode, processStep } from "../_shared/flow-executor.ts"
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
