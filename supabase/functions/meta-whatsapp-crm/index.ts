@@ -818,37 +818,8 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
        return jsonResponse(result);
     }
   }
-    console.log(`[WEBHOOK-AI-DEBUG] processAiAgentResponse result for ${waId}:`, JSON.stringify(result));
-    return jsonResponse(result);
-  } else if (contact && contact.flow_state === 'waiting_response' && hasActiveFlow) {
-
-    // MODIFICAÇÃO: Se for uma resposta de texto a uma pergunta, tentamos continuar o fluxo.
-    // Se o próximo nó for um aiAgent, ele será acionado via executeVisualNode.
-    console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Text: ${text}`);
-    
-    // Invocamos continueFlow para processar a resposta do usuário no fluxo
-    const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
-      headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
-      body: { 
-        action: 'continueFlow', 
-        contactId: contact.id, 
-        waId, 
-        buttonId: buttonId || null, 
-        text, 
-        sourceMessageId: message.id 
-      }
-    });
-
-    if (flowErr) {
-      console.error('[WEBHOOK] Error invoking continueFlow:', flowErr);
-    }
-    
-    return jsonResponse(result || { success: true });
-  } else if (contact && (isAiActive || isAiHandling) && hasActiveFlow) {
-    // FALLBACK: Se o contato tem IA ativa mas não estava no estado de handling (ex: idle mas ai_active=true)
-    console.log(`[WEBHOOK] AI Fallback for ${waId}. isAiActive: ${isAiActive}, isAiHandling: ${isAiHandling}`);
-    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
-    return jsonResponse(result);
+    return jsonResponse({ success: true, message: 'Processed via AI or Text Flow continuity' });
+  }
 
   } else if (contact && contact.flow_state === 'waiting_response' && hasActiveFlow) {
     // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
