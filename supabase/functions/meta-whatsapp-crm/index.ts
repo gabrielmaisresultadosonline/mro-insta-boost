@@ -762,6 +762,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     console.log(`[WEBHOOK] CONTINUING Flow for ${waId} due to BUTTON CLICK. Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
     
     const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
       body: { 
         action: 'continueFlow', 
         contactId: contact.id, 
@@ -798,6 +799,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     
     // Invocamos continueFlow para processar a resposta do usuário no fluxo
     const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
       body: { 
         action: 'continueFlow', 
         contactId: contact.id, 
@@ -819,12 +821,13 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     return jsonResponse(result);
 
-  } else if (contact && isWaitingResponse && hasActiveFlow) {
+  } else if (contact && contact.flow_state === 'waiting_response' && hasActiveFlow) {
     // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
     console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
     
     // Invocamos continueFlow para processar a resposta do usuário no fluxo
     const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
       body: { 
         action: 'continueFlow', 
         contactId: contact.id, 
