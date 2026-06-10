@@ -628,8 +628,10 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   let mediaUrlForSave: string | null = null;
   let mediaCaption = '';
 
-  console.log(`[WEBHOOK] Handling message from ${waId}. Type: ${message.type}. ID: ${message.id}`);
-
+  console.log(`[FLOW-LOG] WEBHOOK: Message from ${waId}. Type: ${message.type}. ID: ${message.id}. Contact state: ${contact?.flow_state}`);
+  if (message.type === 'image' || message.type === 'video') {
+    console.log(`[FLOW-LOG] Received ${message.type} from ${waId}. Resolving media ID...`);
+  }
 
   if (!skipSave && message.id) {
      const { data: existingInbound } = await supabase
@@ -640,7 +642,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
        .maybeSingle();
 
     if (existingInbound) {
-      console.log(`[WEBHOOK] Duplicate inbound message ${message.id} ignored before save for ${waId}`);
+      console.log(`[FLOW-LOG] Duplicate inbound message ${message.id} ignored for ${waId}`);
       return jsonResponse({ success: true, message: 'Duplicate inbound ignored' });
     }
   }
@@ -759,7 +761,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
   // PRIORIDADE: Se houver um clique em botão de INTERACTIVE, SEMPRE tenta continuar o fluxo primeiro
   if (contact && hasActiveFlow && message.type === 'interactive' && isWaitingResponse) {
-    console.log(`[WEBHOOK] CONTINUING Flow for ${waId} due to BUTTON CLICK. Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
+    console.log(`[FLOW-LOG] WEBHOOK: Continuing Flow via BUTTON for ${waId}. Current node: ${contact.current_node_id}, Button: ${buttonId}`);
     
     const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
       headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
@@ -773,7 +775,11 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
       }
     });
 
-    if (flowErr) console.error('[WEBHOOK] Error invoking continueFlow via button:', flowErr);
+    if (flowErr) {
+      console.error('[FLOW-LOG] ERROR in continueFlow (Button):', flowErr);
+    } else {
+      console.log('[FLOW-LOG] continueFlow (Button) successful invoke:', JSON.stringify(result));
+    }
     return jsonResponse(result || { success: true });
   }
 
