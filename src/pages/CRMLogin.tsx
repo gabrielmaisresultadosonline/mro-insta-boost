@@ -234,6 +234,20 @@ const CRMLogin = () => {
           >
             {isLoading ? 'Processando...' : isRegistering ? 'Criar Minha Conta' : 'Entrar no CRM'}
           </Button>
+
+          {!isRegistering && (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onCheckedChange={(v) => setRememberMe(v === true)}
+                className="border-green-300 data-[state=checked]:bg-[#22C55E] data-[state=checked]:border-[#22C55E]"
+              />
+              <span className="text-sm text-green-800 font-medium">
+                Manter conectado e memorizar acesso
+              </span>
+            </label>
+          )}
         </form>
 
         <div className="mt-6 text-center">
