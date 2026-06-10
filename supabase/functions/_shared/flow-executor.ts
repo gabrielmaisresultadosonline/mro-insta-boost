@@ -11,45 +11,16 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       const buttons = node.data?.buttons || [];
       
       if (buttons && buttons.length > 0) {
-        // Verifica se há botões com link (URL)
+        // Separa botões com link (URL) dos botões de resposta normais.
+        // WhatsApp NÃO permite misturar cta_url + reply buttons numa mesma mensagem,
+        // então enviamos os reply buttons primeiro e depois o(s) botão(ões) de link.
         const linkButtons = buttons.filter((btn: any) => btn.url && btn.url.startsWith('http'));
-        
-        if (linkButtons.length > 0) {
-           console.log(`[EXECUTOR] Enviando botões de LINK para ${waId}`);
-           const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
-           
-           // A Meta API Cloud para "Link Buttons" exige templates ou Mensagens Interativas de tipo diferente.
-           // Para botões de URL pura no "Interactive", o WhatsApp suporta através de chamadas a templates 
-           // ou usando o tipo "cta_url" no Action.
-           await supabase.functions.invoke('meta-whatsapp-crm', {
-            headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
-            body: { 
-              action: 'sendMessage', 
-              to: waId, 
-              contactId,
-              meta_phone_number_id: settings?.meta_phone_number_id,
-              meta_access_token: settings?.meta_access_token,
-              interactive: {
-                type: 'cta_url',
-                header: { type: 'text', text: 'Link Externo' },
-                body: { text: text || "Clique abaixo para acessar:" },
-                footer: { text: "ZAP MRO CRM" },
-                action: {
-                  name: "cta_url",
-                  parameters: {
-                    display_text: linkButtons[0].label || linkButtons[0].text || "Acessar Site",
-                    url: linkButtons[0].url
-                  }
-                }
-              }
-            }
-          });
-          
-          // Se houver mais botões normais, enviamos eles depois (Meta limita 1 link button por interactive)
-        } else {
-          // Enviar como mensagem interativa com botões de resposta normais
+        const replyButtons = buttons.filter((btn: any) => !(btn.url && btn.url.startsWith('http')));
 
         const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
+
+        // 1) Envia botões de resposta normais (se houver)
+        if (replyButtons.length > 0) {
         
         console.log(`[EXECUTOR] Invoking meta-whatsapp-crm action=sendMessage for interactive buttons`);
         const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
@@ -67,7 +38,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
               type: 'button',
               body: { text: text || "Escolha uma opção:" },
               action: {
-                buttons: buttons.slice(0, 3).map((btn: any, index: number) => {
+                buttons: replyButtons.slice(0, 3).map((btn: any, index: number) => {
                   const rawTitle = btn.label || btn.text || `Opção ${index + 1}`;
                   // Meta exige limite de 20 caracteres no título do botão
                   const title = rawTitle.length > 20 ? rawTitle.substring(0, 17) + "..." : rawTitle;
@@ -96,7 +67,36 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
 
         console.log(`[EXECUTOR] Interactive buttons sent successfully to ${waId}`);
         await wait(1000); // Give small time for DB propagation if needed
-        } // fecha o else do if (linkButtons.length > 0)
+        }
+
+        // 2) Envia cada botão de link como mensagem cta_url separada
+        for (const linkBtn of linkButtons) {
+          console.log(`[EXECUTOR] Enviando botão de LINK para ${waId}: ${linkBtn.url}`);
+          await supabase.functions.invoke('meta-whatsapp-crm', {
+            headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+            body: {
+              action: 'sendMessage',
+              to: waId,
+              contactId,
+              meta_phone_number_id: settings?.meta_phone_number_id,
+              meta_access_token: settings?.meta_access_token,
+              interactive: {
+                type: 'cta_url',
+                header: { type: 'text', text: 'Link Externo' },
+                body: { text: replyButtons.length > 0 ? "Ou acesse pelo link:" : (text || "Clique abaixo para acessar:") },
+                footer: { text: "ZAP MRO CRM" },
+                action: {
+                  name: "cta_url",
+                  parameters: {
+                    display_text: linkBtn.label || linkBtn.text || "Acessar Site",
+                    url: linkBtn.url
+                  }
+                }
+              }
+            }
+          });
+          await wait(500);
+        }
       } else if (text) {
 
         console.log(`[EXECUTOR] Enviando mensagem de texto simples para ${waId}`);
