@@ -1219,7 +1219,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       meta_message_id: result?.messages?.[0]?.id || null,
       metadata: { 
         ...(media?.type === 'audio' ? { is_voice: !!params.isVoice } : {}),
-        ...(params.interactive ? { interactive: params.interactive } : {}),
+        interactive: params.interactive || null,
         ...(params.metadata || {}),
         flow_executor_node_id: params.nodeId || params.contact?.current_node_id || null
       },
