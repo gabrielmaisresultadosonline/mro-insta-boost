@@ -252,7 +252,7 @@ const CRM = () => {
     outside_hours_message: 'Nossos administradores não estão ativos no momento. Seguiremos com o atendimento automatizado e em breve retornaremos com um atendimento humano.',
     business_description: 'Empresa especializada em soluções digitais e vendas online através do WhatsApp e redes sociais.',
     google_auto_sync: false,
-    vps_transcoder_url: 'https://vps.zapmro.com.br',
+    vps_transcoder_url: '', // Desativado temporariamente para evitar erro de DNS
     vps_status: 'unknown' as 'unknown' | 'online' | 'offline'
   });
   const [whatsAppConnectionConfirmed, setWhatsAppConnectionConfirmed] = useState(false);
