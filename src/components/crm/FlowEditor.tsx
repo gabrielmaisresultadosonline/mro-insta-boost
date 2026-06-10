@@ -1002,9 +1002,36 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold flex items-center gap-2">
-                        <BrainCircuit className="w-3.5 h-3.5 text-violet-500" /> Instruções de Venda e Atendimento
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold flex items-center gap-2">
+                          <BrainCircuit className="w-3.5 h-3.5 text-violet-500" /> Instruções de Venda e Atendimento
+                        </Label>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-[10px] gap-1 bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100"
+                          onClick={async () => {
+                            if (!selectedNode.data.prompt) {
+                              toast({ title: "Escreva um prompt inicial primeiro", variant: "destructive" });
+                              return;
+                            }
+                            try {
+                              const { data: res, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+                                body: { action: 'improvePrompt', prompt: selectedNode.data.prompt }
+                              });
+                              if (error) throw error;
+                              if (res.success && res.improvedPrompt) {
+                                updateNodeData(selectedNode.id, { prompt: res.improvedPrompt });
+                                toast({ title: "Prompt melhorado com sucesso!" });
+                              }
+                            } catch (err: any) {
+                              toast({ title: "Erro ao melhorar prompt", description: err.message, variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Zap className="w-3 h-3" /> Melhorar Prompt
+                        </Button>
+                      </div>
                       <Textarea 
                         placeholder="Ex: Você é um vendedor especialista. Use links de pagamento, tire dúvidas sobre o curso e tente fechar a venda. Se o cliente pedir para falar com um humano, use a saída lateral."
                         className="text-xs min-h-[150px] bg-slate-50 text-slate-900 border-slate-200 focus-visible:ring-violet-500"

@@ -1269,6 +1269,8 @@ export type Database = {
       crm_settings: {
         Row: {
           ai_agent_enabled: boolean | null
+          ai_agent_label_on_transfer: string | null
+          ai_agent_prompt: string | null
           ai_agent_trigger: string | null
           ai_agent_trigger_keyword: string | null
           ai_operation_mode: string | null
@@ -1315,6 +1317,8 @@ export type Database = {
         }
         Insert: {
           ai_agent_enabled?: boolean | null
+          ai_agent_label_on_transfer?: string | null
+          ai_agent_prompt?: string | null
           ai_agent_trigger?: string | null
           ai_agent_trigger_keyword?: string | null
           ai_operation_mode?: string | null
@@ -1361,6 +1365,8 @@ export type Database = {
         }
         Update: {
           ai_agent_enabled?: boolean | null
+          ai_agent_label_on_transfer?: string | null
+          ai_agent_prompt?: string | null
           ai_agent_trigger?: string | null
           ai_agent_trigger_keyword?: string | null
           ai_operation_mode?: string | null
