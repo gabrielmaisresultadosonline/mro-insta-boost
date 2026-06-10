@@ -2841,17 +2841,23 @@ async function fetchAndStoreIncomingMedia(
       }
 
       console.log(`[OAUTH] Fetching token from Google with grant_type: authorization_code`);
-      const bodyParams = new URLSearchParams();
-      bodyParams.append('code', code);
-      bodyParams.append('client_id', google_client_id.trim());
-      bodyParams.append('client_secret', google_client_secret.trim());
-      bodyParams.append('redirect_uri', finalRedirectUri.trim());
-      bodyParams.append('grant_type', 'authorization_code');
+      // Use standard Form Data approach which is more reliable for OAuth tokens
+      const formData = new URLSearchParams();
+      formData.append('code', code);
+      formData.append('client_id', google_client_id.trim());
+      formData.append('client_secret', google_client_secret.trim());
+      formData.append('redirect_uri', finalRedirectUri.trim());
+      formData.append('grant_type', 'authorization_code');
       
+      console.log(`[OAUTH-DEBUG] Payload to Google: client_id=${google_client_id.trim()}, redirect_uri=${finalRedirectUri.trim()}`);
+
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: bodyParams.toString(),
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        body: formData.toString(),
       });
 
       const tokens = await response.json();
