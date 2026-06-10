@@ -1155,7 +1155,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
     // com um arquivo OGG/Opus sem legenda (caption).
     // O parâmetro 'ptt: true' é opcional mas recomendado em algumas versões. 
     // Se der erro 400 novamente, usaremos um fallback via VPS Transcoder se disponível.
-    payload.type = 'audio';
+    payload.type = media.type;
     if (media.type === 'audio') {
       payload.audio = { 
         id: mediaId
