@@ -1071,7 +1071,8 @@ const CRM = () => {
       // Paginated fetch to load ALL contacts (default cap is 1000)
       await fetchContacts();
 
-      const { data: templatesData } = await supabase.from('crm_templates').select('*');
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: templatesData } = await supabase.from('crm_templates').select('*').eq('user_id', currentUser?.id);
       setTemplates(templatesData || []);
 
       // Auto-sync if there are pending templates to see if they were approved
@@ -1080,7 +1081,7 @@ const CRM = () => {
         supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'getTemplates' } })
           .then(({ data, error }) => {
             if (!error && data?.success) {
-              supabase.from('crm_templates').select('*').then(({ data: updatedTemplates }) => {
+              supabase.from('crm_templates').select('*').eq('user_id', currentUser?.id).then(({ data: updatedTemplates }) => {
                 if (updatedTemplates) setTemplates(updatedTemplates);
               });
             }

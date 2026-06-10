@@ -2306,13 +2306,14 @@ async function fetchAndStoreIncomingMedia(
             language: template.language,
             status: template.status,
             components: processedComponents,
+            user_id: userId,
             updated_at: new Date().toISOString()
           })
         }
         
         // Remove local templates that are no longer on Meta
         if (metaTemplateIds.length > 0) {
-          await supabase.from('crm_templates').delete().not('id', 'in', metaTemplateIds)
+          await supabase.from('crm_templates').delete().eq('user_id', userId).not('id', 'in', metaTemplateIds)
         }
       }
       
@@ -2417,6 +2418,7 @@ async function fetchAndStoreIncomingMedia(
           language,
           status: 'PENDING',
           components: processedComponents,
+          user_id: userId,
           is_pix: is_pix || false,
           pix_code: pix_code || null,
           is_carousel: is_carousel || false,
@@ -2460,14 +2462,14 @@ async function fetchAndStoreIncomingMedia(
 
       if (isDeletedOrNotFound) {
         console.log(`Template ${name} confirmed deleted from Meta or not found. Removing from local database...`);
-        const { error: dbError } = await supabase.from('crm_templates').delete().eq('name', name);
+        const { error: dbError } = await supabase.from('crm_templates').delete().eq('name', name).eq('user_id', userId);
         if (dbError) console.error('Local DB Deletion Error:', dbError);
       } else if (result.error) {
         // If there's an error and it's NOT a "not found" error, we shouldn't delete locally yet
         // but the user wants it gone, so we force local deletion if Meta fails for other reasons
         // to keep UI in sync, but log it.
         console.warn(`Meta deletion failed for ${name}, but forcing local deletion as requested:`, result.error);
-        await supabase.from('crm_templates').delete().eq('name', name);
+        await supabase.from('crm_templates').delete().eq('name', name).eq('user_id', userId);
       }
       
       return new Response(JSON.stringify({ 
