@@ -840,11 +840,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         const isFirstEver = prevTotal === 0;
         let isFirstOfDay = isFirstEver;
         let isAfter24h = isFirstEver;
+        
         if (prevLast) {
-          const last = new Date(prevLast);
-          // First message of the day = different calendar date than last received
-          isFirstOfDay = last.toDateString() !== now.toDateString();
-          isAfter24h = (now.getTime() - last.getTime()) >= 24 * 60 * 60 * 1000;
+          const lastDate = new Date(prevLast);
+          const nowInSameTZ = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+          const lastInSameTZ = new Date(lastDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+          
+          isFirstOfDay = lastInSameTZ.toDateString() !== nowInSameTZ.toDateString();
+          isAfter24h = (now.getTime() - lastDate.getTime()) >= 24 * 60 * 60 * 1000;
         }
 
         const flowMatches = (flow: any): boolean => {
