@@ -2823,7 +2823,7 @@ async function fetchAndStoreIncomingMedia(
        
         // Use hardcoded defaults if not in settings, but prioritize settings
         const DEFAULT_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
-        const DEFAULT_CLIENT_SECRET = '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';
+        const DEFAULT_CLIENT_SECRET = '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x';
 
        
        const google_client_id = settings?.google_client_id || DEFAULT_CLIENT_ID;
@@ -2928,7 +2928,7 @@ async function fetchAndStoreIncomingMedia(
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
             client_id: settings?.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com',
-            client_secret: settings?.google_client_secret || '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',
+            client_secret: settings?.google_client_secret || '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x',
             refresh_token: account.refresh_token,
             grant_type: 'refresh_token',
           }),
