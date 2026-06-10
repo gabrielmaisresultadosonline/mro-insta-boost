@@ -2834,14 +2834,15 @@ async function fetchAndStoreIncomingMedia(
        console.log(`[OAUTH] Exchange Attempt - ClientID: ${google_client_id}, Secret: ${google_client_secret ? 'EXISTS' : 'MISSING'}`);
        console.log(`[OAUTH] Using final redirectUri for exchange: ${finalRedirectUri}`);
 
+      console.log(`[OAUTH] Fetching token from Google...`);
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           code,
-          client_id: google_client_id,
-          client_secret: google_client_secret,
-          redirect_uri: finalRedirectUri,
+          client_id: google_client_id.trim(),
+          client_secret: google_client_secret.trim(),
+          redirect_uri: finalRedirectUri.trim(),
           grant_type: 'authorization_code',
         }),
       });

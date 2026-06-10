@@ -24,9 +24,18 @@ const GoogleContactsCallback = () => {
        if (code) {
          // Force standard redirect URI to match what Google Console expects
          const redirectUri = "https://zapmro.com.br/google-callback";
-         const { data, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
-           body: { action: 'exchangeGoogleCode', code, redirectUri }
-         });
+          const { data, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
+            body: { action: 'exchangeGoogleCode', code, redirectUri }
+          });
+
+          if (!invokeError && data?.success) {
+            console.log("Sucesso ao trocar código, iniciando sincronização...");
+            // Agora que a conta está salva, dispara a sincronização automática
+            const { data: syncData, error: syncError } = await supabase.functions.invoke('meta-whatsapp-crm', {
+              body: { action: 'syncGoogleContacts' }
+            });
+            console.log("Resultado da sincronização automática:", { syncData, syncError });
+          }
 
         if (invokeError || !data?.success) {
           const errorMsg = invokeError?.message || data?.error || "Erro desconhecido";
