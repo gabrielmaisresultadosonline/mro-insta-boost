@@ -7,6 +7,7 @@ import { Logo } from '@/components/Logo';
 import { Lock, Mail, AlertCircle, User, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const CRMLogin = () => {
   const [email, setEmail] = useState('');
@@ -16,12 +17,21 @@ const CRMLogin = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
    const [isRegistering, setIsRegistering] = useState(false);
+   const [rememberMe, setRememberMe] = useState(true);
    const location = useLocation();
    useEffect(() => {
      const params = new URLSearchParams(location.search);
      if (params.get('mode') === 'register') {
        setIsRegistering(true);
      }
+     // Prefill remembered email
+     try {
+       const saved = localStorage.getItem('crm_remember_email');
+       if (saved) {
+         setEmail(saved);
+         setRememberMe(true);
+       }
+     } catch {}
    }, [location]);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -91,6 +101,14 @@ const CRMLogin = () => {
         if (signInError) throw signInError;
         
         if (authData.user) {
+          // Persist or clear remembered email
+          try {
+            if (rememberMe) {
+              localStorage.setItem('crm_remember_email', email);
+            } else {
+              localStorage.removeItem('crm_remember_email');
+            }
+          } catch {}
           // Log access
           await supabase.from('crm_access_logs').insert({
             user_id: authData.user.id,
