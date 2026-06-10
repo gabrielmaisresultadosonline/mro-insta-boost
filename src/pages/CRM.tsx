@@ -764,7 +764,7 @@ const CRM = () => {
           // to avoid CORS issues if the server doesn't have the OPTIONS header for the health check
           const res = await fetch(url, { 
             method: 'GET', 
-            mode: 'no-cors', // Changed to no-cors to avoid preflight issues during status check
+            mode: 'no-cors',
             signal: AbortSignal.timeout(5000) 
           });
           setMetaSettings(prev => ({ ...prev, vps_status: 'online' }));
