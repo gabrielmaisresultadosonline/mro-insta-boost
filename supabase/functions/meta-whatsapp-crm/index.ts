@@ -2931,12 +2931,16 @@ async function fetchAndStoreIncomingMedia(
       let accessToken = account.access_token;
       if (Date.now() >= (account.expiry_date || 0)) {
         console.log("[SYNC] Refreshing Google token...");
+        const { clientId: googleClientId, clientSecret: googleClientSecret } = getGoogleOAuthCredentials(settings);
+        if (!googleClientSecret) {
+          throw new Error('Google Client Secret não configurado no backend');
+        }
         const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
-            client_id: settings?.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com',
-            client_secret: settings?.google_client_secret || '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x',
+            client_id: googleClientId,
+            client_secret: googleClientSecret,
             refresh_token: account.refresh_token,
             grant_type: 'refresh_token',
           }),
