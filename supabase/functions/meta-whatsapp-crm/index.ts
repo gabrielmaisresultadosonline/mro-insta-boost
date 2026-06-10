@@ -2704,7 +2704,7 @@ async function fetchAndStoreIncomingMedia(
 
           // Priority 2: Match generic "responded" or the new "any_response" handle
           if (!nextEdge) {
-            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response'));
+            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response' || e.sourceHandle === 'next' || !e.sourceHandle));
           }
 
           // Priority 3: Match standard transition (no handle) or "next" handle (often used in wait nodes)
