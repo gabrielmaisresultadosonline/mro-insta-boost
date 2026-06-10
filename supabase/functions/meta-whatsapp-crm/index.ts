@@ -1068,7 +1068,7 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   return uploadResult.id
 }
 
-async function handleInternalSendMessage(supabase: any, phoneNumberId: string, accessToken: string, params: any, contact: any, vpsTranscoderUrl?: string) {
+async function handleInternalSendMessage(supabase: any, phoneNumberId: string, accessToken: string, params: any, contact: any, vpsTranscoderUrl?: string, userId?: string) {
   if (!phoneNumberId || !accessToken) {
     console.error('[SEND-MESSAGE] Falha: Credenciais ausentes', { phoneNumberId: !!phoneNumberId, accessToken: !!accessToken });
     throw new Error('Credenciais Meta não configuradas');
@@ -2506,13 +2506,17 @@ async function fetchAndStoreIncomingMedia(
         .eq('wa_id', params.to)
         .single();
         
+      const finalUserId = userId || contact?.user_id || null;
+      console.log(`[ACTION] Usando userId ${finalUserId} para sendMessage`);
+
       const response = await handleInternalSendMessage(
         supabase, 
         meta_phone_number_id || settings?.meta_phone_number_id || params.meta_phone_number_id, 
         meta_access_token || settings?.meta_access_token || params.meta_access_token, 
         params, 
         contact, 
-        settings?.vps_transcoder_url
+        settings?.vps_transcoder_url,
+        finalUserId
       );
       console.log(`[ACTION] sendMessage finalizado para ${params.to}. Status: ${response.status}`);
       return response;
