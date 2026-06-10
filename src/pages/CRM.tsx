@@ -1151,6 +1151,7 @@ const CRM = () => {
     // Usamos o callback que o sistema espera
     // Google requires exact match. zapmro.com.br is the authorized domain.
     const redirectUri = encodeURIComponent('https://zapmro.com.br/google-callback');
+    console.log('[OAUTH] Initiating Google login with Redirect URI: https://zapmro.com.br/google-callback');
     
     // Escopos necessários para ler contatos
     const scopes = [
