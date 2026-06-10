@@ -133,9 +133,9 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       }
     } else if (node.type === 'image' || node.type === 'video' || node.type === 'audio' || node.type === 'document') {
       const mediaUrl = node.data?.url || node.data?.mediaUrl || node.data?.fileUrl || node.data?.audioUrl || node.data?.imageUrl || node.data?.videoUrl || node.data?.documentUrl;
-      console.log(`[EXECUTOR] Nó ${node.id} (${node.type}). Dados:`, JSON.stringify(node.data));
+      console.log(`[FLOW-LOG] Node ${node.id} (${node.type}). Media: ${mediaUrl}`);
       if (mediaUrl) {
-        console.log(`[EXECUTOR] Chamando meta-whatsapp-crm para enviar ${node.type}: ${mediaUrl}`);
+        console.log(`[FLOW-LOG] Calling meta-whatsapp-crm action=sendMessage for ${node.type}`);
         const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
           headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
           body: { 
@@ -148,20 +148,18 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         });
 
         if (invokeError) {
-          console.error(`[EXECUTOR] ERRO AO INVOCAR meta-whatsapp-crm para ${node.type}:`, invokeError);
-          // IMPORTANTE: Mesmo com erro de envio, precisamos decidir se o fluxo para ou segue.
-          // Por segurança, vamos lançar o erro para marcar o contato como 'error'
+          console.error(`[FLOW-LOG] ERROR in meta-whatsapp-crm for ${node.type}:`, invokeError);
           throw invokeError;
         }
 
         if (result && !result.success) {
-          console.error(`[EXECUTOR] meta-whatsapp-crm retornou erro no envio de ${node.type}:`, result.error);
+          console.error(`[FLOW-LOG] Result ERROR in meta-whatsapp-crm for ${node.type}:`, result.error);
           throw new Error(result.error || `Erro no envio de ${node.type}`);
         }
 
-        console.log(`[EXECUTOR] Sucesso no envio de ${node.type}:`, JSON.stringify(result));
+        console.log(`[FLOW-LOG] SUCCESS: ${node.type} sent. Result:`, JSON.stringify(result));
       } else {
-        console.warn(`[EXECUTOR] Nó de mídia ${node.type} (${node.id}) sem URL definida.`);
+        console.error(`[FLOW-LOG] FAILED: No media URL for node ${node.id} (${node.type})`);
       }
     } else if (node.type === 'template') {
       const templateName = node.data?.templateName;
