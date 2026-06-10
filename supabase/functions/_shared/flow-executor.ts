@@ -333,15 +333,16 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         const nextNode = flow.nodes?.find((n: any) => n.id === edge.target);
         if (nextNode) {
           const delay = parseInt(node.data?.delayAfter || '2');
-          console.log(`Scheduling next node ${nextNode.id} after ${node.type} with ${delay}s delay`);
-          const nextTime = new Date(Date.now() + delay * 1000).toISOString();
+          console.log(`[EXECUTOR] Node ${node.id} finished. Moving to ${nextNode.id} (${nextNode.type}) after ${delay}s`);
+          
           await supabase.from('crm_contacts').update({
             current_node_id: nextNode.id,
-            next_execution_time: nextTime,
+            next_execution_time: null, // Reset next execution to execute immediately
             flow_state: 'running'
           }).eq('id', contactId);
           
-          return { success: true, message: 'Next node scheduled', nextNodeId: nextNode.id };
+          // CRITICAL: Execute next node IMMEDIATELY to avoid getting stuck in "idle" or "waiting"
+          return await executeVisualNode(supabase, flow, nextNode, contactId, waId);
         }
       }
     }
