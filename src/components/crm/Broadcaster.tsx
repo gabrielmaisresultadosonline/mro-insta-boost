@@ -358,6 +358,96 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
         <div className="lg:col-span-8 space-y-4 md:space-y-6">
           <Accordion type="single" collapsible className="w-full space-y-4">
             {/* Automação de 24h Trigger */}
+            <AccordionItem value="ai-brain" className="border-none">
+              <Card className="rounded-2xl shadow-xl border border-white/5 overflow-hidden bg-[#111b21]">
+                <CardHeader className="bg-[#202c33] border-b border-white/5 p-0 flex flex-row items-center justify-between">
+                  <AccordionTrigger className="flex-1 p-4 hover:no-underline [&[data-state=open]>div>h3]:text-violet-500 transition-all">
+                    <div className="space-y-1 text-left">
+                      <CardTitle className="text-base md:text-lg flex items-center gap-2 text-violet-500">
+                        <BrainCircuit className="w-5 h-5" /> Cérebro da I.A (Prompt Global)
+                      </CardTitle>
+                      <CardDescription className="text-[10px] md:text-xs text-white/40">
+                        Configuração principal do comportamento e conhecimento do Agente de I.A.
+                      </CardDescription>
+                    </div>
+                  </AccordionTrigger>
+                </CardHeader>
+                <AccordionContent>
+                  <CardContent className="p-4 md:p-6 space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs md:text-sm font-bold flex items-center gap-2 text-white">
+                          Instruções e Conhecimento
+                        </Label>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-[10px] gap-1 bg-violet-500/10 text-violet-400 border-violet-500/20 hover:bg-violet-500/20"
+                          onClick={async () => {
+                            if (!countdownContent) { // Usando countdownContent temporariamente como buffer
+                              toast({ title: "Escreva algo primeiro", variant: "destructive" });
+                              return;
+                            }
+                            try {
+                              const { data: res, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+                                body: { action: 'improvePrompt', prompt: countdownContent }
+                              });
+                              if (error) throw error;
+                              if (res.success && res.improvedPrompt) {
+                                setCountdownContent(res.improvedPrompt);
+                                toast({ title: "Prompt melhorado!" });
+                              }
+                            } catch (err: any) {
+                              toast({ title: "Erro ao melhorar prompt", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Zap className="w-3 h-3" /> Melhorar Prompt
+                        </Button>
+                      </div>
+                      <Textarea 
+                        placeholder="Ex: Você é um vendedor especialista em cosméticos..."
+                        className="min-h-[150px] rounded-xl bg-[#202c33] border-none text-[#e9edef] text-xs md:text-sm"
+                        value={countdownContent}
+                        onChange={e => setCountdownContent(e.target.value)}
+                      />
+                      <div className="space-y-2">
+                        <Label className="text-xs md:text-sm font-bold text-white">Etiqueta ao pedir Humano</Label>
+                        <Input 
+                          placeholder="Ex: Atenção: Cliente quer Humano"
+                          className="h-10 rounded-xl bg-[#202c33] border-none text-[#e9edef] text-xs md:text-sm"
+                          value={countdownTemplate} // Usando countdownTemplate temporariamente como buffer
+                          onChange={e => setCountdownTemplate(e.target.value)}
+                        />
+                      </div>
+                      <Button 
+                        onClick={async () => {
+                          setSavingCountdown(true);
+                          try {
+                            const { error } = await supabase.from('crm_settings').update({
+                              ai_agent_prompt: countdownContent,
+                              ai_agent_label_on_transfer: countdownTemplate
+                            }).eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+                            if (error) throw error;
+                            toast({ title: "Cérebro salvo com sucesso!" });
+                          } catch (err: any) {
+                            toast({ title: "Erro ao salvar", variant: "destructive" });
+                          } finally {
+                            setSavingCountdown(false);
+                          }
+                        }}
+                        disabled={savingCountdown}
+                        className="w-full h-10 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl"
+                      >
+                        {savingCountdown ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                        SALVAR CÉREBRO
+                      </Button>
+                    </div>
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+
             <AccordionItem value="countdown" className="border-none">
               <Card className="rounded-2xl shadow-xl border border-white/5 overflow-hidden bg-[#111b21]">
                 <CardHeader className="bg-[#202c33] border-b border-white/5 p-0 flex flex-row items-center justify-between">
@@ -387,6 +477,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                         className="data-[state=checked]:bg-[#00a884]"
                       />
                     </div>
+                    {/* Rest of countdown inputs will be handled in next step or kept if compatible */}
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
