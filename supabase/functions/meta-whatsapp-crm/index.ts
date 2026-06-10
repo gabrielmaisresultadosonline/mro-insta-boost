@@ -686,7 +686,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
    let { data: contactForSave } = await supabase
      .from('crm_contacts')
-      .select('id, total_messages_received')
+      .select('id, total_messages_received, last_message_received_at')
      .eq('wa_id', waId)
      .eq('user_id', userId)
      .maybeSingle();
@@ -718,6 +718,9 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   }
 
   if (contactForSave && !skipSave) {
+    // Capture state BEFORE update so we can evaluate triggers (first message, day, 24h)
+    var __previousTotalReceived = contactForSave.total_messages_received || 0;
+    var __previousLastReceivedAt: string | null = contactForSave.last_message_received_at || null;
      const { error: insertMessageError } = await supabase.from('crm_messages').insert({
        contact_id: contactForSave.id,
        direction: 'inbound',
