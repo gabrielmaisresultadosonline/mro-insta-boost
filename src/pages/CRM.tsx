@@ -6368,9 +6368,9 @@ const CRM = () => {
                           <Button 
                             className="w-full h-12 bg-[#00875A] hover:bg-[#00875A]/90 text-white font-bold rounded-xl shadow-lg shadow-[#00875A]/20 gap-2"
                             onClick={() => {
-                              const businessId = metaSettings.meta_business_id || '424282342514566';
+                              const businessId = metaSettings.meta_business_id || '221547625588933';
                               const wabaId = metaSettings.meta_waba_id || '1885027082212076';
-                              // Link dinâmico baseado na estrutura do Billing Hub da Meta
+                              // Link dinâmico baseado na estrutura do Billing Hub da Meta enviada
                               window.open(`https://business.facebook.com/latest/billing_hub/accounts/details/?asset_id=${wabaId}&business_id=${businessId}&placement=whatsapp_ads`, '_blank');
                             }}
                           >
