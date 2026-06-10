@@ -5752,7 +5752,10 @@ const CRM = () => {
                           variant="link" 
                           size="sm" 
                           className="text-primary font-bold mt-2"
-                          onClick={() => window.open(`https://www.facebook.com/wa/static/template-manager/?waba_id=${metaSettings.meta_waba_id || '1885027082212076'}`, '_blank')}
+                          onClick={() => {
+                            const wabaId = metaSettings.meta_waba_id || '1885027082212076';
+                            window.open(`https://business.facebook.com/latest/whatsapp_manager/message_templates/?asset_id=${wabaId}`, '_blank');
+                          }}
                         >
                           <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver todos no Gerenciador da Meta
                         </Button>
@@ -6365,9 +6368,9 @@ const CRM = () => {
                               const wabaId = metaSettings.meta_waba_id;
                               // O link correto para faturamento da Meta/WhatsApp
                               if (wabaId) {
-                                window.open(`https://www.facebook.com/wa/static/shipping-and-payment/?waba_id=${wabaId}`, '_blank');
+                                window.open(`https://business.facebook.com/billing_hub/payment_settings?asset_id=${wabaId}`, '_blank');
                               } else {
-                                window.open('https://www.facebook.com/wa/static/shipping-and-payment/?waba_id=1885027082212076', '_blank');
+                                window.open('https://business.facebook.com/billing_hub/payment_settings?asset_id=1885027082212076', '_blank');
                               }
                             }}
                           >
