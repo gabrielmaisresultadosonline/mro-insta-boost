@@ -1115,7 +1115,7 @@ const CRM = () => {
        if (!user) return;
  
        const targetSettings = customSettings || metaSettings;
-       const { id, created_at, updated_at, webhook_verify_token, vps_status, user_id, ...rest } = targetSettings;
+       const { id, created_at, updated_at, webhook_verify_token, vps_status, user_id, business_description, meta_business_id, ...rest } = targetSettings;
        
        // Garante que o ID do webhook seja preservado ou gerado
        const settingsToSave = {
