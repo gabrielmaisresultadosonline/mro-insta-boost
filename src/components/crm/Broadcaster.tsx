@@ -79,10 +79,13 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     fetchCountdownSettings();
   }, []);
 
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiTransferLabel, setAiTransferLabel] = useState('');
+
   const fetchCountdownSettings = async () => {
     const { data: settings } = await supabase
       .from('crm_settings')
-      .select('countdown_trigger_enabled, countdown_trigger_threshold_minutes, countdown_trigger_message_type, countdown_trigger_content, countdown_trigger_flow_id, countdown_trigger_template_id')
+      .select('*')
       .maybeSingle();
 
     if (settings) {
@@ -92,6 +95,10 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       setCountdownContent(settings.countdown_trigger_content || '');
       setCountdownTemplate(settings.countdown_trigger_template_id || '');
       setCountdownFlow(settings.countdown_trigger_flow_id || '');
+      
+      // Global AI Brain settings
+      setAiPrompt(settings.ai_agent_prompt || '');
+      setAiTransferLabel(settings.ai_agent_label_on_transfer || '');
     }
   };
 
