@@ -1205,9 +1205,12 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
     
     console.log(`[FLOW-LOG] Saving outbound message to history: type=${messageType}, to=${to}`);
     
+    // IMPORTANTE: Garantir que o userId esteja presente para aparecer na tela do usuário correto
+    const finalUserId = userId || contact.user_id || null;
+
     const { data: savedMessage, error: insertError } = await supabase.from('crm_messages').insert({
       contact_id: contact.id,
-      user_id: contact.user_id || userId || null,
+      user_id: finalUserId,
       direction: 'outbound',
       message_type: messageType,
       content: content,
@@ -1225,7 +1228,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
     if (insertError) {
       console.error('[FLOW-LOG] CRITICAL: Erro ao salvar mensagem no histórico:', insertError)
     } else {
-      console.log('[FLOW-LOG] Mensagem salva no histórico com sucesso:', savedMessage.id)
+      console.log('[FLOW-LOG] Mensagem salva no histórico com sucesso:', savedMessage.id, 'User:', finalUserId);
     }
 
     await supabase.from('crm_contacts').update({ last_interaction: new Date().toISOString() }).eq('id', contact.id)
