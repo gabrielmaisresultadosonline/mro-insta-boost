@@ -3356,12 +3356,12 @@ const CRM = () => {
                           <div className="flex flex-col items-center">
                             <div className="flex items-center gap-0 leading-none">
                               <span className="text-3xl md:text-5xl font-black text-[#00a884] drop-shadow-[0_0_15px_rgba(0,168,132,0.5)] tracking-tighter">ZAPMR</span>
-                              <div className="relative w-[1.1em] h-[1.1em] flex items-center justify-center">
-                                <div className="absolute inset-0 bg-[#00a884] rounded-full blur-[10px] opacity-20 animate-pulse"></div>
+                              <div className="relative w-[1em] h-[1em] flex items-center justify-center text-3xl md:text-5xl">
+                                <div className="absolute inset-0 bg-[#00a884] rounded-full blur-[12px] opacity-25 animate-pulse"></div>
                                 <div className="w-full h-full flex items-center justify-center animate-[spin_10s_linear_infinite]">
                                   <svg 
                                     viewBox="0 0 24 24" 
-                                    className="w-[85%] h-[85%] drop-shadow-[0_0_10px_rgba(0,168,132,0.8)]"
+                                    className="w-full h-full drop-shadow-[0_0_10px_rgba(0,168,132,0.8)]"
                                     xmlns="http://www.w3.org/2000/svg"
                                   >
                                     <path 
