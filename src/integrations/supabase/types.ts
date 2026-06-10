@@ -1274,6 +1274,7 @@ export type Database = {
           ai_operation_mode: string | null
           ai_system_prompt: string | null
           auto_generate_strategy: boolean | null
+          business_description: string | null
           business_hours_enabled: boolean | null
           business_hours_end: string | null
           business_hours_start: string | null
@@ -1296,6 +1297,7 @@ export type Database = {
           meta_access_token: string | null
           meta_app_id: string | null
           meta_app_secret: string | null
+          meta_business_id: string | null
           meta_display_phone_number: string | null
           meta_phone_number_id: string | null
           meta_verified_name: string | null
@@ -1318,6 +1320,7 @@ export type Database = {
           ai_operation_mode?: string | null
           ai_system_prompt?: string | null
           auto_generate_strategy?: boolean | null
+          business_description?: string | null
           business_hours_enabled?: boolean | null
           business_hours_end?: string | null
           business_hours_start?: string | null
@@ -1340,6 +1343,7 @@ export type Database = {
           meta_access_token?: string | null
           meta_app_id?: string | null
           meta_app_secret?: string | null
+          meta_business_id?: string | null
           meta_display_phone_number?: string | null
           meta_phone_number_id?: string | null
           meta_verified_name?: string | null
@@ -1362,6 +1366,7 @@ export type Database = {
           ai_operation_mode?: string | null
           ai_system_prompt?: string | null
           auto_generate_strategy?: boolean | null
+          business_description?: string | null
           business_hours_enabled?: boolean | null
           business_hours_end?: string | null
           business_hours_start?: string | null
@@ -1384,6 +1389,7 @@ export type Database = {
           meta_access_token?: string | null
           meta_app_id?: string | null
           meta_app_secret?: string | null
+          meta_business_id?: string | null
           meta_display_phone_number?: string | null
           meta_phone_number_id?: string | null
           meta_verified_name?: string | null
