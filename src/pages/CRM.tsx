@@ -5536,13 +5536,9 @@ const CRM = () => {
                         size="sm"
                         className="text-[10px] h-8 text-muted-foreground hover:text-primary transition-colors"
                         onClick={() => {
-                          const wabaId = metaSettings.meta_waba_id;
-                          if (wabaId) {
-                            window.open(`https://business.facebook.com/wa/static/template-manager/?waba_id=${wabaId}`, '_blank');
-                          } else {
-                            // Fallback se não tiver WABA ID configurado
-                            window.open('https://business.facebook.com/wa/static/template-manager/', '_blank');
-                          }
+                          const businessId = metaSettings.meta_business_id || '221547625588933';
+                          const wabaId = metaSettings.meta_waba_id || '1885027082212076';
+                          window.open(`https://business.facebook.com/latest/whatsapp_manager/message_templates?business_id=${businessId}&asset_id=${wabaId}`, '_blank');
                         }}
                       >
                         <ExternalLink className="w-3 h-3 mr-1" />
