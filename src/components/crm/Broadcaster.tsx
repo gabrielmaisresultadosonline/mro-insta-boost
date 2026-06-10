@@ -392,17 +392,17 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                           size="sm" 
                           className="h-8 text-[10px] gap-1 bg-violet-500/10 text-violet-400 border-violet-500/20 hover:bg-violet-500/20"
                           onClick={async () => {
-                            if (!countdownContent) { // Usando countdownContent temporariamente como buffer
+                            if (!aiPrompt) {
                               toast({ title: "Escreva algo primeiro", variant: "destructive" });
                               return;
                             }
                             try {
                               const { data: res, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-                                body: { action: 'improvePrompt', prompt: countdownContent }
+                                body: { action: 'improvePrompt', prompt: aiPrompt }
                               });
                               if (error) throw error;
                               if (res.success && res.improvedPrompt) {
-                                setCountdownContent(res.improvedPrompt);
+                                setAiPrompt(res.improvedPrompt);
                                 toast({ title: "Prompt melhorado!" });
                               }
                             } catch (err: any) {
@@ -416,16 +416,16 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                       <Textarea 
                         placeholder="Ex: Você é um vendedor especialista em cosméticos..."
                         className="min-h-[150px] rounded-xl bg-[#202c33] border-none text-[#e9edef] text-xs md:text-sm"
-                        value={countdownContent}
-                        onChange={e => setCountdownContent(e.target.value)}
+                        value={aiPrompt}
+                        onChange={e => setAiPrompt(e.target.value)}
                       />
                       <div className="space-y-2">
                         <Label className="text-xs md:text-sm font-bold text-white">Etiqueta ao pedir Humano</Label>
                         <Input 
                           placeholder="Ex: Atenção: Cliente quer Humano"
                           className="h-10 rounded-xl bg-[#202c33] border-none text-[#e9edef] text-xs md:text-sm"
-                          value={countdownTemplate} // Usando countdownTemplate temporariamente como buffer
-                          onChange={e => setCountdownTemplate(e.target.value)}
+                          value={aiTransferLabel}
+                          onChange={e => setAiTransferLabel(e.target.value)}
                         />
                       </div>
                       <Button 
@@ -433,8 +433,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                           setSavingCountdown(true);
                           try {
                             const { error } = await supabase.from('crm_settings').update({
-                              ai_agent_prompt: countdownContent,
-                              ai_agent_label_on_transfer: countdownTemplate
+                              ai_agent_prompt: aiPrompt,
+                              ai_agent_label_on_transfer: aiTransferLabel
                             }).eq('user_id', (await supabase.auth.getUser()).data.user?.id);
                             if (error) throw error;
                             toast({ title: "Cérebro salvo com sucesso!" });
@@ -450,6 +450,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                         {savingCountdown ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                         SALVAR CÉREBRO
                       </Button>
+
                     </div>
                   </CardContent>
                 </AccordionContent>
