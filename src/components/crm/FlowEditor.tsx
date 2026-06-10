@@ -123,25 +123,26 @@ const VideoNode = ({ data }: any) => (
 );
 
 const ImageNode = ({ data }: any) => (
-  <Card className="min-w-[200px] border-emerald-400 shadow-md">
+  <Card className="min-w-[150px] border-emerald-400 shadow-md">
     <Handle type="target" position={Position.Top} />
-    <CardHeader className="p-3 bg-emerald-400 text-white rounded-t-lg flex flex-row items-center justify-between">
-      <CardTitle className="text-xs font-bold flex items-center gap-2">
-        <ImageIcon className="w-3 h-3" /> Imagem
+    <CardHeader className="p-2 bg-emerald-400 text-white rounded-t-lg flex flex-row items-center justify-between">
+      <CardTitle className="text-[10px] font-bold flex items-center gap-1.5">
+        <ImageIcon className="w-2.5 h-2.5" /> Imagem
       </CardTitle>
     </CardHeader>
-    <CardContent className="p-3">
+    <CardContent className="p-2">
       {data.imageUrl ? (
-        <div className="aspect-video w-full rounded bg-slate-100 flex items-center justify-center overflow-hidden">
+        <div className="aspect-video w-full max-w-[140px] rounded bg-slate-100 flex items-center justify-center overflow-hidden mx-auto">
           <img src={data.imageUrl} alt="Preview" className="w-full h-full object-cover" />
         </div>
       ) : (
-        <p className="text-[10px] text-muted-foreground truncate">{data.fileName || 'Nenhuma imagem selecionada'}</p>
+        <p className="text-[9px] text-muted-foreground truncate">{data.fileName || 'Nenhuma imagem'}</p>
       )}
     </CardContent>
     <Handle type="source" position={Position.Bottom} />
   </Card>
 );
+
 
 const WaitResponseNode = ({ data }: any) => (
   <Card className="min-w-[220px] border-indigo-500 shadow-md">
