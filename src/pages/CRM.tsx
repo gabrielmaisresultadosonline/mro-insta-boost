@@ -3346,17 +3346,17 @@ const CRM = () => {
                   <div className="p-4 md:p-8">
                     <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
                       {/* Bem-vindo e Logo ZAPMRO com ícone giratório no O */}
-                      <div className="flex flex-col items-center justify-center py-4 md:py-6 text-center space-y-2 relative overflow-hidden bg-[#0c1317] rounded-3xl border border-white/5 shadow-2xl">
+                      <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center space-y-2 relative overflow-hidden bg-[#0c1317] rounded-3xl border border-white/5 shadow-2xl">
                         <div className="absolute inset-0 z-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#00a884] via-transparent to-transparent blur-3xl"></div>
                         
                         <div className="relative z-10 space-y-0 px-4">
-                          <h2 className="text-sm md:text-md font-bold tracking-tight text-white/60 mb-1">
+                          <h2 className="text-base md:text-xl font-bold tracking-tight text-white/60 mb-2">
                             Seja bem vindo(a)
                           </h2>
                           <div className="flex flex-col items-center">
                             <div className="flex items-center gap-0 leading-none">
-                              <span className="text-3xl md:text-5xl font-black text-[#00a884] drop-shadow-[0_0_15px_rgba(0,168,132,0.5)] tracking-tighter">ZAPMR</span>
-                              <div className="relative w-[1em] h-[1em] flex items-center justify-center text-3xl md:text-5xl">
+                              <span className="text-5xl md:text-7xl font-black text-[#00a884] drop-shadow-[0_0_15px_rgba(0,168,132,0.5)] tracking-tighter">ZAPMR</span>
+                              <div className="relative w-[1em] h-[1em] flex items-center justify-center text-5xl md:text-7xl">
                                 <div className="absolute inset-0 bg-[#00a884] rounded-full blur-[12px] opacity-25 animate-pulse"></div>
                                 <div className="w-full h-full flex items-center justify-center animate-[spin_10s_linear_infinite]">
                                   <svg 
@@ -3373,9 +3373,9 @@ const CRM = () => {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className="text-[10px] md:text-xs font-bold tracking-[0.4em] text-white/30 uppercase ml-2">Cloud</span>
-                              <div className="h-[1.5px] w-6 bg-[#00a884] rounded-full shadow-[0_0_5px_#00a884]" />
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-xs md:text-sm font-bold tracking-[0.4em] text-white/40 uppercase ml-2">Cloud</span>
+                              <div className="h-[2px] w-8 bg-[#00a884] rounded-full shadow-[0_0_5px_#00a884]" />
                             </div>
                           </div>
                         </div>
