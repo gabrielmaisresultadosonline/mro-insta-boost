@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0"
 
-export async function executeVisualNode(supabase: any, flow: any, node: any, contactId: string, waId: string) {
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   console.log(`Executing node ${node.id} (${node.type}) for contact ${contactId}`);
 
   try {
