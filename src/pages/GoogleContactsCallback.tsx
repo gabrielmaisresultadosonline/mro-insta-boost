@@ -29,10 +29,16 @@ const GoogleContactsCallback = () => {
          });
 
         if (invokeError || !data?.success) {
-          console.error("Erro ao trocar código Google:", invokeError || data?.error);
+          const errorMsg = invokeError?.message || data?.error || "Erro desconhecido";
+          console.error("Erro detalhado ao trocar código Google:", {
+            invokeError,
+            data,
+            code: code.substring(0, 10) + "...",
+            redirectUri
+          });
           setStatus("error");
-          toast.error("Erro ao sincronizar com o Google.");
-          setTimeout(() => navigate("/crm"), 3000);
+          toast.error(`Erro ao sincronizar: ${errorMsg}`);
+          setTimeout(() => navigate("/crm"), 5000);
           return;
         }
 
