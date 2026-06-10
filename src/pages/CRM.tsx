@@ -3381,18 +3381,18 @@ const CRM = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-3">
+                       <div className="space-y-4">
                         <div className="flex items-center justify-between px-1">
                           <div className="space-y-0">
-                            <h3 className="text-md md:text-lg font-black tracking-tight text-foreground uppercase">Monitoramento Digital</h3>
-                            <p className="text-muted-foreground text-[9px] uppercase tracking-widest font-bold opacity-50">Dados em tempo real</p>
+                            <h3 className="text-lg md:text-2xl font-black tracking-tight text-foreground uppercase">Monitoramento Digital</h3>
+                            <p className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-widest font-bold opacity-50">Dados em tempo real</p>
                           </div>
-                          <Button variant="ghost" size="sm" className="rounded-xl h-7 text-[8px] font-black border border-white/5 hover:bg-[#00a884]/10 hover:text-[#00a884] transition-all" onClick={() => fetchData(false)}>
-                            <RefreshCcw className="w-2.5 h-2.5 mr-1" /> SYNC
+                          <Button variant="ghost" size="sm" className="rounded-xl h-9 md:h-10 text-[10px] md:text-xs font-black border border-white/5 hover:bg-[#00a884]/10 hover:text-[#00a884] transition-all px-3" onClick={() => fetchData(false)}>
+                            <RefreshCcw className="w-3.5 h-3.5 mr-1.5" /> SYNC
                           </Button>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
                           {/* Todas conversas atendidas */}
                           <Card 
                             className="relative overflow-hidden group hover:scale-[1.01] transition-all border border-white/5 bg-[#0c1317] cursor-pointer shadow-xl rounded-2xl p-1"
@@ -3402,13 +3402,13 @@ const CRM = () => {
                             }}
                           >
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <CardHeader className="flex flex-row items-center justify-between pb-0.5 px-3 pt-3">
-                              <CardDescription className="font-black text-[8px] uppercase tracking-[0.2em] text-blue-400/80">Base Contatos</CardDescription>
-                              <Users className="w-3 h-3 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                            <CardHeader className="flex flex-row items-center justify-between pb-1 px-5 pt-5">
+                              <CardDescription className="font-black text-[11px] md:text-xs uppercase tracking-[0.2em] text-blue-400/80">Base Contatos</CardDescription>
+                              <Users className="w-5 h-5 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                             </CardHeader>
-                            <CardContent className="px-3 pb-3">
-                              <div className="text-2xl md:text-4xl font-black tracking-tighter text-white font-mono">{contacts.length}</div>
-                              <div className="mt-2 h-1 w-full bg-blue-500/10 rounded-full overflow-hidden">
+                            <CardContent className="px-5 pb-5">
+                              <div className="text-4xl md:text-6xl font-black tracking-tighter text-white font-mono">{contacts.length}</div>
+                              <div className="mt-3 h-1.5 w-full bg-blue-500/10 rounded-full overflow-hidden">
                                 <div className="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6] w-full" />
                               </div>
                             </CardContent>
@@ -3420,13 +3420,13 @@ const CRM = () => {
                             onClick={() => handleOpenMetricsList('active')}
                           >
                             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <CardHeader className="flex flex-row items-center justify-between pb-0.5 px-3 pt-3">
-                              <CardDescription className="font-black text-[8px] uppercase tracking-[0.2em] text-emerald-400/80">Ativos (24h)</CardDescription>
-                              <Zap className="w-3 h-3 text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                            <CardHeader className="flex flex-row items-center justify-between pb-1 px-5 pt-5">
+                              <CardDescription className="font-black text-[11px] md:text-xs uppercase tracking-[0.2em] text-emerald-400/80">Ativos (24h)</CardDescription>
+                              <Zap className="w-5 h-5 text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
                             </CardHeader>
-                            <CardContent className="px-3 pb-3">
-                              <div className="text-2xl md:text-4xl font-black tracking-tighter text-white font-mono">{conversationStats.activeWindow24h}</div>
-                              <div className="mt-2 h-1 w-full bg-emerald-500/10 rounded-full overflow-hidden">
+                            <CardContent className="px-5 pb-5">
+                              <div className="text-4xl md:text-6xl font-black tracking-tighter text-white font-mono">{conversationStats.activeWindow24h}</div>
+                              <div className="mt-3 h-1.5 w-full bg-emerald-500/10 rounded-full overflow-hidden">
                                 <div className="h-full bg-emerald-500 shadow-[0_0_10px_#10b981] transition-all duration-1000" style={{ width: `${Math.min(100, (conversationStats.activeWindow24h / (contacts.length || 1)) * 100)}%` }} />
                               </div>
                             </CardContent>
@@ -3438,17 +3438,17 @@ const CRM = () => {
                             onClick={() => handleOpenMetricsList('paid')}
                           >
                             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <CardHeader className="flex flex-row items-center justify-between pb-0.5 px-3 pt-3">
-                              <CardDescription className="font-black text-[8px] uppercase tracking-[0.2em] text-orange-400/80">Meta (Mês)</CardDescription>
-                              <DollarSign className="w-3 h-3 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
+                            <CardHeader className="flex flex-row items-center justify-between pb-1 px-5 pt-5">
+                              <CardDescription className="font-black text-[11px] md:text-xs uppercase tracking-[0.2em] text-orange-400/80">Meta (Mês)</CardDescription>
+                              <DollarSign className="w-5 h-5 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
                             </CardHeader>
-                            <CardContent className="px-3 pb-3">
+                            <CardContent className="px-5 pb-5">
                               <div className="flex items-baseline gap-1.5">
-                                <div className="text-xl md:text-3xl font-black tracking-tighter text-orange-500 font-mono">
+                                <div className="text-3xl md:text-5xl font-black tracking-tighter text-orange-500 font-mono">
                                   R$ {(conversationStats.paidThisMonth * CONVERSATION_COST).toFixed(2).replace('.', ',')}
                                 </div>
                               </div>
-                              <div className="mt-2 h-1 w-full bg-orange-500/10 rounded-full overflow-hidden">
+                              <div className="mt-3 h-1.5 w-full bg-orange-500/10 rounded-full overflow-hidden">
                                 <div className="h-full bg-orange-500 shadow-[0_0_10px_#f97316] w-1/3" />
                               </div>
                             </CardContent>
