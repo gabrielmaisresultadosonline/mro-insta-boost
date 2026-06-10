@@ -2659,11 +2659,13 @@ async function fetchAndStoreIncomingMedia(
           // Find next node based on buttonId or standard connection
           let nextEdge = null;
           if (buttonId) {
+            console.log(`[FLOW-LOG] Matching buttonId: ${buttonId} in node ${currentNode.id}`);
             // Priority 1: Match specific button ID (exato ou prefixado ou index)
             nextEdge = flow.edges.find((e: any) => {
               if (e.source !== currentNode.id) return false;
               const handle = e.sourceHandle;
-              return handle === buttonId || handle === `btn_${buttonId}` || handle?.includes(buttonId);
+              // Compatibilidade com múltiplos formatos de handle de botões
+              return handle === buttonId || handle === `btn_${buttonId}` || handle?.includes(buttonId) || handle === `button_${buttonId}`;
             });
           }
           
