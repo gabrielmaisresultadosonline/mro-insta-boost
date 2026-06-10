@@ -5599,6 +5599,20 @@ const CRM = () => {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="pt-4 md:pt-6">
+                        <div className="flex justify-end mb-4">
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            className="text-primary font-bold"
+                            onClick={() => {
+                              const businessId = metaSettings.meta_business_id || '221547625588933';
+                              const wabaId = metaSettings.meta_waba_id || '1885027082212076';
+                              window.open(`https://business.facebook.com/latest/whatsapp_manager/message_templates?business_id=${businessId}&asset_id=${wabaId}`, '_blank');
+                            }}
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 mr-1" /> Gerenciar na Meta
+                          </Button>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pb-6">
                           {templates.length > 0 ? (
                             templates.map((template) => {
