@@ -1235,9 +1235,10 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
     payload.type = media.type;
     if (media.type === 'audio') {
       payload.audio = { 
-        id: mediaId
+        id: mediaId,
+        voice: true // Crucial: para aparecer como gravado (blue mic)
       };
-      console.log(`[MEDIA-SEND] Enviando áudio ID: ${mediaId} como 'audio'. OGG/Opus detectado.`);
+      console.log(`[MEDIA-SEND] Enviando áudio ID: ${mediaId} como 'audio'. OGG/Opus detectado. voice=true`);
     } else if (media.type === 'document') {
       payload.document = { id: mediaId, filename: media.fileName };
     } else {
