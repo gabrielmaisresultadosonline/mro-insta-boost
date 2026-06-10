@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0"
 
 export async function executeVisualNode(supabase: any, flow: any, node: any, contactId: string, waId: string) {
   console.log(`Executing node ${node.id} (${node.type}) for contact ${contactId}`);
