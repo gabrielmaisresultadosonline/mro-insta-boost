@@ -6365,13 +6365,8 @@ const CRM = () => {
                           <Button 
                             className="w-full h-12 bg-[#00875A] hover:bg-[#00875A]/90 text-white font-bold rounded-xl shadow-lg shadow-[#00875A]/20 gap-2"
                             onClick={() => {
-                              const wabaId = metaSettings.meta_waba_id;
-                              // O link correto para faturamento da Meta/WhatsApp
-                              if (wabaId) {
-                                window.open(`https://business.facebook.com/billing_hub/payment_settings?asset_id=${wabaId}`, '_blank');
-                              } else {
-                                window.open('https://business.facebook.com/billing_hub/payment_settings?asset_id=1885027082212076', '_blank');
-                              }
+                              const wabaId = metaSettings.meta_waba_id || '1885027082212076';
+                              window.open(`https://www.facebook.com/wa/static/shipping-and-payment/?waba_id=${wabaId}`, '_blank');
                             }}
                           >
                             <CreditCard className="w-5 h-5" />
