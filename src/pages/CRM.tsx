@@ -3342,32 +3342,32 @@ const CRM = () => {
           <main className="flex-1 overflow-hidden relative flex flex-col bg-[#f0f2f5] dark:bg-[#0c1317] h-full">
             <div className={cn("flex-1 h-full overflow-hidden", activeTab !== 'dashboard' && "hidden")}>
               {activeTab === 'dashboard' && (
-                <div className="max-w-7xl mx-auto space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  {/* Bem-vindo e Logo 3D - Versão Compacta e Responsiva */}
-                  <div className="flex flex-col items-center justify-center py-6 md:py-10 text-center space-y-6 relative overflow-hidden bg-[#0c1317] rounded-3xl border border-white/5 shadow-2xl">
+                <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  {/* Bem-vindo e Logo 3D - Versão Super Compacta */}
+                  <div className="flex flex-col items-center justify-center py-4 md:py-6 text-center space-y-4 relative overflow-hidden bg-[#0c1317] rounded-3xl border border-white/5 shadow-2xl">
                     <div className="absolute inset-0 z-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#00a884] via-transparent to-transparent blur-3xl"></div>
                     
-                    <div className="relative z-10 space-y-1 px-4">
-                      <h2 className="text-xl md:text-3xl font-black tracking-tighter text-white/90">
+                    <div className="relative z-10 space-y-0.5 px-4">
+                      <h2 className="text-lg md:text-xl font-bold tracking-tight text-white/80">
                         Seja bem vindo(a)
                       </h2>
                       <div className="flex flex-col items-center">
-                        <span className="text-4xl md:text-6xl font-black text-[#00a884] drop-shadow-[0_0_15px_rgba(0,168,132,0.5)] tracking-tighter">ZAPMRO</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs md:text-sm font-bold tracking-[0.4em] text-white/40">CLOUD</span>
-                          <div className="h-[2px] w-8 bg-[#00a884] rounded-full shadow-[0_0_8px_#00a884]" />
+                        <span className="text-3xl md:text-5xl font-black text-[#00a884] drop-shadow-[0_0_15px_rgba(0,168,132,0.5)] tracking-tighter">ZAPMRO</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] md:text-xs font-bold tracking-[0.4em] text-white/30 uppercase">Cloud</span>
+                          <div className="h-[1.5px] w-6 bg-[#00a884] rounded-full shadow-[0_0_5px_#00a884]" />
                         </div>
                       </div>
                     </div>
 
-                    {/* Logo WhatsApp 3D Giratória Compacta */}
-                    <div className="relative w-32 h-32 md:w-48 md:h-48 group [perspective:1000px]">
-                      <div className="absolute inset-0 bg-[#00a884] rounded-full blur-[60px] opacity-20 animate-pulse"></div>
-                      <div className="w-full h-full flex items-center justify-center animate-[spin_12s_linear_infinite] [transform-style:preserve-3d]">
-                        <div className="relative w-20 h-20 md:w-32 md:h-32">
+                    {/* Logo WhatsApp 3D Giratória Ultra Compacta */}
+                    <div className="relative w-24 h-24 md:w-32 md:h-32 group [perspective:1000px]">
+                      <div className="absolute inset-0 bg-[#00a884] rounded-full blur-[40px] opacity-20 animate-pulse"></div>
+                      <div className="w-full h-full flex items-center justify-center animate-[spin_15s_linear_infinite] [transform-style:preserve-3d]">
+                        <div className="relative w-16 h-16 md:w-24 md:h-24">
                           <svg 
                             viewBox="0 0 24 24" 
-                            className="w-full h-full drop-shadow-[0_0_20px_rgba(0,168,132,0.8)]"
+                            className="w-full h-full drop-shadow-[0_0_15px_rgba(0,168,132,0.8)]"
                             xmlns="http://www.w3.org/2000/svg"
                           >
                             <path 
@@ -3380,34 +3380,34 @@ const CRM = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
-                      <div className="space-y-0.5">
-                        <h3 className="text-lg md:text-xl font-black tracking-tight text-foreground uppercase">Métricas em Tempo Real</h3>
-                        <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold opacity-60">Monitoramento Digital</p>
+                      <div className="space-y-0">
+                        <h3 className="text-md md:text-lg font-black tracking-tight text-foreground uppercase">Monitoramento Digital</h3>
+                        <p className="text-muted-foreground text-[9px] uppercase tracking-widest font-bold opacity-50">Dados em tempo real</p>
                       </div>
-                      <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[9px] font-black border border-white/5 hover:bg-[#00a884]/10 hover:text-[#00a884] transition-all" onClick={() => fetchData(false)}>
-                        <RefreshCcw className="w-3 h-3 mr-1.5" /> SYNC
+                      <Button variant="ghost" size="sm" className="rounded-xl h-7 text-[8px] font-black border border-white/5 hover:bg-[#00a884]/10 hover:text-[#00a884] transition-all" onClick={() => fetchData(false)}>
+                        <RefreshCcw className="w-2.5 h-2.5 mr-1" /> SYNC
                       </Button>
                     </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                       {/* Todas conversas atendidas */}
                       <Card 
-                        className="relative overflow-hidden group hover:scale-[1.02] transition-all border border-white/5 bg-[#0c1317] cursor-pointer shadow-2xl rounded-2xl p-1"
+                        className="relative overflow-hidden group hover:scale-[1.01] transition-all border border-white/5 bg-[#0c1317] cursor-pointer shadow-xl rounded-2xl p-1"
                         onClick={() => {
                           setStatusFilter('all');
                           setActiveTab('contacts');
                         }}
                       >
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <CardHeader className="flex flex-row items-center justify-between pb-1 px-4 pt-4">
-                          <CardDescription className="font-black text-[9px] uppercase tracking-[0.2em] text-blue-400/80">Base de Contatos</CardDescription>
-                          <Users className="w-4 h-4 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                        <CardHeader className="flex flex-row items-center justify-between pb-0.5 px-3 pt-3">
+                          <CardDescription className="font-black text-[8px] uppercase tracking-[0.2em] text-blue-400/80">Base Contatos</CardDescription>
+                          <Users className="w-3 h-3 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                         </CardHeader>
-                        <CardContent className="px-4 pb-4">
-                          <div className="text-3xl md:text-5xl font-black tracking-tighter text-white font-mono">{contacts.length}</div>
-                          <div className="mt-3 h-1 w-full bg-blue-500/10 rounded-full overflow-hidden">
+                        <CardContent className="px-3 pb-3">
+                          <div className="text-2xl md:text-4xl font-black tracking-tighter text-white font-mono">{contacts.length}</div>
+                          <div className="mt-2 h-1 w-full bg-blue-500/10 rounded-full overflow-hidden">
                             <div className="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6] w-full" />
                           </div>
                         </CardContent>
@@ -3415,17 +3415,17 @@ const CRM = () => {
 
                       {/* Conversas 24h Grátis */}
                       <Card 
-                        className="relative overflow-hidden group hover:scale-[1.02] transition-all border border-white/5 bg-[#0c1317] cursor-pointer shadow-2xl rounded-2xl p-1"
+                        className="relative overflow-hidden group hover:scale-[1.01] transition-all border border-white/5 bg-[#0c1317] cursor-pointer shadow-xl rounded-2xl p-1"
                         onClick={() => handleOpenMetricsList('active')}
                       >
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <CardHeader className="flex flex-row items-center justify-between pb-1 px-4 pt-4">
-                          <CardDescription className="font-black text-[9px] uppercase tracking-[0.2em] text-emerald-400/80">Janela Ativa (24h)</CardDescription>
-                          <Zap className="w-4 h-4 text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                        <CardHeader className="flex flex-row items-center justify-between pb-0.5 px-3 pt-3">
+                          <CardDescription className="font-black text-[8px] uppercase tracking-[0.2em] text-emerald-400/80">Ativos (24h)</CardDescription>
+                          <Zap className="w-3 h-3 text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
                         </CardHeader>
-                        <CardContent className="px-4 pb-4">
-                          <div className="text-3xl md:text-5xl font-black tracking-tighter text-white font-mono">{conversationStats.activeWindow24h}</div>
-                          <div className="mt-3 h-1 w-full bg-emerald-500/10 rounded-full overflow-hidden">
+                        <CardContent className="px-3 pb-3">
+                          <div className="text-2xl md:text-4xl font-black tracking-tighter text-white font-mono">{conversationStats.activeWindow24h}</div>
+                          <div className="mt-2 h-1 w-full bg-emerald-500/10 rounded-full overflow-hidden">
                             <div className="h-full bg-emerald-500 shadow-[0_0_10px_#10b981] transition-all duration-1000" style={{ width: `${Math.min(100, (conversationStats.activeWindow24h / (contacts.length || 1)) * 100)}%` }} />
                           </div>
                         </CardContent>
@@ -3433,25 +3433,29 @@ const CRM = () => {
 
                       {/* Conversas Pagas Total */}
                       <Card 
-                        className="relative overflow-hidden group hover:scale-[1.02] transition-all border border-white/5 bg-[#0c1317] cursor-pointer shadow-2xl rounded-2xl p-1"
+                        className="relative overflow-hidden group hover:scale-[1.01] transition-all border border-white/5 bg-[#0c1317] cursor-pointer shadow-xl rounded-2xl p-1"
                         onClick={() => handleOpenMetricsList('paid')}
                       >
                         <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <CardHeader className="flex flex-row items-center justify-between pb-1 px-4 pt-4">
-                          <CardDescription className="font-black text-[9px] uppercase tracking-[0.2em] text-orange-400/80">Consumo Meta (Mês)</CardDescription>
-                          <DollarSign className="w-4 h-4 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
+                        <CardHeader className="flex flex-row items-center justify-between pb-0.5 px-3 pt-3">
+                          <CardDescription className="font-black text-[8px] uppercase tracking-[0.2em] text-orange-400/80">Meta (Mês)</CardDescription>
+                          <DollarSign className="w-3 h-3 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
                         </CardHeader>
-                        <CardContent className="px-4 pb-4">
-                          <div className="flex items-baseline gap-2">
-                            <div className="text-2xl md:text-4xl font-black tracking-tighter text-orange-500 font-mono">
+                        <CardContent className="px-3 pb-3">
+                          <div className="flex items-baseline gap-1.5">
+                            <div className="text-xl md:text-3xl font-black tracking-tighter text-orange-500 font-mono">
                               R$ {(conversationStats.paidThisMonth * CONVERSATION_COST).toFixed(2).replace('.', ',')}
                             </div>
                           </div>
-                          <div className="mt-3 h-1 w-full bg-orange-500/10 rounded-full overflow-hidden">
+                          <div className="mt-2 h-1 w-full bg-orange-500/10 rounded-full overflow-hidden">
                             <div className="h-full bg-orange-500 shadow-[0_0_10px_#f97316] w-1/3" />
                           </div>
                         </CardContent>
                       </Card>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
                     </div>
                   </div>
                 </div>
