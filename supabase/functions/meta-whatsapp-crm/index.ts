@@ -2418,6 +2418,7 @@ async function fetchAndStoreIncomingMedia(
           language,
           status: 'PENDING',
           components: processedComponents,
+          user_id: userId,
           is_pix: is_pix || false,
           pix_code: pix_code || null,
           is_carousel: is_carousel || false,
