@@ -328,6 +328,17 @@ serve(async (req) => {
       }
     }
 
+    // 3. Process CRM 24h Countdown Triggers
+    logStep("Processing CRM 24h Countdown Triggers");
+    try {
+      await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: { action: 'processCountdownTriggers' }
+      });
+      logStep("CRM Countdown triggers processed successfully");
+    } catch (triggerError: any) {
+      logStep("Error invoking CRM countdown triggers", { error: triggerError.message });
+    }
+
     logStep("Check complete", results);
 
     return new Response(JSON.stringify({
