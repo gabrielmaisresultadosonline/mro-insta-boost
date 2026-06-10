@@ -6355,14 +6355,11 @@ const CRM = () => {
                             className="w-full h-12 bg-[#00875A] hover:bg-[#00875A]/90 text-white font-bold rounded-xl shadow-lg shadow-[#00875A]/20 gap-2"
                             onClick={() => {
                               const wabaId = metaSettings.meta_waba_id;
+                              // O link correto para faturamento da Meta/WhatsApp
                               if (wabaId) {
-                                window.open(`https://business.facebook.com/wa/static/shipping-and-payment/?waba_id=${wabaId}`, '_blank');
+                                window.open(`https://business.facebook.com/billing_hub/payment_settings?waba_id=${wabaId}`, '_blank');
                               } else {
-                                toast({ 
-                                  title: "WABA ID não configurado", 
-                                  description: "Conecte sua conta do WhatsApp Business primeiro para acessar os pagamentos.",
-                                  variant: "destructive"
-                                });
+                                window.open('https://business.facebook.com/billing_hub/payment_settings', '_blank');
                               }
                             }}
                           >
