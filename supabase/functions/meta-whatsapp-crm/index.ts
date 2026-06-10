@@ -819,27 +819,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     }
   }
     return jsonResponse({ success: true, message: 'Processed via AI or Text Flow continuity' });
-    // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
-    console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
-    
-    // Invocamos continueFlow para processar a resposta do usuário no fluxo
-    const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
-      headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
-      body: { 
-        action: 'continueFlow', 
-        contactId: contact.id, 
-        waId, 
-        buttonId: buttonId || null, 
-        text, 
-        sourceMessageId: message.id 
-      }
-    });
-
-    if (flowErr) {
-      console.error('[WEBHOOK] Error invoking continueFlow:', flowErr);
-    }
-    
-    return jsonResponse(result || { success: true });
+  }
   } else if (contact && contact.ai_active && contact.flow_state === 'idle' && hasActiveFlow) {
     console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent...`);
 
