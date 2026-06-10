@@ -5748,6 +5748,14 @@ const CRM = () => {
                         <h3 className="font-bold text-lg">Sem templates sincronizados</h3>
                         <p className="text-sm text-muted-foreground">Clique em "Sincronizar Meta" para carregar seus templates oficiais.</p>
                         <Button variant="outline" size="sm" onClick={syncTemplates} disabled={syncingTemplates}>Sincronizar agora</Button>
+                        <Button 
+                          variant="link" 
+                          size="sm" 
+                          className="text-primary font-bold mt-2"
+                          onClick={() => window.open(`https://www.facebook.com/wa/static/template-manager/?waba_id=${metaSettings.meta_waba_id || '1885027082212076'}`, '_blank')}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver todos no Gerenciador da Meta
+                        </Button>
                       </div>
                           )}
                         </div>
@@ -6357,9 +6365,9 @@ const CRM = () => {
                               const wabaId = metaSettings.meta_waba_id;
                               // O link correto para faturamento da Meta/WhatsApp
                               if (wabaId) {
-                                window.open(`https://business.facebook.com/billing_hub/payment_settings?waba_id=${wabaId}`, '_blank');
+                                window.open(`https://www.facebook.com/wa/static/shipping-and-payment/?waba_id=${wabaId}`, '_blank');
                               } else {
-                                window.open('https://business.facebook.com/billing_hub/payment_settings', '_blank');
+                                window.open('https://www.facebook.com/wa/static/shipping-and-payment/?waba_id=1885027082212076', '_blank');
                               }
                             }}
                           >
