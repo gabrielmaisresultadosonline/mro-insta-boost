@@ -628,7 +628,6 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   let mediaUrlForSave: string | null = null;
   let mediaCaption = '';
 
-  console.log(`[FLOW-LOG] WEBHOOK: Message from ${waId}. Type: ${message.type}. ID: ${message.id}. Contact state: ${contact?.flow_state}`);
   if (message.type === 'image' || message.type === 'video') {
     console.log(`[FLOW-LOG] Received ${message.type} from ${waId}. Resolving media ID...`);
   }
