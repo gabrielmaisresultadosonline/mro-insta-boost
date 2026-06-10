@@ -6365,8 +6365,8 @@ const CRM = () => {
                           <Button 
                             className="w-full h-12 bg-[#00875A] hover:bg-[#00875A]/90 text-white font-bold rounded-xl shadow-lg shadow-[#00875A]/20 gap-2"
                             onClick={() => {
-                              const wabaId = metaSettings.meta_waba_id || '1885027082212076';
-                              window.open(`https://www.facebook.com/wa/static/shipping-and-payment/?waba_id=${wabaId}`, '_blank');
+                              const businessId = metaSettings.meta_business_id || '424282342514566';
+                              window.open(`https://business.facebook.com/billing_hub/payment_settings?asset_id=${businessId}`, '_blank');
                             }}
                           >
                             <CreditCard className="w-5 h-5" />
