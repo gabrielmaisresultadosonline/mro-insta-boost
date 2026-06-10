@@ -819,9 +819,6 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     }
   }
     return jsonResponse({ success: true, message: 'Processed via AI or Text Flow continuity' });
-  }
-
-  } else if (contact && contact.flow_state === 'waiting_response' && hasActiveFlow) {
     // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
     console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
     
