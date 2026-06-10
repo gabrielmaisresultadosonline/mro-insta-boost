@@ -2701,16 +2701,17 @@ async function fetchAndStoreIncomingMedia(
               console.log(`[FLOW-DEBUG] Matched text "${text}" to button index ${matchedButtonIdx}. Found edge: ${!!nextEdge}`);
             }
           }
+
+          // Priority 2: Match generic "responded" or the new "any_response" handle
           if (!nextEdge) {
-            // Priority 2: Match generic "responded" or the new "any_response" handle
-            // Or if it's a "waitResponse" node without buttons, any response should continue to the first edge
-            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response' || e.sourceHandle === 'next'));
+            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response'));
           }
 
-          // Priority 3: Match standard transition (no handle)
+          // Priority 3: Match standard transition (no handle) or "next" handle (often used in wait nodes)
           if (!nextEdge) {
-            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && !e.sourceHandle);
+            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (!e.sourceHandle || e.sourceHandle === 'next'));
           }
+
 
           if (nextEdge) {
             nextNode = flow.nodes.find((n: any) => n.id === nextEdge.target);
