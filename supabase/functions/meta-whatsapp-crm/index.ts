@@ -2703,17 +2703,19 @@ async function fetchAndStoreIncomingMedia(
           }
           if (!nextEdge) {
             // Priority 2: Match generic "responded" or the new "any_response" handle
-            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response'))
+            // Or if it's a "waitResponse" node without buttons, any response should continue to the first edge
+            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response' || e.sourceHandle === 'next'));
           }
 
           // Priority 3: Match standard transition (no handle)
           if (!nextEdge) {
-            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && !e.sourceHandle)
+            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && !e.sourceHandle);
           }
 
           if (nextEdge) {
-            nextNode = flow.nodes.find((n: any) => n.id === nextEdge.target)
+            nextNode = flow.nodes.find((n: any) => n.id === nextEdge.target);
           }
+
         }
 
         if (nextNode) {
