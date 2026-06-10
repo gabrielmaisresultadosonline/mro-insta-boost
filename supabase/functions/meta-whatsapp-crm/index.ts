@@ -786,70 +786,41 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   // CRITICAL: Ensure we capture messages for AI processing
   // Check if contact is in an AI node or AI state
   if (contact && (isAiHandling || (hasActiveFlow && (isInAiNode || isAiActive)))) {
-    console.log(`[WEBHOOK] CAPTURING message from ${waId} for AI Agent. State: ${contact.flow_state}, Node: ${contact.current_node_id}, AI Active: ${contact.ai_active}`);
-    
-    // Log detalhado para depurar por que a IA pode não estar respondendo
-    if (!contact.ai_agent_prompt && !contact.metadata?.ai_agent_prompt) {
-      console.warn(`[WEBHOOK-AI-DEBUG] Contact ${waId} is in AI state but has NO prompt saved. NodeID: ${contact.current_node_id}`);
-    }
-    
-    // Always call processAiAgentResponse which has built-in duplicate check and history management
+    console.log(`[FLOW-LOG] WEBHOOK: Processing AI Agent for ${waId}. State: ${contact.flow_state}`);
     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
-    console.log(`[WEBHOOK-AI-DEBUG] processAiAgentResponse result for ${waId}:`, JSON.stringify(result));
     return jsonResponse(result);
-  } else if (contact && contact.flow_state === 'waiting_response' && hasActiveFlow) {
+  }
 
-    // MODIFICAÇÃO: Se for uma resposta de texto a uma pergunta, tentamos continuar o fluxo.
-    // Se o próximo nó for um aiAgent, ele será acionado via executeVisualNode.
-    console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Text: ${text}`);
-    
-    // Invocamos continueFlow para processar a resposta do usuário no fluxo
+  // NOVO: Se o contato está em um fluxo aguardando resposta e recebeu TEXTO (não botão), tenta continuar o fluxo
+  if (contact && hasActiveFlow && isWaitingResponse && text) {
+    console.log(`[FLOW-LOG] WEBHOOK: Received TEXT for flow ${contact.current_flow_id} node ${contact.current_node_id} from ${waId}`);
     const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
       headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
       body: { 
         action: 'continueFlow', 
         contactId: contact.id, 
         waId, 
-        buttonId: buttonId || null, 
         text, 
         sourceMessageId: message.id 
       }
     });
 
     if (flowErr) {
-      console.error('[WEBHOOK] Error invoking continueFlow:', flowErr);
+      console.error('[FLOW-LOG] ERROR in continueFlow (Text):', flowErr);
+    } else {
+      console.log('[FLOW-LOG] continueFlow (Text) result:', JSON.stringify(result));
     }
     
-    return jsonResponse(result || { success: true });
-  } else if (contact && (isAiActive || isAiHandling) && hasActiveFlow) {
-    // FALLBACK: Se o contato tem IA ativa mas não estava no estado de handling (ex: idle mas ai_active=true)
-    console.log(`[WEBHOOK] AI Fallback for ${waId}. isAiActive: ${isAiActive}, isAiHandling: ${isAiHandling}`);
-    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
-    return jsonResponse(result);
-
-  } else if (contact && contact.flow_state === 'waiting_response' && hasActiveFlow) {
-    // SE ESTIVER ESPERANDO RESPOSTA EM UM FLUXO E NÃO FOR IA, CONTINUAMOS O FLUXO
-    console.log(`[WEBHOOK] CONTINUING Flow for ${waId} (Text Response). Current node: ${contact.current_node_id}, Button: ${buttonId}, Text: ${text}`);
-    
-    // Invocamos continueFlow para processar a resposta do usuário no fluxo
-    const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
-      headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
-      body: { 
-        action: 'continueFlow', 
-        contactId: contact.id, 
-        waId, 
-        buttonId: buttonId || null, 
-        text, 
-        sourceMessageId: message.id 
-      }
-    });
-
-    if (flowErr) {
-      console.error('[WEBHOOK] Error invoking continueFlow:', flowErr);
+    // Se o fluxo conseguiu continuar através do texto, terminamos aqui. 
+    // Caso contrário (ex: o texto não casou com nenhum botão e não tem "Qualquer Resposta"), 
+    // o fluxo permanece no estado atual.
+    if (result?.success && !result?.message?.includes('No matching edge')) {
+       return jsonResponse(result);
     }
-    
-    return jsonResponse(result || { success: true });
-  } else if (contact && contact.ai_active && contact.flow_state === 'idle' && hasActiveFlow) {
+  }
+    return jsonResponse({ success: true, message: 'Step 1' });
+
+  if (contact && contact.ai_active && contact.flow_state === 'idle' && hasActiveFlow) {
     console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent...`);
 
     
@@ -2686,7 +2657,7 @@ async function fetchAndStoreIncomingMedia(
           
           // Priority 1.5: Match text against button labels
           if (!nextEdge && text && currentNode.data?.buttons) {
-            console.log(`[FLOW-DEBUG] Attempting text match for: "${text}"`);
+            console.log(`[FLOW-LOG] Attempting text match for: "${text}" in node ${currentNode.id}`);
             const matchedButtonIdx = currentNode.data.buttons.findIndex((b: any) => {
               const bText = (b.label || b.text || "").toLowerCase().trim();
               const receivedText = text.toLowerCase().trim();
@@ -2695,9 +2666,11 @@ async function fetchAndStoreIncomingMedia(
                      (bText.length > 20 && receivedText === (bText.substring(0, 17) + "...").toLowerCase()) ||
                      (receivedText.length > 3 && bText.includes(receivedText)) ||
                      (receivedText.includes('[button reply]') && receivedText.includes(bText)) ||
-                     (bText.length > 3 && receivedText.includes(bText));
+                     (bText.length > 3 && receivedText.includes(bText)) ||
+                     (receivedText.length > 2 && bText.startsWith(receivedText)) ||
+                     (bText.length > 2 && receivedText.startsWith(bText));
               
-              if (match) console.log(`[FLOW-DEBUG] Text match found: "${bText}"`);
+              if (match) console.log(`[FLOW-LOG] Text match found with button: "${bText}"`);
               return match;
             });
             
@@ -2707,7 +2680,11 @@ async function fetchAndStoreIncomingMedia(
               const possibleHandles = [b.id, `btn_${matchedButtonIdx}`, `btn-${matchedButtonIdx}`, matchedButtonIdx.toString(), `btn-${matchedButtonIdx}-handle` ];
               nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (possibleHandles.includes(e.sourceHandle) || e.sourceHandle === b.id));
               
-              console.log(`[FLOW-DEBUG] Matched text "${text}" to button index ${matchedButtonIdx}. Found edge: ${!!nextEdge}`);
+              if (nextEdge) {
+                console.log(`[FLOW-LOG] Matched text "${text}" to button index ${matchedButtonIdx}. Found edge to: ${nextEdge.target}`);
+              } else {
+                console.warn(`[FLOW-LOG] Matched text "${text}" to button index ${matchedButtonIdx}, but NO EDGE found for handles:`, possibleHandles);
+              }
             }
           }
 
