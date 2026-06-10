@@ -786,15 +786,38 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   // CRITICAL: Ensure we capture messages for AI processing
   // Check if contact is in an AI node or AI state
   if (contact && (isAiHandling || (hasActiveFlow && (isInAiNode || isAiActive)))) {
-    console.log(`[WEBHOOK] CAPTURING message from ${waId} for AI Agent. State: ${contact.flow_state}, Node: ${contact.current_node_id}, AI Active: ${contact.ai_active}`);
-    
-    // Log detalhado para depurar por que a IA pode não estar respondendo
-    if (!contact.ai_agent_prompt && !contact.metadata?.ai_agent_prompt) {
-      console.warn(`[WEBHOOK-AI-DEBUG] Contact ${waId} is in AI state but has NO prompt saved. NodeID: ${contact.current_node_id}`);
+    console.log(`[FLOW-LOG] WEBHOOK: Processing AI Agent for ${waId}. State: ${contact.flow_state}`);
+    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    return jsonResponse(result);
+  }
+
+  // NOVO: Se o contato está em um fluxo aguardando resposta e recebeu TEXTO (não botão), tenta continuar o fluxo
+  if (contact && hasActiveFlow && isWaitingResponse && text) {
+    console.log(`[FLOW-LOG] WEBHOOK: Received TEXT for flow ${contact.current_flow_id} node ${contact.current_node_id} from ${waId}`);
+    const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+      body: { 
+        action: 'continueFlow', 
+        contactId: contact.id, 
+        waId, 
+        text, 
+        sourceMessageId: message.id 
+      }
+    });
+
+    if (flowErr) {
+      console.error('[FLOW-LOG] ERROR in continueFlow (Text):', flowErr);
+    } else {
+      console.log('[FLOW-LOG] continueFlow (Text) result:', JSON.stringify(result));
     }
     
-    // Always call processAiAgentResponse which has built-in duplicate check and history management
-    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    // Se o fluxo conseguiu continuar através do texto, terminamos aqui. 
+    // Caso contrário (ex: o texto não casou com nenhum botão e não tem "Qualquer Resposta"), 
+    // o fluxo permanece no estado atual.
+    if (result?.success && !result?.message?.includes('No matching edge')) {
+       return jsonResponse(result);
+    }
+  }
     console.log(`[WEBHOOK-AI-DEBUG] processAiAgentResponse result for ${waId}:`, JSON.stringify(result));
     return jsonResponse(result);
   } else if (contact && contact.flow_state === 'waiting_response' && hasActiveFlow) {
