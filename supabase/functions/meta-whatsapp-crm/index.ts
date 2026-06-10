@@ -3336,6 +3336,40 @@ async function fetchAndStoreIncomingMedia(
       return jsonResponse({ success: true, results });
     }
 
+    if (action === 'improvePrompt') {
+      const { prompt } = params;
+      if (!prompt) throw new Error('Prompt is required');
+
+      const { data: settings } = await supabase.from('crm_settings').select('openai_api_key').eq('user_id', userId).maybeSingle();
+      const apiKey = settings?.openai_api_key || Deno.env.get('OPENAI_API_KEY');
+
+      if (!apiKey) throw new Error('OpenAI API Key not configured');
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'Você é um especialista em engenharia de prompt. Melhore o prompt do sistema fornecido para torná-lo mais eficaz, claro e profissional para um agente de atendimento no WhatsApp. Mantenha o idioma original.' 
+            },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      const aiData = await response.json();
+      if (!response.ok) throw new Error(aiData.error?.message || 'Erro na API da OpenAI');
+
+      return jsonResponse({ success: true, improvedPrompt: aiData.choices?.[0]?.message?.content });
+    }
+
     throw new Error(`Unhandled action: ${action}`);
   } catch (error: any) {
     console.error('Error in Edge Function:', error);
