@@ -22,7 +22,8 @@ const GoogleContactsCallback = () => {
       }
 
        if (code) {
-         const redirectUri = window.location.origin + window.location.pathname;
+         // Force standard redirect URI to match what Google Console expects
+         const redirectUri = "https://zapmro.com.br/google-callback";
          const { data, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
            body: { action: 'exchangeGoogleCode', code, redirectUri }
          });
