@@ -2806,9 +2806,10 @@ async function fetchAndStoreIncomingMedia(
         throw new Error('Google Client ID não configurado nas configurações');
       }
 
-       const origin = req.headers.get('origin') || 'https://maisresultadosonline.com.br';
-       // Usamos sempre /google-callback para consistência SaaS
-       const redirectUri = `${origin}/google-callback`;
+       console.log(`[OAUTH-DEBUG] Action: getGoogleAuthUrl, Origin: ${req.headers.get('origin')}`);
+       const origin = req.headers.get('origin') || 'https://zapmro.com.br';
+       // Usamos sempre zapmro.com.br/google-callback para consistência SaaS
+       const redirectUri = 'https://zapmro.com.br/google-callback';
       const scope = 'https://www.googleapis.com/auth/contacts.readonly';
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${google_client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
 
@@ -2846,7 +2847,11 @@ async function fetchAndStoreIncomingMedia(
       });
 
       const tokens = await response.json();
-      if (!response.ok) throw new Error(`Google OAuth error: ${tokens.error_description || tokens.error}`);
+      console.log(`[OAUTH-DEBUG] Tokens Response Status: ${response.status}`);
+      if (!response.ok) {
+        console.error(`[OAUTH-ERROR] Google OAuth error response:`, JSON.stringify(tokens));
+        throw new Error(`Google OAuth error: ${tokens.error_description || tokens.error} (Status: ${response.status})`);
+      }
 
       // Get user info to identify the account
       console.log("[OAUTH] Fetching user info...");
