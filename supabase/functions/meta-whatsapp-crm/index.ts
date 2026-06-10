@@ -818,7 +818,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
        return jsonResponse(result);
     }
   }
-    return jsonResponse({ success: true, message: 'End of logic' });
+    return jsonResponse({ success: true, message: 'Step 1' });
   }
 
   if (contact && contact.ai_active && contact.flow_state === 'idle' && hasActiveFlow) {
