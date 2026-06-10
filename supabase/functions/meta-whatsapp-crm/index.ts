@@ -2739,7 +2739,25 @@ async function fetchAndStoreIncomingMedia(
               .update(updateData)
               .eq('id', contactId)
           
-          const res: any = await executeVisualNode(supabase, flow, nextNode, contactId, waId);
+          let res: any = await executeVisualNode(supabase, flow, nextNode, contactId, waId);
+          
+          // Iterative execution loop to handle sequential nodes without recursion/timeouts
+          let currentRes = res;
+          let iterations = 0;
+          const MAX_ITERATIONS = 5;
+          
+          while (currentRes?.nextNodeId && iterations < MAX_ITERATIONS) {
+            console.log(`[CONTINUE-FLOW] Sequential node detected: ${currentRes.nextNodeId}. Executing...`);
+            iterations++;
+            const nextInChain = flow.nodes.find((n: any) => n.id === currentRes.nextNodeId);
+            if (nextInChain) {
+              currentRes = await executeVisualNode(supabase, flow, nextInChain, contactId, waId);
+            } else {
+              break;
+            }
+          }
+          
+          res = currentRes;
           
           // Se o próximo nó é um Agente IA, verificamos se ele deve responder agora ou esperar.
           // O Agente IA só responde automaticamente se NÃO houver uma mensagem de pergunta/botões ativa.
