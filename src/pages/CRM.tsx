@@ -5754,7 +5754,7 @@ const CRM = () => {
                           className="text-primary font-bold mt-2"
                           onClick={() => {
                             const wabaId = metaSettings.meta_waba_id || '1885027082212076';
-                            window.open(`https://business.facebook.com/latest/whatsapp_manager/message_templates/?asset_id=${wabaId}`, '_blank');
+                            window.open(`https://www.facebook.com/wa/static/template-manager/?waba_id=${wabaId}`, '_blank');
                           }}
                         >
                           <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver todos no Gerenciador da Meta
