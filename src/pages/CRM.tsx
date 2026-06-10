@@ -3458,6 +3458,7 @@ const CRM = () => {
               </ScrollArea>
               )}
             </div>
+          </main>
 
             {/* Conversas */}
             <div className={cn("flex-1 h-full overflow-hidden", activeTab !== 'contacts' && "hidden")}>
