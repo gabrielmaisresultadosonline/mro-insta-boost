@@ -1200,26 +1200,32 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   console.log(`[META-SEND] OK messageId=${result?.messages?.[0]?.id} to=${to} type=${payload.type}`);
 
   if (contact && !params.skipLocalSave) {
+    const messageType = params.interactive ? 'interactive' : (media?.type || 'text');
+    const content = media ? (params.text || `[${media.type}]`) : (params.interactive?.body?.text || params.text);
+    
+    console.log(`[FLOW-LOG] Saving outbound message to history: type=${messageType}, to=${to}`);
+    
     const { data: savedMessage, error: insertError } = await supabase.from('crm_messages').insert({
       contact_id: contact.id,
       user_id: contact.user_id || userId || null,
       direction: 'outbound',
-      message_type: params.interactive ? 'interactive' : (media?.type || 'text'),
-      content: media ? (params.text || `[${media.type}]`) : (params.interactive?.body?.text || params.text),
+      message_type: messageType,
+      content: content,
       media_url: media?.url || null,
       status: 'accepted',
       meta_message_id: result?.messages?.[0]?.id || null,
       metadata: { 
         ...(media?.type === 'audio' ? { is_voice: !!params.isVoice } : {}),
         ...(params.interactive ? { interactive: params.interactive } : {}),
-        ...(params.metadata || {})
+        ...(params.metadata || {}),
+        flow_executor_node_id: params.nodeId || params.contact?.current_node_id || null
       },
     }).select().single()
 
     if (insertError) {
-      console.error('[META-SEND] Erro ao salvar mensagem enviada no banco:', insertError)
+      console.error('[FLOW-LOG] CRITICAL: Erro ao salvar mensagem no histórico:', insertError)
     } else {
-      console.log('[META-SEND] Mensagem enviada salva com sucesso:', savedMessage.id)
+      console.log('[FLOW-LOG] Mensagem salva no histórico com sucesso:', savedMessage.id)
     }
 
     await supabase.from('crm_contacts').update({ last_interaction: new Date().toISOString() }).eq('id', contact.id)
