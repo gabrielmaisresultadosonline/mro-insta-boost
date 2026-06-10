@@ -3456,10 +3456,6 @@ const CRM = () => {
                   </div>
                 </div>
               </ScrollArea>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
               )}
             </div>
 
