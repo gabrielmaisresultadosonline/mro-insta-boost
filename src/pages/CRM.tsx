@@ -3457,9 +3457,10 @@ const CRM = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </ScrollArea>
-              )}
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
             </div>
 
             {/* Conversas */}
