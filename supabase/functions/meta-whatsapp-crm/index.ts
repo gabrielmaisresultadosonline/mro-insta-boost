@@ -2837,20 +2837,21 @@ async function fetchAndStoreIncomingMedia(
 
       // DEBUG: Log first few chars of secret
       if (google_client_secret) {
-        console.log(`[OAUTH-DEBUG] Secret starts with: ${google_client_secret.substring(0, 10)}... and has length: ${google_client_secret.length}`);
+        console.log(`[OAUTH-DEBUG] Secret Verification: Starts with ${google_client_secret.substring(0, 7)}, Ends with ${google_client_secret.substring(google_client_secret.length - 3)}, Raw Length: ${google_client_secret.length}`);
       }
 
-      console.log(`[OAUTH] Fetching token from Google...`);
+      console.log(`[OAUTH] Fetching token from Google with grant_type: authorization_code`);
+      const bodyParams = new URLSearchParams();
+      bodyParams.append('code', code);
+      bodyParams.append('client_id', google_client_id.trim());
+      bodyParams.append('client_secret', google_client_secret.trim());
+      bodyParams.append('redirect_uri', finalRedirectUri.trim());
+      bodyParams.append('grant_type', 'authorization_code');
+      
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code,
-          client_id: google_client_id.trim(),
-          client_secret: google_client_secret.trim(),
-          redirect_uri: finalRedirectUri.trim(),
-          grant_type: 'authorization_code',
-        }),
+        body: bodyParams.toString(),
       });
 
       const tokens = await response.json();
