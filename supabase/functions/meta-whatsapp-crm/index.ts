@@ -2816,7 +2816,8 @@ async function fetchAndStoreIncomingMedia(
     
 
     if (action === 'getGoogleAuthUrl') {
-      const { google_client_id } = settings;
+      const { clientId } = getGoogleOAuthCredentials(settings);
+      const google_client_id = clientId;
       if (!google_client_id) {
         throw new Error('Google Client ID não configurado nas configurações');
       }
@@ -2835,14 +2836,10 @@ async function fetchAndStoreIncomingMedia(
 
      if (action === 'exchangeGoogleCode') {
        const { code, redirectUri: paramsRedirectUri } = params;
-       
-        // Use hardcoded defaults if not in settings, but prioritize settings
-        const DEFAULT_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
-        const DEFAULT_CLIENT_SECRET = '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x';
-
-       
-       const google_client_id = settings?.google_client_id || DEFAULT_CLIENT_ID;
-       const google_client_secret = settings?.google_client_secret || DEFAULT_CLIENT_SECRET;
+       const { clientId: google_client_id, clientSecret: google_client_secret, source: credentialSource } = getGoogleOAuthCredentials(settings);
+       if (!google_client_secret) {
+         throw new Error('Google Client Secret não configurado no backend');
+       }
        
        // CRITICAL: Google is very strict about the Redirect URI matching EXACTLY what was sent in the auth request.
        const finalRedirectUri = 'https://zapmro.com.br/google-callback';
@@ -2850,11 +2847,7 @@ async function fetchAndStoreIncomingMedia(
        console.log(`[OAUTH] Exchange Attempt - ClientID: ${google_client_id.trim()}`);
        console.log(`[OAUTH] Force using fixed redirectUri: ${finalRedirectUri}`);
        console.log(`[OAUTH] Received paramsRedirectUri was: ${paramsRedirectUri}`);
-
-      // DEBUG: Log first few chars of secret
-      if (google_client_secret) {
-        console.log(`[OAUTH-DEBUG] Secret Verification: Starts with ${google_client_secret.substring(0, 7)}, Ends with ${google_client_secret.substring(google_client_secret.length - 3)}, Raw Length: ${google_client_secret.length}`);
-      }
+       console.log(`[OAUTH] Using Google credentials source: ${credentialSource}`);
 
       console.log(`[OAUTH] Fetching token from Google with grant_type: authorization_code`);
       // Use standard Form Data approach which is more reliable for OAuth tokens
