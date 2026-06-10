@@ -151,6 +151,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             to: waId, 
             [node.type + 'Url']: mediaUrl,
             contactId,
+            nodeId: node.id,
             isVoice: node.type === 'audio'
           }
         });
