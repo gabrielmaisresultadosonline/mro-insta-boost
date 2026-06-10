@@ -119,16 +119,22 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         const timeoutEdge = flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout');
         const timeoutMinutes = parseInt(node.data?.timeout || '20');
         
-        console.log(`[EXECUTOR] Node ${node.id} is a wait/question node. Timeout minutes: ${timeoutMinutes}, Target: ${timeoutEdge?.target}`);
+        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT. Timeout: ${timeoutMinutes}min. Target timeout: ${timeoutEdge?.target}`);
         
-        await supabase.from('crm_contacts').update({
+        const { error: updateError } = await supabase.from('crm_contacts').update({
           flow_state: 'waiting_response',
           next_execution_time: null,
           flow_timeout_minutes: timeoutMinutes,
           flow_timeout_node_id: timeoutEdge?.target || null,
           last_flow_interaction: new Date().toISOString()
         }).eq('id', contactId);
+
+        if (updateError) {
+          console.error(`[FLOW-LOG] ERROR updating contact ${contactId} to waiting_response:`, updateError);
+          throw updateError;
+        }
         
+        console.log(`[FLOW-LOG] Contact ${contactId} updated to state: waiting_response`);
         return { success: true, message: 'Sent interactive buttons and waiting for response' };
       }
     } else if (node.type === 'image' || node.type === 'video' || node.type === 'audio' || node.type === 'document') {
