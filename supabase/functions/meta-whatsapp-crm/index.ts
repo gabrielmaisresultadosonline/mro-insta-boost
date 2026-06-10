@@ -628,8 +628,10 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   let mediaUrlForSave: string | null = null;
   let mediaCaption = '';
 
-  console.log(`[WEBHOOK] Handling message from ${waId}. Type: ${message.type}. ID: ${message.id}`);
-
+  console.log(`[FLOW-LOG] WEBHOOK: Message from ${waId}. Type: ${message.type}. ID: ${message.id}. Contact state: ${contact?.flow_state}`);
+  if (message.type === 'image' || message.type === 'video') {
+    console.log(`[FLOW-LOG] Received ${message.type} from ${waId}. Resolving media ID...`);
+  }
 
   if (!skipSave && message.id) {
      const { data: existingInbound } = await supabase
@@ -640,7 +642,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
        .maybeSingle();
 
     if (existingInbound) {
-      console.log(`[WEBHOOK] Duplicate inbound message ${message.id} ignored before save for ${waId}`);
+      console.log(`[FLOW-LOG] Duplicate inbound message ${message.id} ignored for ${waId}`);
       return jsonResponse({ success: true, message: 'Duplicate inbound ignored' });
     }
   }
