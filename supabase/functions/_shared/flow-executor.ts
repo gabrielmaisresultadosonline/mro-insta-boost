@@ -57,6 +57,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             action: 'sendMessage', 
             to: waId, 
             contactId,
+            nodeId: node.id,
             meta_phone_number_id: settings?.meta_phone_number_id,
             meta_access_token: settings?.meta_access_token,
             interactive: {
@@ -90,6 +91,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           to: waId, 
           text, 
           contactId,
+          nodeId: node.id,
           meta_phone_number_id: settings?.meta_phone_number_id,
           meta_access_token: settings?.meta_access_token
         };
@@ -149,6 +151,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             to: waId, 
             [node.type + 'Url']: mediaUrl,
             contactId,
+            nodeId: node.id,
             isVoice: node.type === 'audio'
           }
         });
