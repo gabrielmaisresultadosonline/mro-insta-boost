@@ -2686,7 +2686,7 @@ async function fetchAndStoreIncomingMedia(
           
           // Priority 1.5: Match text against button labels
           if (!nextEdge && text && currentNode.data?.buttons) {
-            console.log(`[FLOW-DEBUG] Attempting text match for: "${text}"`);
+            console.log(`[FLOW-LOG] Attempting text match for: "${text}" in node ${currentNode.id}`);
             const matchedButtonIdx = currentNode.data.buttons.findIndex((b: any) => {
               const bText = (b.label || b.text || "").toLowerCase().trim();
               const receivedText = text.toLowerCase().trim();
@@ -2695,9 +2695,11 @@ async function fetchAndStoreIncomingMedia(
                      (bText.length > 20 && receivedText === (bText.substring(0, 17) + "...").toLowerCase()) ||
                      (receivedText.length > 3 && bText.includes(receivedText)) ||
                      (receivedText.includes('[button reply]') && receivedText.includes(bText)) ||
-                     (bText.length > 3 && receivedText.includes(bText));
+                     (bText.length > 3 && receivedText.includes(bText)) ||
+                     (receivedText.length > 2 && bText.startsWith(receivedText)) ||
+                     (bText.length > 2 && receivedText.startsWith(bText));
               
-              if (match) console.log(`[FLOW-DEBUG] Text match found: "${bText}"`);
+              if (match) console.log(`[FLOW-LOG] Text match found with button: "${bText}"`);
               return match;
             });
             
@@ -2707,7 +2709,11 @@ async function fetchAndStoreIncomingMedia(
               const possibleHandles = [b.id, `btn_${matchedButtonIdx}`, `btn-${matchedButtonIdx}`, matchedButtonIdx.toString(), `btn-${matchedButtonIdx}-handle` ];
               nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (possibleHandles.includes(e.sourceHandle) || e.sourceHandle === b.id));
               
-              console.log(`[FLOW-DEBUG] Matched text "${text}" to button index ${matchedButtonIdx}. Found edge: ${!!nextEdge}`);
+              if (nextEdge) {
+                console.log(`[FLOW-LOG] Matched text "${text}" to button index ${matchedButtonIdx}. Found edge to: ${nextEdge.target}`);
+              } else {
+                console.warn(`[FLOW-LOG] Matched text "${text}" to button index ${matchedButtonIdx}, but NO EDGE found for handles:`, possibleHandles);
+              }
             }
           }
 
