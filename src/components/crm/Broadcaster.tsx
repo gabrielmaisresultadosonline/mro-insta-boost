@@ -28,7 +28,8 @@ import {
   Plus,
   Upload,
   ArrowRight,
-  Save
+  Save,
+  BrainCircuit
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
