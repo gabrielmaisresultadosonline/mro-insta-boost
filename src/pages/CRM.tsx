@@ -230,6 +230,7 @@ const CRM = () => {
     meta_app_secret: '',
     meta_display_phone_number: '',
     meta_verified_name: '',
+    meta_business_id: '424282342514566',
     google_client_id: '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com',
     google_client_secret: '',
     openai_api_key: '',
