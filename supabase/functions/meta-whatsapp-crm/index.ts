@@ -2829,10 +2829,11 @@ async function fetchAndStoreIncomingMedia(
        const google_client_secret = settings?.google_client_secret || DEFAULT_CLIENT_SECRET;
        
        // CRITICAL: Google is very strict about the Redirect URI matching EXACTLY what was sent in the auth request.
-       const finalRedirectUri = paramsRedirectUri || 'https://zapmro.com.br/google-callback';
+       const finalRedirectUri = 'https://zapmro.com.br/google-callback';
        
-       console.log(`[OAUTH] Exchange Attempt - ClientID: ${google_client_id}`);
-       console.log(`[OAUTH] Using final redirectUri for exchange: ${finalRedirectUri}`);
+       console.log(`[OAUTH] Exchange Attempt - ClientID: ${google_client_id.trim()}`);
+       console.log(`[OAUTH] Force using fixed redirectUri: ${finalRedirectUri}`);
+       console.log(`[OAUTH] Received paramsRedirectUri was: ${paramsRedirectUri}`);
 
       // DEBUG: Log first few chars of secret
       if (google_client_secret) {

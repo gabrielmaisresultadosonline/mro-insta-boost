@@ -764,7 +764,7 @@ const CRM = () => {
           // to avoid CORS issues if the server doesn't have the OPTIONS header for the health check
           const res = await fetch(url, { 
             method: 'GET', 
-            mode: 'no-cors', // Changed to no-cors to avoid preflight issues during status check
+            mode: 'no-cors',
             signal: AbortSignal.timeout(5000) 
           });
           setMetaSettings(prev => ({ ...prev, vps_status: 'online' }));
@@ -1151,6 +1151,7 @@ const CRM = () => {
     // Usamos o callback que o sistema espera
     // Google requires exact match. zapmro.com.br is the authorized domain.
     const redirectUri = encodeURIComponent('https://zapmro.com.br/google-callback');
+    console.log('[OAUTH] Initiating Google login with Redirect URI: https://zapmro.com.br/google-callback');
     
     // Escopos necessários para ler contatos
     const scopes = [
