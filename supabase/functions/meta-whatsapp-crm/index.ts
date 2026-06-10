@@ -820,6 +820,80 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
        return jsonResponse(result);
     }
   }
+
+  // ====== AUTO-TRIGGER FLOWS ON INBOUND MESSAGES ======
+  // Only try to start a flow if there's no active flow and contact is not in AI handling
+  if (contact && !hasActiveFlow && !isAiHandling && !isAiActive) {
+    try {
+      const { data: activeFlows } = await supabase
+        .from('crm_flows')
+        .select('id, name, trigger_type, trigger_keywords, trigger_keyword, nodes')
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      if (activeFlows && activeFlows.length > 0) {
+        const normalizedText = (text || '').trim().toLowerCase();
+        const prevTotal = (typeof __previousTotalReceived !== 'undefined') ? __previousTotalReceived : 0;
+        const prevLast = (typeof __previousLastReceivedAt !== 'undefined') ? __previousLastReceivedAt : null;
+
+        const now = new Date();
+        const isFirstEver = prevTotal === 0;
+        let isFirstOfDay = isFirstEver;
+        let isAfter24h = isFirstEver;
+        if (prevLast) {
+          const last = new Date(prevLast);
+          // First message of the day = different calendar date than last received
+          isFirstOfDay = last.toDateString() !== now.toDateString();
+          isAfter24h = (now.getTime() - last.getTime()) >= 24 * 60 * 60 * 1000;
+        }
+
+        const flowMatches = (flow: any): boolean => {
+          const t = flow.trigger_type;
+          const kws: string[] = Array.isArray(flow.trigger_keywords)
+            ? flow.trigger_keywords.map((k: string) => String(k || '').trim().toLowerCase()).filter(Boolean)
+            : (flow.trigger_keyword ? [String(flow.trigger_keyword).trim().toLowerCase()] : []);
+
+          if (t === 'exact_phrase') {
+            return kws.length > 0 && kws.some(k => k === normalizedText);
+          }
+          if (t === 'keyword') {
+            return kws.length > 0 && normalizedText.length > 0 && kws.some(k => k && normalizedText.includes(k));
+          }
+          if (t === 'first_message') return isFirstEver;
+          if (t === 'first_message_day') return isFirstOfDay;
+          if (t === 'after_24h') return isAfter24h;
+          return false;
+        };
+
+        // Priority order: exact_phrase > keyword > first_message > first_message_day > after_24h
+        const priority = ['exact_phrase', 'keyword', 'first_message', 'first_message_day', 'after_24h'];
+        let chosen: any = null;
+        for (const p of priority) {
+          chosen = activeFlows.find((f: any) => f.trigger_type === p && flowMatches(f));
+          if (chosen) break;
+        }
+
+        if (chosen) {
+          console.log(`[TRIGGER] Auto-starting flow ${chosen.id} (${chosen.name}) for ${waId} via trigger=${chosen.trigger_type}`);
+          const { data: startRes, error: startErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
+            headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+            body: { action: 'startFlow', flowId: chosen.id, contactId: contact.id, waId }
+          });
+          if (startErr) {
+            console.error('[TRIGGER] Error starting flow:', startErr);
+          } else {
+            console.log('[TRIGGER] Flow started:', JSON.stringify(startRes));
+            return jsonResponse({ success: true, triggered_flow: chosen.id });
+          }
+        } else {
+          console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${isFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
+        }
+      }
+    } catch (trigErr) {
+      console.error('[TRIGGER] Error evaluating triggers:', trigErr);
+    }
+  }
+
     return jsonResponse({ success: true, message: 'Step 1' });
 
   if (contact && contact.ai_active && contact.flow_state === 'idle' && hasActiveFlow) {
