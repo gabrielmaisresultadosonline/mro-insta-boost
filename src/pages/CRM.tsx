@@ -1149,7 +1149,8 @@ const CRM = () => {
     const clientId = metaSettings.google_client_id || '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
     
     // Usamos o callback que o sistema espera
-    const redirectUri = encodeURIComponent(window.location.origin + '/google-callback');
+    // Google requires exact match. zapmro.com.br is the authorized domain.
+    const redirectUri = encodeURIComponent('https://zapmro.com.br/google-callback');
     
     // Escopos necessários para ler contatos
     const scopes = [
