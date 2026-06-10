@@ -2831,8 +2831,13 @@ async function fetchAndStoreIncomingMedia(
        // CRITICAL: Google is very strict about the Redirect URI matching EXACTLY what was sent in the auth request.
        const finalRedirectUri = paramsRedirectUri || 'https://zapmro.com.br/google-callback';
        
-       console.log(`[OAUTH] Exchange Attempt - ClientID: ${google_client_id}, Secret: ${google_client_secret ? 'EXISTS' : 'MISSING'}`);
+       console.log(`[OAUTH] Exchange Attempt - ClientID: ${google_client_id}`);
        console.log(`[OAUTH] Using final redirectUri for exchange: ${finalRedirectUri}`);
+
+      // DEBUG: Log first few chars of secret
+      if (google_client_secret) {
+        console.log(`[OAUTH-DEBUG] Secret starts with: ${google_client_secret.substring(0, 10)}... and has length: ${google_client_secret.length}`);
+      }
 
       console.log(`[OAUTH] Fetching token from Google...`);
       const response = await fetch('https://oauth2.googleapis.com/token', {
