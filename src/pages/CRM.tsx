@@ -3343,211 +3343,130 @@ const CRM = () => {
             <div className={cn("flex-1 h-full overflow-hidden", activeTab !== 'dashboard' && "hidden")}>
               {activeTab === 'dashboard' && (
               <ScrollArea className="flex-1 p-4 md:p-8">
-                <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Métricas Gerais</h2>
-                    <p className="text-muted-foreground text-sm">Visão geral do desempenho da sua operação.</p>
+                <div className="max-w-7xl mx-auto space-y-12 md:space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  {/* Bem-vindo e Logo 3D */}
+                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-8 relative overflow-hidden">
+                    <div className="absolute inset-0 z-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#00a884] via-transparent to-transparent blur-3xl"></div>
+                    
+                    <div className="relative z-10 space-y-2">
+                      <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-foreground">
+                        Seja bem vindo, <span className="text-[#00a884]">{(myDataEmail.split('@')[0] || 'Usuário').toUpperCase()}</span>
+                      </h2>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-5xl md:text-7xl font-black text-[#00a884] drop-shadow-[0_0_15px_rgba(0,168,132,0.3)] animate-pulse">ZAPMRO</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl md:text-2xl font-bold tracking-[0.3em] text-muted-foreground/60">CLOUD</span>
+                          <div className="h-1 w-12 bg-[#00a884] rounded-full" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Logo WhatsApp 3D Giratória */}
+                    <div className="relative w-48 h-48 md:w-64 md:h-64 group [perspective:1000px]">
+                      <div className="absolute inset-0 bg-[#00a884] rounded-full blur-[80px] opacity-10 group-hover:opacity-20 transition-opacity duration-700 animate-pulse"></div>
+                      <div className="w-full h-full flex items-center justify-center animate-[spin_10s_linear_infinite] [transform-style:preserve-3d]">
+                        <div className="relative w-32 h-32 md:w-44 md:h-44">
+                          <svg 
+                            viewBox="0 0 24 24" 
+                            className="w-full h-full drop-shadow-[0_0_30px_rgba(0,168,132,0.8)]"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <defs>
+                              <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#00ffa3" />
+                                <stop offset="100%" stopColor="#00a884" />
+                              </linearGradient>
+                            </defs>
+                            <path 
+                              fill="url(#neonGradient)"
+                              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .018 5.393 0 12.03c0 2.123.554 4.197 1.606 6.01L0 24l6.117-1.605a11.815 11.815 0 005.928 1.583h.005c6.632 0 12.028-5.391 12.03-12.03a11.785 11.785 0 00-3.502-8.498"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    {[
-                      { label: 'Mensagens Enviadas', value: metrics.sent_count, icon: Send, color: 'blue', type: 'sent' },
-                      { label: 'Respondidas', value: metrics.responded_count, icon: MessageSquare, color: 'yellow', type: 'responded' },
-                      { label: 'Contatos Qualificados', value: metrics.qualified_count, icon: CheckCircle2, color: 'purple', type: 'qualified' },
-                      { label: 'Conversas 24h (Hoje)', value: conversationStats.activeWindow24h, icon: Clock, color: 'green', type: 'active_today' },
-                    ].map((stat, i) => (
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold tracking-tight">Métricas Gerais</h3>
+                        <p className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Relatório de desempenho em tempo real</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="rounded-xl bg-white dark:bg-[#111b21] h-8 text-[10px] font-bold" onClick={() => fetchData(false)}>
+                          <RefreshCcw className="w-3 h-3 mr-1.5" /> ATUALIZAR
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Todas conversas atendidas */}
                       <Card 
-                        key={i} 
-                        className="relative overflow-hidden group hover:shadow-xl transition-all border-none bg-white dark:bg-[#111b21] cursor-pointer shadow-sm rounded-2xl"
+                        className="relative overflow-hidden group hover:shadow-xl transition-all border-none bg-white dark:bg-[#111b21] cursor-pointer shadow-sm rounded-3xl p-1"
                         onClick={() => {
-                          if (stat.type === 'responded') setStatusFilter('responded');
-                          else if (stat.type === 'qualified') setStatusFilter('qualified');
-                          else if (stat.type === 'active_today') handleOpenMetricsList('active');
-                          else setStatusFilter('all');
+                          setStatusFilter('all');
                           setActiveTab('contacts');
                         }}
                       >
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                          <CardDescription className="font-bold text-[10px] md:text-xs uppercase tracking-wider">{stat.label}</CardDescription>
-                          <stat.icon className={cn("w-4 h-4 md:w-5 md:h-5", {
-                            "text-blue-500": stat.color === 'blue',
-                            "text-yellow-500": stat.color === 'yellow',
-                            "text-purple-500": stat.color === 'purple',
-                            "text-green-500": stat.color === 'green',
-                          })} />
+                          <CardDescription className="font-black text-[10px] uppercase tracking-widest text-blue-500">Total Atendimentos</CardDescription>
+                          <Users className="w-5 h-5 text-blue-500" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl md:text-3xl font-black">{stat.value}</div>
-                          <div className={cn("mt-2 h-1 w-full rounded-full overflow-hidden", {
-                            "bg-blue-500/10": stat.color === 'blue',
-                            "bg-yellow-500/10": stat.color === 'yellow',
-                            "bg-purple-500/10": stat.color === 'purple',
-                            "bg-green-500/10": stat.color === 'green',
-                          })}>
-                            <div className={cn("h-full transition-all duration-1000", {
-                              "bg-blue-500": stat.color === 'blue',
-                              "bg-yellow-500": stat.color === 'yellow',
-                              "bg-purple-500": stat.color === 'purple',
-                              "bg-green-500": stat.color === 'green',
-                            })} style={{ width: '70%' }} />
+                          <div className="text-4xl font-black tracking-tighter">{contacts.length}</div>
+                          <p className="text-[10px] text-muted-foreground mt-1">Total de contatos na base</p>
+                          <div className="mt-4 h-1.5 w-full bg-blue-500/10 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 w-full" />
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                    <Card 
-                      className="relative overflow-hidden border-orange-200/50 dark:border-orange-900/40 bg-gradient-to-br from-orange-50/60 to-transparent dark:from-orange-950/20 cursor-pointer hover:shadow-md transition-all"
-                      onClick={() => handleOpenMetricsList('paid')}
-                    >
-                      <CardHeader className="flex flex-row items-start justify-between pb-2 gap-2">
-                        <div className="min-w-0">
-                          <CardDescription className="font-bold text-[10px] md:text-xs uppercase tracking-wider text-orange-700 dark:text-orange-400">
-                            Conversas Pagas (Mês)
-                          </CardDescription>
-                          <p className="text-[10px] text-muted-foreground mt-0.5 capitalize truncate">
-                            R$ {CONVERSATION_COST.toFixed(2).replace('.', ',')} por conversa
-                          </p>
-                        </div>
-                        <DollarSign className="w-5 h-5 text-orange-500 shrink-0" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <div className="text-2xl md:text-3xl font-black text-orange-600 dark:text-orange-400">
-                            R$ {(conversationStats.paidThisMonth * CONVERSATION_COST).toFixed(2).replace('.', ',')}
+                      {/* Conversas 24h Grátis */}
+                      <Card 
+                        className="relative overflow-hidden group hover:shadow-xl transition-all border-none bg-white dark:bg-[#111b21] cursor-pointer shadow-sm rounded-3xl p-1"
+                        onClick={() => handleOpenMetricsList('active')}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <CardDescription className="font-black text-[10px] uppercase tracking-widest text-emerald-500">Janela 24h Grátis</CardDescription>
+                          <Zap className="w-5 h-5 text-emerald-500" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-4xl font-black tracking-tighter">{conversationStats.activeWindow24h}</div>
+                          <p className="text-[10px] text-muted-foreground mt-1">Conversas ativas no momento</p>
+                          <div className="mt-4 h-1.5 w-full bg-emerald-500/10 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (conversationStats.activeWindow24h / (contacts.length || 1)) * 100)}%` }} />
                           </div>
-                          <Badge variant="outline" className="text-[10px] font-bold border-orange-300 text-orange-700 dark:text-orange-400">
-                            {conversationStats.paidThisMonth} conv.
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
 
-                    <Card 
-                      className="relative overflow-hidden border-emerald-200/50 dark:border-emerald-900/40 bg-gradient-to-br from-emerald-50/60 to-transparent dark:from-emerald-950/20 cursor-pointer hover:shadow-md transition-all"
-                      onClick={() => handleOpenMetricsList('active')}
-                    >
-                      <CardHeader className="flex flex-row items-start justify-between pb-2 gap-2">
-                        <div className="min-w-0">
-                          <CardDescription className="font-bold text-[10px] md:text-xs uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                            Conversas Grátis (Janela 24h)
-                          </CardDescription>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Janela aberta de resposta gratuita
-                          </p>
-                        </div>
-                        <Clock className="w-5 h-5 text-emerald-500 shrink-0" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <div className="text-2xl md:text-3xl font-black text-emerald-600 dark:text-emerald-400">
-                            {conversationStats.activeWindow24h}
-                          </div>
-                          <Badge variant="outline" className="text-[10px] font-bold border-emerald-300 text-emerald-700 dark:text-emerald-400">
-                            ativas
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card 
-                      className="relative overflow-hidden border-blue-200/50 dark:border-blue-900/40 bg-gradient-to-br from-blue-50/60 to-transparent dark:from-blue-950/20 cursor-pointer hover:shadow-md transition-all"
-                    >
-                      <CardHeader className="flex flex-row items-start justify-between pb-2 gap-2">
-                        <div className="min-w-0">
-                          <CardDescription className="font-bold text-[10px] md:text-xs uppercase tracking-wider text-blue-700 dark:text-blue-400">
-                            Resumo Semanal (7 dias)
-                          </CardDescription>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Interações na última semana
-                          </p>
-                        </div>
-                        <Calendar className="w-5 h-5 text-blue-500 shrink-0" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1 cursor-pointer hover:bg-blue-500/5 p-2 rounded-lg transition-colors" onClick={() => handleOpenMetricsList('weekly_paid')}>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Pagas</p>
-                            <div className="text-xl font-black text-blue-600">
-                              {conversationStats.paidThisWeek}
+                      {/* Conversas Pagas Total */}
+                      <Card 
+                        className="relative overflow-hidden group hover:shadow-xl transition-all border-none bg-white dark:bg-[#111b21] cursor-pointer shadow-sm rounded-3xl p-1"
+                        onClick={() => handleOpenMetricsList('paid')}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <CardDescription className="font-black text-[10px] uppercase tracking-widest text-orange-500">Conversas Pagas (Mês)</CardDescription>
+                          <DollarSign className="w-5 h-5 text-orange-500" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-baseline gap-2">
+                            <div className="text-4xl font-black tracking-tighter text-orange-600">
+                              R$ {(conversationStats.paidThisMonth * CONVERSATION_COST).toFixed(2).replace('.', ',')}
                             </div>
+                            <span className="text-xs font-bold text-muted-foreground">{conversationStats.paidThisMonth} un.</span>
                           </div>
-                          <div className="space-y-1 cursor-pointer hover:bg-blue-500/5 p-2 rounded-lg transition-colors" onClick={() => handleOpenMetricsList('weekly_active')}>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Ativas</p>
-                            <div className="text-xl font-black text-blue-600">
-                              {conversationStats.activeThisWeek}
-                            </div>
+                          <p className="text-[10px] text-muted-foreground mt-1">Baseado em R$ {CONVERSATION_COST.toFixed(2).replace('.', ',')} / conv.</p>
+                          <div className="mt-4 h-1.5 w-full bg-orange-500/10 rounded-full overflow-hidden">
+                            <div className="h-full bg-orange-500 w-1/3" />
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </div>
-
-                  <Card className="p-6">
-                    <CardHeader className="px-0 pt-0">
-                      <CardTitle className="text-lg font-bold flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-primary" />
-                        Histórico de Conversas Pagas
-                      </CardTitle>
-                      <CardDescription>Envios realizados nos últimos 7 dias</CardDescription>
-                    </CardHeader>
-                    <CardContent className="px-0 pb-0 pt-4">
-                      <div className="h-[250px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={metricsChartData}>
-                            <defs>
-                              <linearGradient id="colorPagos" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="rgb(249, 115, 22)" stopOpacity={0.1}/>
-                                <stop offset="95%" stopColor="rgb(249, 115, 22)" stopOpacity={0}/>
-                              </linearGradient>
-                              <linearGradient id="colorAtivos" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="rgb(16, 185, 129)" stopOpacity={0.1}/>
-                                <stop offset="95%" stopColor="rgb(16, 185, 129)" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                            <XAxis 
-                              dataKey="name" 
-                              axisLine={false} 
-                              tickLine={false} 
-                              tick={{fontSize: 10}}
-                              dy={10}
-                            />
-                            <YAxis 
-                              axisLine={false} 
-                              tickLine={false} 
-                              tick={{fontSize: 10}}
-                            />
-                            <RechartsTooltip 
-                              contentStyle={{ 
-                                borderRadius: '12px', 
-                                border: 'none', 
-                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
-                              }}
-                            />
-                            <Area 
-                              type="monotone" 
-                              dataKey="pagos" 
-                              name="Conversas Pagas"
-                              stroke="rgb(249, 115, 22)" 
-                              strokeWidth={3}
-                              fillOpacity={1} 
-                              fill="url(#colorPagos)" 
-                            />
-                            <Area 
-                              type="monotone" 
-                              dataKey="ativos" 
-                              name="Janela Grátis"
-                              stroke="rgb(16, 185, 129)" 
-                              strokeWidth={3}
-                              fillOpacity={1} 
-                              fill="url(#colorAtivos)" 
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
               </ScrollArea>
               )}
