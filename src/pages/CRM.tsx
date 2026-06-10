@@ -3058,7 +3058,7 @@ const CRM = () => {
           {/* Texto de carregamento com efeito de gradiente e brilho */}
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold tracking-tighter text-white/90 animate-pulse">
-              Iniciando <span className="text-[#00a884]">CRM</span>
+              Iniciando <span className="text-[#00a884]">ZAPMRO</span>
             </h2>
             
             <div className="flex items-center justify-center gap-2">
