@@ -837,9 +837,6 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         const prevLast = __previousLastReceivedAt;
 
         const now = new Date();
-        const isFirstEver = prevTotal === 0;
-        let isFirstOfDay = isFirstEver;
-        let isAfter24h = isFirstEver;
         
         // Verifica se existem mensagens inbound no histórico para este contato
         const { count: inboundCount } = await supabase
@@ -848,13 +845,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
           .eq('contact_id', contact.id)
           .eq('direction', 'inbound');
         
-        const hasHistory = (inboundCount || 0) > 1; // > 1 pois a mensagem atual já foi inserida no banco
+        // Se temos 0 ou 1 mensagens inbound, consideramos como primeira mensagem 
+        // (1 porque a mensagem atual já foi inserida antes desta verificação)
+        const isFirstEver = (inboundCount || 0) <= 1;
+        let isFirstOfDay = isFirstEver;
+        let isAfter24h = isFirstEver;
         
-        if (!hasHistory) {
-          console.log(`[TRIGGER] No inbound history found for contact ${contact.id}. Treating as first message.`);
-          isFirstEver = true;
-          isFirstOfDay = true;
-          isAfter24h = true;
+        if (isFirstEver) {
+          console.log(`[TRIGGER] First message ever detected for contact ${contact.id} (inboundCount: ${inboundCount})`);
         } else if (prevLast) {
           const lastDate = new Date(prevLast);
           
