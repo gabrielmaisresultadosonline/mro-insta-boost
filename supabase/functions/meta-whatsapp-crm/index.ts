@@ -847,19 +847,17 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         
         // Se temos 0 ou 1 mensagens inbound, consideramos como primeira mensagem 
         // (1 porque a mensagem atual já foi inserida antes desta verificação)
-        const isFirstEver = (inboundCount || 0) <= 1 || (contact.total_messages_received || 0) <= 1;
-        
-        // Se o usuário APAGOU o histórico, o inboundCount será 0 ou 1, 
-        // mas o total_messages_received pode ser alto. 
-        // Para permitir o teste de "Primeira Mensagem" após apagar histórico,
-        // confiamos no inboundCount se total_messages_received for inconsistente.
+        // Se temos 0 ou 1 mensagens inbound, consideramos como primeira mensagem 
+        // (1 porque a mensagem atual já foi inserida antes desta verificação)
         const effectiveIsFirstEver = (inboundCount || 0) <= 1;
         
-        let isFirstOfDay = effectiveIsFirstEver || !prevLast;
-        let isAfter24h = effectiveIsFirstEver || !prevLast;
-        
-        if (isFirstEver) {
-          console.log(`[TRIGGER] First message ever detected for contact ${contact.id} (inboundCount: ${inboundCount})`);
+        // NOVO: Verifica se o contato foi criado nos últimos 5 minutos e tem apenas 1 mensagem
+        // Isso ajuda a detectar novos contatos mesmo que o total_messages_received demore a atualizar
+        const isVeryRecentContact = contact.created_at && (new Date().getTime() - new Date(contact.created_at).getTime()) < 300000;
+        const isNewAndFirst = isVeryRecentContact && (inboundCount || 0) <= 1;
+
+        if (effectiveIsFirstEver || isNewAndFirst) {
+          console.log(`[TRIGGER] First message ever detected for contact ${contact.id} (inboundCount: ${inboundCount}, recent: ${isVeryRecentContact})`);
         } else if (prevLast) {
           const lastDate = new Date(prevLast);
           
