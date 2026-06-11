@@ -847,8 +847,6 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         
         // Se temos 0 ou 1 mensagens inbound, consideramos como primeira mensagem 
         // (1 porque a mensagem atual já foi inserida antes desta verificação)
-        // Se temos 0 ou 1 mensagens inbound, consideramos como primeira mensagem 
-        // (1 porque a mensagem atual já foi inserida antes desta verificação)
         const effectiveIsFirstEver = (inboundCount || 0) <= 1;
         
         // NOVO: Verifica se o contato foi criado nos últimos 5 minutos e tem apenas 1 mensagem
@@ -856,8 +854,12 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         const isVeryRecentContact = contact.created_at && (new Date().getTime() - new Date(contact.created_at).getTime()) < 300000;
         const isNewAndFirst = isVeryRecentContact && (inboundCount || 0) <= 1;
 
-        let isFirstOfDay = effectiveIsFirstEver || isNewAndFirst || !prevLast;
-        let isAfter24h = effectiveIsFirstEver || isNewAndFirst || !prevLast;
+        // Se o usuário limpou o histórico, inboundCount será 0 ou 1, 
+        // e prevLast pode ser nulo ou antigo.
+        // Forçamos gatilho de primeira mensagem se inboundCount for 1.
+        let isFirstEver = effectiveIsFirstEver || isNewAndFirst;
+        let isFirstOfDay = isFirstEver || !prevLast;
+        let isAfter24h = isFirstEver || !prevLast;
 
         if (effectiveIsFirstEver || isNewAndFirst) {
           console.log(`[TRIGGER] First message ever detected for contact ${contact.id} (inboundCount: ${inboundCount}, recent: ${isVeryRecentContact})`);
@@ -885,7 +887,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
           if (t === 'keyword') {
             return kws.length > 0 && normalizedText.length > 0 && kws.some(k => k && normalizedText.includes(k));
           }
-          if (t === 'first_message') return effectiveIsFirstEver || isNewAndFirst;
+          if (t === 'first_message') return isFirstEver;
           if (t === 'first_message_day') return isFirstOfDay;
           if (t === 'after_24h') return isAfter24h;
           return false;
@@ -903,7 +905,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
           console.log(`[TRIGGER] Auto-starting flow ${chosen.id} (${chosen.name}) for ${waId} via trigger=${chosen.trigger_type}`);
           
           // Execute starting the flow directly in this process to avoid latency and double-invocations
-          const startNode = chosen.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
+          let startNode = chosen.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
+          
+          // Fallback: se não tiver nó 'start', pega a primeira mensagem do fluxo
+          if (!startNode && chosen.nodes?.length > 0) {
+            console.log(`[TRIGGER] No explicit start node found for flow ${chosen.id}. Falling back to first available node.`);
+            startNode = chosen.nodes[0];
+          }
+
           if (startNode) {
             await supabase.from('crm_contacts').update({
               current_flow_id: chosen.id,
