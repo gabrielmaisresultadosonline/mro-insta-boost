@@ -131,13 +131,17 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       }
 
       // Se chegamos aqui, a mensagem (ou botões) foi enviada com sucesso.
-      // Agora verificamos se devemos aguardar uma resposta ou seguir imediatamente.
-      if (node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse') {
+      
+      // NOVO: Se o nó não é uma pergunta/espera mas tem botões, ele deve parar e esperar resposta
+      // para que os cliques nos botões funcionem.
+      const hasButtons = node.data?.buttons && node.data.buttons.length > 0;
+      
+      if (node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse' || hasButtons) {
         // Find timeout edge
         const timeoutEdge = flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout');
         const timeoutMinutes = parseInt(node.data?.timeout || '20');
         
-        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT. Timeout: ${timeoutMinutes}min. Target timeout: ${timeoutEdge?.target}`);
+        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}). Timeout: ${timeoutMinutes}min. Target timeout: ${timeoutEdge?.target}`);
         
         const { error: updateError } = await supabase.from('crm_contacts').update({
           flow_state: 'waiting_response',
@@ -324,9 +328,10 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
 
     
     // Find next node based on handle or standard connection
-    // BUT: If the current node was a question/wait_response, we ALREADY handled its state transition in the webhook
+    // BUT: If the current node was a question/wait_response or has buttons, we ALREADY handled its state transition in the webhook/above
     // This part should only run for nodes that trigger a "next" automatically (like message, audio, etc.)
-    if (node.type !== 'question' && node.type !== 'wait_response' && node.type !== 'waitResponse' && node.type !== 'delay' && node.type !== 'aiAgent') {
+    const hasButtons = node.data?.buttons && node.data.buttons.length > 0;
+    if (node.type !== 'question' && node.type !== 'wait_response' && node.type !== 'waitResponse' && node.type !== 'delay' && node.type !== 'aiAgent' && !hasButtons) {
       const edge = flow.edges?.find((e: any) => e.source === node.id && (!e.sourceHandle || e.sourceHandle === 'next' || e.sourceHandle === 'responded' || e.sourceHandle === 'any_response'));
       
       if (edge) {
