@@ -337,6 +337,8 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
     // Check if it's a question-like node
     const isQuestionNode = node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse';
     
+    console.log(`[EXECUTOR] Checking next node. isQuestionNode=${isQuestionNode}, hasButtons=${hasButtons}, nodeType=${node.type}`);
+
     if (!isQuestionNode && node.type !== 'delay' && node.type !== 'aiAgent' && !hasButtons) {
       const edge = flow.edges?.find((e: any) => e.source === node.id && (!e.sourceHandle || e.sourceHandle === 'next' || e.sourceHandle === 'responded' || e.sourceHandle === 'any_response'));
       
@@ -352,12 +354,19 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             flow_state: 'running'
           }).eq('id', contactId);
           
+          // Se o delay for pequeno, podemos tentar executar o próximo nó agora mesmo para maior fluidez
+          // No entanto, para evitar recursão infinita ou loops, limitamos ou usamos o retorno para o loop principal
           return { success: true, message: 'Next node scheduled', nextNodeId: nextNode.id, nextNode };
         }
       }
-    } else if (hasButtons) {
-       console.log(`[EXECUTOR] Node ${node.id} has buttons. Stopped to wait for interaction.`);
-       return { success: true, message: 'Wait for button interaction' };
+    } else if (hasButtons || isQuestionNode) {
+       console.log(`[EXECUTOR] Node ${node.id} has buttons or is question. Stopped to wait for interaction.`);
+       // Certifica que o estado está correto
+       await supabase.from('crm_contacts').update({
+         flow_state: 'waiting_response',
+         current_node_id: node.id
+       }).eq('id', contactId);
+       return { success: true, message: 'Wait for interaction' };
     }
 
 
