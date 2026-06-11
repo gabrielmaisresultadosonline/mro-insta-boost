@@ -904,16 +904,16 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         if (chosen) {
           console.log(`[TRIGGER] Auto-starting flow ${chosen.id} (${chosen.name}) for ${waId} via trigger=${chosen.trigger_type}`);
           
-          // Execute starting the flow directly in this process to avoid latency and double-invocations
+          // Execute starting the flow directly in this process
           let startNode = chosen.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
           
-          // Fallback: se não tiver nó 'start', pega a primeira mensagem do fluxo
           if (!startNode && chosen.nodes?.length > 0) {
             console.log(`[TRIGGER] No explicit start node found for flow ${chosen.id}. Falling back to first available node.`);
             startNode = chosen.nodes[0];
           }
 
           if (startNode) {
+            // Garante que o estado do contato seja atualizado ANTES da execução
             await supabase.from('crm_contacts').update({
               current_flow_id: chosen.id,
               current_node_id: startNode.id,
