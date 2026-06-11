@@ -3387,6 +3387,43 @@ async function fetchAndStoreIncomingMedia(
       return jsonResponse({ success: true, improvedPrompt: aiData.choices?.[0]?.message?.content });
     }
 
+    if (action === 'clearHistory') {
+      const { contactId } = params;
+      if (!contactId) throw new Error('contactId is required');
+
+      console.log(`[CLEAR-HISTORY] Clearing message history for contact ${contactId}`);
+
+      const { error: deleteError } = await supabase
+        .from('crm_messages')
+        .delete()
+        .eq('contact_id', contactId);
+
+      if (deleteError) {
+        console.error(`[CLEAR-HISTORY] Error deleting messages:`, deleteError);
+        throw deleteError;
+      }
+
+      // Reset flow state and AI active status to ensure it restarts as a fresh conversation
+      await supabase
+        .from('crm_contacts')
+        .update({
+          flow_state: 'idle',
+          ai_active: false,
+          current_flow_id: null,
+          current_node_id: null,
+          last_message_received_at: null,
+          last_flow_interaction: null,
+          ai_agent_prompt: null,
+          metadata: {
+            has_waited_initial_response: false,
+            last_processed_message_id: null
+          }
+        })
+        .eq('id', contactId);
+
+      return jsonResponse({ success: true, message: 'Histórico limpo com sucesso' });
+    }
+
     throw new Error(`Unhandled action: ${action}`);
   } catch (error: any) {
     console.error('Error in Edge Function:', error);
