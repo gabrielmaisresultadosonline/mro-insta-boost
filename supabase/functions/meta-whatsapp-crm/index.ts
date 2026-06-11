@@ -841,18 +841,29 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         let isFirstOfDay = isFirstEver;
         let isAfter24h = isFirstEver;
         
-        if (prevLast) {
+        // Verifica se existem mensagens inbound no histórico para este contato
+        const { count: inboundCount } = await supabase
+          .from('crm_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('contact_id', contact.id)
+          .eq('direction', 'inbound');
+        
+        const hasHistory = (inboundCount || 0) > 1; // > 1 pois a mensagem atual já foi inserida no banco
+        
+        if (!hasHistory) {
+          console.log(`[TRIGGER] No inbound history found for contact ${contact.id}. Treating as first message.`);
+          isFirstEver = true;
+          isFirstOfDay = true;
+          isAfter24h = true;
+        } else if (prevLast) {
           const lastDate = new Date(prevLast);
           
-          // Use UTC for robust comparison of "day" change to avoid DST/TZ issues
-          // Or just compare the local date strings in Sao Paulo time
           const nowInSameTZ = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
           const lastInSameTZ = new Date(lastDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
           
           isFirstOfDay = lastInSameTZ.toLocaleDateString('pt-BR') !== nowInSameTZ.toLocaleDateString('pt-BR');
           isAfter24h = (now.getTime() - lastDate.getTime()) >= 24 * 60 * 60 * 1000;
           
-          // Se passou das 24h, também consideramos como primeira do dia para garantir o gatilho
           if (isAfter24h) isFirstOfDay = true;
         }
 
