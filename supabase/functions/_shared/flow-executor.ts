@@ -19,6 +19,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         const replyButtons = buttons.filter((btn: any) => !(btn.url && btn.url.startsWith('http')));
 
         const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
+        console.log(`[EXECUTOR] Settings found for user ${flow.user_id}: ${!!settings?.meta_access_token}`);
 
         // 1) Envia botões de resposta normais (se houver)
         if (replyButtons.length > 0) {
