@@ -843,11 +843,17 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         
         if (prevLast) {
           const lastDate = new Date(prevLast);
+          
+          // Use UTC for robust comparison of "day" change to avoid DST/TZ issues
+          // Or just compare the local date strings in Sao Paulo time
           const nowInSameTZ = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
           const lastInSameTZ = new Date(lastDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
           
-          isFirstOfDay = lastInSameTZ.toDateString() !== nowInSameTZ.toDateString();
+          isFirstOfDay = lastInSameTZ.toLocaleDateString('pt-BR') !== nowInSameTZ.toLocaleDateString('pt-BR');
           isAfter24h = (now.getTime() - lastDate.getTime()) >= 24 * 60 * 60 * 1000;
+          
+          // Se passou das 24h, também consideramos como primeira do dia para garantir o gatilho
+          if (isAfter24h) isFirstOfDay = true;
         }
 
         const flowMatches = (flow: any): boolean => {
