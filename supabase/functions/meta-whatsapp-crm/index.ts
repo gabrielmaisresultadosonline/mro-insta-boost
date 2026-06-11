@@ -856,6 +856,9 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         const isVeryRecentContact = contact.created_at && (new Date().getTime() - new Date(contact.created_at).getTime()) < 300000;
         const isNewAndFirst = isVeryRecentContact && (inboundCount || 0) <= 1;
 
+        let isFirstOfDay = effectiveIsFirstEver || isNewAndFirst || !prevLast;
+        let isAfter24h = effectiveIsFirstEver || isNewAndFirst || !prevLast;
+
         if (effectiveIsFirstEver || isNewAndFirst) {
           console.log(`[TRIGGER] First message ever detected for contact ${contact.id} (inboundCount: ${inboundCount}, recent: ${isVeryRecentContact})`);
         } else if (prevLast) {
