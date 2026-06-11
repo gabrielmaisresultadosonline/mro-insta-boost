@@ -923,8 +923,26 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
             // Trigger actual execution of the start node (usually message node)
             const executeRes = await executeVisualNode(supabase, chosen, startNode, contact.id, waId);
-            console.log('[TRIGGER] Flow started directly:', JSON.stringify(executeRes));
-            return jsonResponse({ success: true, triggered_flow: chosen.id, execution: executeRes });
+            
+            // NOVO: Se o nó executado retornou um nextNodeId, continuamos a execução do fluxo
+            let currentRes = executeRes;
+            let iterations = 0;
+            const MAX_ITERATIONS = 5;
+            while (currentRes?.nextNodeId && iterations < MAX_ITERATIONS) {
+              console.log(`[TRIGGER] Sequential node detected in trigger: ${currentRes.nextNodeId}. Executing...`);
+              iterations++;
+              const nextInChain = chosen.nodes.find((n: any) => n.id === currentRes.nextNodeId);
+              if (nextInChain) {
+                // Atualiza o nó atual no contato antes de executar o próximo
+                await supabase.from('crm_contacts').update({ current_node_id: nextInChain.id }).eq('id', contact.id);
+                currentRes = await executeVisualNode(supabase, chosen, nextInChain, contact.id, waId);
+              } else {
+                break;
+              }
+            }
+
+            console.log('[TRIGGER] Flow started directly:', JSON.stringify(currentRes));
+            return jsonResponse({ success: true, triggered_flow: chosen.id, execution: currentRes });
           }
         } else {
           console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${effectiveIsFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
