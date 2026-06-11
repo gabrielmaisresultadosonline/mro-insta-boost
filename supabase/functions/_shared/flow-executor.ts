@@ -9,8 +9,9 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
     if (node.type === 'message' || node.type === 'text' || node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse') {
       const text = node.data?.text || node.data?.content || node.data?.question || "";
       const buttons = node.data?.buttons || [];
+      console.log(`[EXECUTOR] Node ${node.id} (${node.type}) text="${text}", buttonsCount=${Array.isArray(buttons) ? buttons.length : 0}`);
       
-      if (buttons && buttons.length > 0) {
+      if (Array.isArray(buttons) && buttons.length > 0) {
         // Separa botões com link (URL) dos botões de resposta normais.
         // WhatsApp NÃO permite misturar cta_url + reply buttons numa mesma mensagem,
         // então enviamos os reply buttons primeiro e depois o(s) botão(ões) de link.
@@ -18,14 +19,15 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         const replyButtons = buttons.filter((btn: any) => !(btn.url && btn.url.startsWith('http')));
 
         const { data: settings } = await supabase.from('crm_settings').select('meta_phone_number_id, meta_access_token').eq('user_id', flow.user_id).maybeSingle();
+        console.log(`[EXECUTOR] Settings found for user ${flow.user_id}: ${!!settings?.meta_access_token}`);
 
         // 1) Envia botões de resposta normais (se houver)
         if (replyButtons.length > 0) {
         
-        console.log(`[EXECUTOR] Invoking meta-whatsapp-crm action=sendMessage for interactive buttons`);
+        console.log(`[EXECUTOR] Invoking meta-whatsapp-crm action=sendMessage for interactive buttons. ReplyButtons: ${replyButtons.length}`);
         const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
           headers: {
-            'Authorization': `Bearer ${flow.user_id ? 'INTERNAL_BYPASS' : ''}` // Verificaremos isso na edge
+            'Authorization': `Bearer INTERNAL_BYPASS`
           },
           body: { 
             action: 'sendMessage', 

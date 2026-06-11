@@ -1180,14 +1180,26 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   const payload: any = { messaging_product: 'whatsapp', recipient_type: 'individual', to }
   
   if (params.interactive) {
+    console.log(`[SEND-MESSAGE] Prepare interactive payload for ${to}`);
     payload.type = 'interactive';
     // Deep clone and clean interactive payload
     const interactive = JSON.parse(JSON.stringify(params.interactive));
+    
+    // WhatsApp requires a body text for buttons
+    if (!interactive.body || !interactive.body.text) {
+      interactive.body = { text: params.text || "Escolha uma opção:" };
+    }
+
     if (interactive.action) {
       // Remove numeric keys that might have been accidentally added by frontend or object mapping
       Object.keys(interactive.action).forEach(key => {
         if (/^\d+$/.test(key)) delete interactive.action[key];
       });
+      
+      // Ensure buttons array exists for 'button' type
+      if (interactive.type === 'button' && (!interactive.action.buttons || !Array.isArray(interactive.action.buttons))) {
+         console.warn(`[SEND-MESSAGE] Interactive type 'button' missing valid buttons array for ${to}`);
+      }
     }
     payload.interactive = interactive;
   } else if (media) {
@@ -1267,14 +1279,15 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
     payload.text = { preview_url: true, body: String(params.text || '') }
   }
 
+  console.log(`[META-SEND] Enviar fetch para Meta. type=${payload.type}, to=${to}`);
   const response = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  console.log(`[META-SEND] Payload enviado para Meta:`, JSON.stringify(payload));
-  const result = await response.json().catch(() => ({}))
-  console.log(`[META-SEND] Resposta Meta status=${response.status} body=${JSON.stringify(result)}`);
+  
+  const result = await response.json().catch(() => ({}));
+  console.log(`[META-SEND] Resposta Meta status=${response.status} ok=${response.ok} body=${JSON.stringify(result)}`);
   if (!response.ok) {
     console.error(`[META-SEND] ERRO Meta status=${response.status} phoneId=${phoneNumberId} to=${to} payloadType=${payload.type} error=${JSON.stringify(result?.error)}`);
     const errorMsg = result?.error?.message || result?.error?.error_user_msg || `Erro ${response.status} ao enviar mensagem pela Meta`;
@@ -2594,12 +2607,16 @@ async function fetchAndStoreIncomingMedia(
     }
 
     if (action === 'sendMessage') {
-      console.log(`[ACTION] sendMessage iniciado para: ${params.to}`);
+      console.log(`[ACTION] sendMessage iniciado para: ${params.to}. HasInteractive: ${!!params.interactive}`);
       const { data: contact } = await supabase
         .from('crm_contacts')
         .select('*')
         .eq('wa_id', params.to)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid error if contact not found
+        
+      if (!contact) {
+        console.warn(`[ACTION] Contact not found for ${params.to}. Proceeding anyway.`);
+      }
         
       const finalUserId = userId || contact?.user_id || null;
       console.log(`[ACTION] Usando userId ${finalUserId} para sendMessage`);
