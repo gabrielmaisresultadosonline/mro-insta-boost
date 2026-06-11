@@ -3468,8 +3468,10 @@ async function fetchAndStoreIncomingMedia(
           current_flow_id: null,
           current_node_id: null,
           last_message_received_at: null,
+          last_interaction: null,
           last_flow_interaction: null,
           ai_agent_prompt: null,
+          total_messages_received: 0, // CRUCIAL: Reseta o contador de mensagens
           metadata: {
             has_waited_initial_response: false,
             last_processed_message_id: null
