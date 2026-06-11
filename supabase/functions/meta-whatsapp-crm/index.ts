@@ -839,33 +839,34 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         const now = new Date();
         
         // Verifica se existem mensagens inbound no histórico para este contato
-        const { count: inboundCount } = await supabase
+        const { data: inboundMessages, count: inboundCount } = await supabase
           .from('crm_messages')
-          .select('id', { count: 'exact', head: true })
+          .select('id, created_at', { count: 'exact' })
           .eq('contact_id', contact.id)
-          .eq('direction', 'inbound');
+          .eq('direction', 'inbound')
+          .order('created_at', { ascending: false });
         
-        // Se temos 0 ou 1 mensagens inbound, consideramos como primeira mensagem 
-        // (1 porque a mensagem atual já foi inserida antes desta verificação)
+        // Se o usuário limpou o histórico, inboundCount será 0 ou 1, 
+        // e prevLast pode ser nulo ou antigo.
         const effectiveIsFirstEver = (inboundCount || 0) <= 1;
         
-        // NOVO: Verifica se o contato foi criado nos últimos 5 minutos e tem apenas 1 mensagem
-        // Isso ajuda a detectar novos contatos mesmo que o total_messages_received demore a atualizar
+        // Se o contato foi criado nos últimos 5 minutos e tem poucas mensagens, reforça a chance de ser primeira mensagem
         const isVeryRecentContact = contact.created_at && (new Date().getTime() - new Date(contact.created_at).getTime()) < 300000;
         const isNewAndFirst = isVeryRecentContact && (inboundCount || 0) <= 1;
 
-        // Se o usuário limpou o histórico, inboundCount será 0 ou 1, 
-        // e prevLast pode ser nulo ou antigo.
-        // Forçamos gatilho de primeira mensagem se inboundCount for 1.
         let isFirstEver = effectiveIsFirstEver || isNewAndFirst;
         let isFirstOfDay = isFirstEver || !prevLast;
         let isAfter24h = isFirstEver || !prevLast;
 
-        if (effectiveIsFirstEver || isNewAndFirst) {
+        if (isFirstEver) {
           console.log(`[TRIGGER] First message ever detected for contact ${contact.id} (inboundCount: ${inboundCount}, recent: ${isVeryRecentContact})`);
-        } else if (prevLast) {
-          const lastDate = new Date(prevLast);
-          
+        } else if (prevLast || (inboundMessages && inboundMessages.length > 1)) {
+          // Usa a data da mensagem anterior (a que veio ANTES da atual) se disponível, senão usa prevLast
+          const lastDateStr = (inboundMessages && inboundMessages.length > 1) 
+            ? inboundMessages[1].created_at 
+            : prevLast;
+            
+          const lastDate = new Date(lastDateStr);
           const nowInSameTZ = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
           const lastInSameTZ = new Date(lastDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
           
