@@ -847,9 +847,9 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         
         // Se temos 0 ou 1 mensagens inbound, consideramos como primeira mensagem 
         // (1 porque a mensagem atual já foi inserida antes desta verificação)
-        const isFirstEver = (inboundCount || 0) <= 1 || (contact.total_messages_received || 0) <= 1;
-        let isFirstOfDay = isFirstEver;
-        let isAfter24h = isFirstEver;
+        const isFirstEver = (inboundCount || 0) <= 0 || (contact.total_messages_received || 0) <= 0;
+        let isFirstOfDay = isFirstEver || !prevLast;
+        let isAfter24h = isFirstEver || !prevLast;
         
         if (isFirstEver) {
           console.log(`[TRIGGER] First message ever detected for contact ${contact.id} (inboundCount: ${inboundCount})`);
