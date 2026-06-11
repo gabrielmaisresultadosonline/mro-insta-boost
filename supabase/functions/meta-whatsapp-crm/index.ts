@@ -1180,14 +1180,26 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   const payload: any = { messaging_product: 'whatsapp', recipient_type: 'individual', to }
   
   if (params.interactive) {
+    console.log(`[SEND-MESSAGE] Prepare interactive payload for ${to}`);
     payload.type = 'interactive';
     // Deep clone and clean interactive payload
     const interactive = JSON.parse(JSON.stringify(params.interactive));
+    
+    // WhatsApp requires a body text for buttons
+    if (!interactive.body || !interactive.body.text) {
+      interactive.body = { text: params.text || "Escolha uma opção:" };
+    }
+
     if (interactive.action) {
       // Remove numeric keys that might have been accidentally added by frontend or object mapping
       Object.keys(interactive.action).forEach(key => {
         if (/^\d+$/.test(key)) delete interactive.action[key];
       });
+      
+      // Ensure buttons array exists for 'button' type
+      if (interactive.type === 'button' && (!interactive.action.buttons || !Array.isArray(interactive.action.buttons))) {
+         console.warn(`[SEND-MESSAGE] Interactive type 'button' missing valid buttons array for ${to}`);
+      }
     }
     payload.interactive = interactive;
   } else if (media) {
