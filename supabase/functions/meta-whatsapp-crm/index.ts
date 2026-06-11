@@ -832,6 +832,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         .eq('is_active', true);
 
       if (activeFlows && activeFlows.length > 0) {
+        const normalizedText = (text || '').trim().toLowerCase();
         const prevTotal = __previousTotalReceived;
         const prevLast = __previousLastReceivedAt;
 
