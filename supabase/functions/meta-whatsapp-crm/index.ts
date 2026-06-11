@@ -848,8 +848,15 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         // Se temos 0 ou 1 mensagens inbound, consideramos como primeira mensagem 
         // (1 porque a mensagem atual já foi inserida antes desta verificação)
         const isFirstEver = (inboundCount || 0) <= 1 || (contact.total_messages_received || 0) <= 1;
-        let isFirstOfDay = isFirstEver || !prevLast;
-        let isAfter24h = isFirstEver || !prevLast;
+        
+        // Se o usuário APAGOU o histórico, o inboundCount será 0 ou 1, 
+        // mas o total_messages_received pode ser alto. 
+        // Para permitir o teste de "Primeira Mensagem" após apagar histórico,
+        // confiamos no inboundCount se total_messages_received for inconsistente.
+        const effectiveIsFirstEver = (inboundCount || 0) <= 1;
+        
+        let isFirstOfDay = effectiveIsFirstEver || !prevLast;
+        let isAfter24h = effectiveIsFirstEver || !prevLast;
         
         if (isFirstEver) {
           console.log(`[TRIGGER] First message ever detected for contact ${contact.id} (inboundCount: ${inboundCount})`);
@@ -877,7 +884,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
           if (t === 'keyword') {
             return kws.length > 0 && normalizedText.length > 0 && kws.some(k => k && normalizedText.includes(k));
           }
-          if (t === 'first_message') return isFirstEver;
+          if (t === 'first_message') return effectiveIsFirstEver;
           if (t === 'first_message_day') return isFirstOfDay;
           if (t === 'after_24h') return isAfter24h;
           return false;
@@ -910,7 +917,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
             return jsonResponse({ success: true, triggered_flow: chosen.id, execution: executeRes });
           }
         } else {
-          console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${isFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
+          console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${effectiveIsFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
         }
       }
     } catch (trigErr) {
