@@ -333,7 +333,11 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
     // BUT: If the current node was a question/wait_response or has buttons, we ALREADY handled its state transition in the webhook/above
     // This part should only run for nodes that trigger a "next" automatically (like message, audio, etc.)
     const hasButtons = node.data?.buttons && node.data.buttons.length > 0;
-    if (node.type !== 'question' && node.type !== 'wait_response' && node.type !== 'waitResponse' && node.type !== 'delay' && node.type !== 'aiAgent' && !hasButtons) {
+    
+    // Check if it's a question-like node
+    const isQuestionNode = node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse';
+    
+    if (!isQuestionNode && node.type !== 'delay' && node.type !== 'aiAgent' && !hasButtons) {
       const edge = flow.edges?.find((e: any) => e.source === node.id && (!e.sourceHandle || e.sourceHandle === 'next' || e.sourceHandle === 'responded' || e.sourceHandle === 'any_response'));
       
       if (edge) {
@@ -351,7 +355,11 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           return { success: true, message: 'Next node scheduled', nextNodeId: nextNode.id, nextNode };
         }
       }
+    } else if (hasButtons) {
+       console.log(`[EXECUTOR] Node ${node.id} has buttons. Stopped to wait for interaction.`);
+       return { success: true, message: 'Wait for button interaction' };
     }
+
 
     console.log(`End of flow reached for contact ${contactId}`);
     await supabase.from('crm_contacts').update({
