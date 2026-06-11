@@ -893,15 +893,21 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
         if (chosen) {
           console.log(`[TRIGGER] Auto-starting flow ${chosen.id} (${chosen.name}) for ${waId} via trigger=${chosen.trigger_type}`);
-          const { data: startRes, error: startErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
-            headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
-            body: { action: 'startFlow', flowId: chosen.id, contactId: contact.id, waId }
-          });
-          if (startErr) {
-            console.error('[TRIGGER] Error starting flow:', startErr);
-          } else {
-            console.log('[TRIGGER] Flow started:', JSON.stringify(startRes));
-            return jsonResponse({ success: true, triggered_flow: chosen.id });
+          
+          // Execute starting the flow directly in this process to avoid latency and double-invocations
+          const startNode = chosen.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
+          if (startNode) {
+            await supabase.from('crm_contacts').update({
+              current_flow_id: chosen.id,
+              current_node_id: startNode.id,
+              flow_state: 'running',
+              last_flow_interaction: new Date().toISOString()
+            }).eq('id', contact.id);
+
+            // Trigger actual execution of the start node (usually message node)
+            const executeRes = await executeVisualNode(supabase, chosen, startNode, contact.id, waId);
+            console.log('[TRIGGER] Flow started directly:', JSON.stringify(executeRes));
+            return jsonResponse({ success: true, triggered_flow: chosen.id, execution: executeRes });
           }
         } else {
           console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${isFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);

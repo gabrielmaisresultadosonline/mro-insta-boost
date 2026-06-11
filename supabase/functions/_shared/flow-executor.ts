@@ -345,7 +345,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       if (edge) {
         const nextNode = flow.nodes?.find((n: any) => n.id === edge.target);
         if (nextNode) {
-          const delay = parseInt(node.data?.delayAfter || '2');
+          const delay = parseInt(node.data?.delayAfter || '1');
           console.log(`[EXECUTOR] Node ${node.id} finished. Moving to ${nextNode.id} (${nextNode.type}) after ${delay}s`);
           
           await supabase.from('crm_contacts').update({
@@ -354,9 +354,9 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             flow_state: 'running'
           }).eq('id', contactId);
           
-          // Se o delay for pequeno, podemos tentar executar o próximo nó agora mesmo para maior fluidez
-          // No entanto, para evitar recursão infinita ou loops, limitamos ou usamos o retorno para o loop principal
-          return { success: true, message: 'Next node scheduled', nextNodeId: nextNode.id, nextNode };
+          // Execute next node immediately after a small wait to ensure message order
+          if (delay > 0) await wait(delay * 1000);
+          return await executeVisualNode(supabase, flow, nextNode, contactId, waId);
         }
       }
     } else if (hasButtons || isQuestionNode) {
