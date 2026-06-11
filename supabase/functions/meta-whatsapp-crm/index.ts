@@ -884,7 +884,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
           if (t === 'keyword') {
             return kws.length > 0 && normalizedText.length > 0 && kws.some(k => k && normalizedText.includes(k));
           }
-          if (t === 'first_message') return effectiveIsFirstEver;
+          if (t === 'first_message') return effectiveIsFirstEver || isNewAndFirst;
           if (t === 'first_message_day') return isFirstOfDay;
           if (t === 'after_24h') return isAfter24h;
           return false;
