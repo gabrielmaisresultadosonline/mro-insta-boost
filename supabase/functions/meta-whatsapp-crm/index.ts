@@ -833,8 +833,8 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
       if (activeFlows && activeFlows.length > 0) {
         const normalizedText = (text || '').trim().toLowerCase();
-        const prevTotal = (typeof __previousTotalReceived !== 'undefined') ? __previousTotalReceived : 0;
-        const prevLast = (typeof __previousLastReceivedAt !== 'undefined') ? __previousLastReceivedAt : null;
+        const prevTotal = __previousTotalReceived;
+        const prevLast = __previousLastReceivedAt;
 
         const now = new Date();
         const isFirstEver = prevTotal === 0;
