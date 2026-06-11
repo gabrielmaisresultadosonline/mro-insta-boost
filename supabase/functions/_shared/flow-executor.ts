@@ -324,9 +324,10 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
 
     
     // Find next node based on handle or standard connection
-    // BUT: If the current node was a question/wait_response, we ALREADY handled its state transition in the webhook
+    // BUT: If the current node was a question/wait_response or has buttons, we ALREADY handled its state transition in the webhook/above
     // This part should only run for nodes that trigger a "next" automatically (like message, audio, etc.)
-    if (node.type !== 'question' && node.type !== 'wait_response' && node.type !== 'waitResponse' && node.type !== 'delay' && node.type !== 'aiAgent') {
+    const hasButtons = node.data?.buttons && node.data.buttons.length > 0;
+    if (node.type !== 'question' && node.type !== 'wait_response' && node.type !== 'waitResponse' && node.type !== 'delay' && node.type !== 'aiAgent' && !hasButtons) {
       const edge = flow.edges?.find((e: any) => e.source === node.id && (!e.sourceHandle || e.sourceHandle === 'next' || e.sourceHandle === 'responded' || e.sourceHandle === 'any_response'));
       
       if (edge) {
