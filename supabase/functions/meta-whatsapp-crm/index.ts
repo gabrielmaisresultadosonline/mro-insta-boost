@@ -947,7 +947,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
             return jsonResponse({ success: true, triggered_flow: chosen.id, execution: currentRes });
           }
         } else {
-          console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${effectiveIsFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
+          console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${isFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
         }
       }
     } catch (trigErr) {
