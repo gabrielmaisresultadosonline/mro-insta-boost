@@ -921,12 +921,30 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
               flow_state: 'running',
               last_flow_interaction: new Date().toISOString()
             }).eq('id', contact.id);
+            
+            // Re-fetch contact to ensure we have the most up-to-date object for executeVisualNode
+            const { data: updatedContactTrigger } = await supabase.from('crm_contacts').select('*').eq('id', contact.id).single();
 
             // Trigger actual execution of the start node (usually message node)
             const executeRes = await executeVisualNode(supabase, chosen, startNode, contact.id, waId);
             
-            console.log('[TRIGGER] Flow started directly via executeVisualNode. Result:', JSON.stringify(executeRes));
-            return jsonResponse({ success: true, triggered_flow: chosen.id, execution: executeRes });
+            // Loop de execução sequencial se o nó executado retornou nextNodeId (ex: após Delay ou nó de Mensagem simples)
+            let currentRes = executeRes;
+            let iterations = 0;
+            const MAX_TRIGGER_ITERATIONS = 10;
+            while (currentRes?.nextNodeId && iterations < MAX_TRIGGER_ITERATIONS) {
+              console.log(`[TRIGGER-LOOP] Sequential node detected: ${currentRes.nextNodeId}. Executing iteration ${iterations + 1}...`);
+              iterations++;
+              const nextInChain = chosen.nodes.find((n: any) => n.id === currentRes.nextNodeId);
+              if (nextInChain) {
+                currentRes = await executeVisualNode(supabase, chosen, nextInChain, contact.id, waId);
+              } else {
+                break;
+              }
+            }
+            
+            console.log('[TRIGGER] Flow started and sequence executed. Result:', JSON.stringify(currentRes));
+            return jsonResponse({ success: true, triggered_flow: chosen.id, execution: currentRes });
           }
         } else {
           console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${effectiveIsFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
