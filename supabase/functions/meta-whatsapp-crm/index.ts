@@ -924,25 +924,8 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
             // Trigger actual execution of the start node (usually message node)
             const executeRes = await executeVisualNode(supabase, chosen, startNode, contact.id, waId);
             
-            // NOVO: Se o nó executado retornou um nextNodeId, continuamos a execução do fluxo
-            let currentRes = executeRes;
-            let iterations = 0;
-            const MAX_ITERATIONS = 5;
-            while (currentRes?.nextNodeId && iterations < MAX_ITERATIONS) {
-              console.log(`[TRIGGER] Sequential node detected in trigger: ${currentRes.nextNodeId}. Executing...`);
-              iterations++;
-              const nextInChain = chosen.nodes.find((n: any) => n.id === currentRes.nextNodeId);
-              if (nextInChain) {
-                // Atualiza o nó atual no contato antes de executar o próximo
-                await supabase.from('crm_contacts').update({ current_node_id: nextInChain.id }).eq('id', contact.id);
-                currentRes = await executeVisualNode(supabase, chosen, nextInChain, contact.id, waId);
-              } else {
-                break;
-              }
-            }
-
-            console.log('[TRIGGER] Flow started directly:', JSON.stringify(currentRes));
-            return jsonResponse({ success: true, triggered_flow: chosen.id, execution: currentRes });
+            console.log('[TRIGGER] Flow started directly via executeVisualNode. Result:', JSON.stringify(executeRes));
+            return jsonResponse({ success: true, triggered_flow: chosen.id, execution: executeRes });
           }
         } else {
           console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${effectiveIsFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
@@ -3468,8 +3451,10 @@ async function fetchAndStoreIncomingMedia(
           current_flow_id: null,
           current_node_id: null,
           last_message_received_at: null,
+          last_interaction: null,
           last_flow_interaction: null,
           ai_agent_prompt: null,
+          total_messages_received: 0, // CRUCIAL: Reseta o contador de mensagens
           metadata: {
             has_waited_initial_response: false,
             last_processed_message_id: null
