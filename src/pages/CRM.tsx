@@ -183,9 +183,21 @@ const isBusinessVerificationError = (message: any) => {
   return /business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw);
 };
 
-const getUnsupportedMetaMessage = (message: any) => {
-  const raw = message?.metadata?.raw || {};
-  const error = Array.isArray(raw?.errors) ? raw.errors[0] : null;
+type UnsupportedMetaRaw = {
+  type?: string;
+  unsupported?: { type?: string };
+  errors?: Array<{ code?: number; message?: string; error_data?: { details?: string } }>;
+};
+
+const getUnsupportedMetaRaw = (message: unknown): UnsupportedMetaRaw => {
+  if (!message || typeof message !== 'object') return {};
+  const metadata = (message as { metadata?: { raw?: UnsupportedMetaRaw } }).metadata;
+  return metadata?.raw || {};
+};
+
+const getUnsupportedMetaMessage = (message: unknown) => {
+  const raw = getUnsupportedMetaRaw(message);
+  const error = Array.isArray(raw.errors) ? raw.errors[0] : null;
   const details = String(error?.error_data?.details || error?.message || '').trim();
 
   if (Number(error?.code) === 131060 || /unavailable/i.test(details)) {
@@ -195,10 +207,10 @@ const getUnsupportedMetaMessage = (message: any) => {
   return 'Mensagem recebida em um formato que o WhatsApp ainda não disponibilizou para leitura no CRM.';
 };
 
-const getUnsupportedMetaDetails = (message: any) => {
-  const raw = message?.metadata?.raw || {};
-  const error = Array.isArray(raw?.errors) ? raw.errors[0] : null;
-  return String(error?.error_data?.details || error?.message || raw?.unsupported?.type || raw?.type || '').trim();
+const getUnsupportedMetaDetails = (message: unknown) => {
+  const raw = getUnsupportedMetaRaw(message);
+  const error = Array.isArray(raw.errors) ? raw.errors[0] : null;
+  return String(error?.error_data?.details || error?.message || raw.unsupported?.type || raw.type || '').trim();
 };
 
 type ConnectionLogEntry = {

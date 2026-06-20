@@ -683,6 +683,17 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     }
     text = mediaCaption || '';
   }
+  } else if (message.type === "unsupported") {
+    const error = message.errors?.[0];
+    text = `[Formato não suportado pela Meta] ${error?.title || ""}: ${error?.message || ""}`.trim();
+  } else if (message.type === "location") {
+    text = `[Localização] Lat: ${message.location?.latitude}, Long: ${message.location?.longitude}`;
+  } else if (message.type === "contacts") {
+    text = `[Contato] ${message.contacts?.[0]?.name?.formatted_name || "Compartilhado"}`;
+  } else if (message.type === "button") {
+    text = message.button?.text || "[Botão]";
+  } else if (message.type === "reaction") {
+    text = `[Reação] ${message.reaction?.emoji || ""}`;
 
    let { data: contactForSave } = await supabase
      .from('crm_contacts')
