@@ -420,6 +420,7 @@ const CRM = () => {
   const [metricsChartData, setMetricsChartData] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [activeFlowsView, setActiveFlowsView] = useState(false);
+  const [isRepairingWebhook, setIsRepairingWebhook] = useState(false);
   const [connectionLogs, setConnectionLogs] = useState<ConnectionLogEntry[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
