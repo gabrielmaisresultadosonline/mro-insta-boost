@@ -1683,20 +1683,29 @@ async function internalSendTemplate(
 
   if (!response.ok) {
     console.error(`[TEMPLATE] Error sending template:`, JSON.stringify(result));
-    const errorMsg = result?.error?.message || 'Erro ao enviar template pela Meta';
-    
-    // Se o erro indicar falta de saldo ou problemas de pagamento (códigos comuns da Meta)
-    const paymentErrorCodes = [10, 100, 131031, 131042, 131045, 131047, 135000];
-    const isPaymentIssue = paymentErrorCodes.includes(result?.error?.code) || 
-                          errorMsg.toLowerCase().includes('payment') || 
-                          errorMsg.toLowerCase().includes('balance') ||
-                          errorMsg.toLowerCase().includes('credit');
+    const normalizedError = normalizeMetaSendError(result, 'Erro ao enviar template pela Meta');
 
-    if (isPaymentIssue) {
-      throw new Error(`⚠️ SALDO INSUFICIENTE NA META: Não foi possível enviar o template. Por favor, adicione saldo ou um cartão de crédito na sua Central de Pagamentos Meta em Ajustes -> Saldo e Pagamentos.`);
+    if (contact) {
+      await supabase.from('crm_messages').insert({
+        contact_id: contact.id,
+        user_id: contact.user_id || userId || null,
+        direction: 'outbound',
+        message_type: 'template',
+        content: `[Template: ${templateName}]`,
+        status: 'failed',
+        error_code: normalizedError.code,
+        error_message: normalizedError.message,
+        metadata: {
+          template_name: templateName,
+          source: 'api_automation',
+          meta_error: result?.error || null,
+          meta_error_details: normalizedError.details,
+        },
+      });
+      await supabase.from('crm_contacts').update({ last_interaction: new Date().toISOString() }).eq('id', contact.id);
     }
 
-    throw new Error(errorMsg)
+    return jsonResponse({ success: false, ...normalizedError, metaError: result?.error || null }, 200);
   }
 
   if (contact) {
