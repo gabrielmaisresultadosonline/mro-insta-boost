@@ -694,6 +694,7 @@ else if (message.type === "unsupported") {
     text = message.button?.text || "[Botão]";
   } else if (message.type === "reaction") {
     text = `[Reação] ${message.reaction?.emoji || ""}`;
+  }
 
    let { data: contactForSave } = await supabase
      .from('crm_contacts')
