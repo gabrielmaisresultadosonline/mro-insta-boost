@@ -1400,20 +1400,31 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   console.log(`[META-SEND] Resposta Meta status=${response.status} ok=${response.ok} body=${JSON.stringify(result)}`);
   if (!response.ok) {
     console.error(`[META-SEND] ERRO Meta status=${response.status} phoneId=${phoneNumberId} to=${to} payloadType=${payload.type} error=${JSON.stringify(result?.error)}`);
-    const errorMsg = result?.error?.message || result?.error?.error_user_msg || `Erro ${response.status} ao enviar mensagem pela Meta`;
-    
-    // Verificação de saldo/pagamento
-    const paymentErrorCodes = [10, 100, 131031, 131042, 131045, 131047, 135000];
-    const isPaymentIssue = paymentErrorCodes.includes(result?.error?.code) || 
-                          errorMsg.toLowerCase().includes('payment') || 
-                          errorMsg.toLowerCase().includes('balance') ||
-                          errorMsg.toLowerCase().includes('credit');
+    const normalizedError = normalizeMetaSendError(result, `Erro ${response.status} ao enviar mensagem pela Meta`);
 
-    if (isPaymentIssue) {
-      throw new Error(`⚠️ SALDO INSUFICIENTE NA META: Não foi possível enviar. Por favor, adicione saldo ou um cartão na Central de Pagamentos Meta em Ajustes -> Saldo e Pagamentos.`);
+    if (contact && !params.skipLocalSave) {
+      const messageType = params.interactive ? 'interactive' : (media?.type || 'text');
+      const content = media ? (params.text || `[${media.type}]`) : (params.interactive?.body?.text || params.text || '');
+      await supabase.from('crm_messages').insert({
+        contact_id: contact.id,
+        user_id: userId || contact.user_id || null,
+        direction: 'outbound',
+        message_type: messageType,
+        content,
+        media_url: media?.url || null,
+        status: 'failed',
+        error_code: normalizedError.code,
+        error_message: normalizedError.message,
+        metadata: {
+          ...(params.metadata || {}),
+          meta_error: result?.error || null,
+          meta_error_details: normalizedError.details,
+        },
+      });
+      await supabase.from('crm_contacts').update({ last_interaction: new Date().toISOString() }).eq('id', contact.id);
     }
 
-    throw new Error(errorMsg)
+    return jsonResponse({ success: false, ...normalizedError, metaError: result?.error || null }, 200);
   }
   console.log(`[META-SEND] OK messageId=${result?.messages?.[0]?.id} to=${to} type=${payload.type}`);
 
