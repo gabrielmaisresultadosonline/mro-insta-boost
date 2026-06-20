@@ -4635,7 +4635,7 @@ const CRM = () => {
                                               </div>
                                             </div>
                                           )}
-                                          {(m.message_text || m.content) && m.message_type !== 'reaction' && m.message_type !== 'audio' && m.message_type !== 'voice' && !((m.message_text || m.content || '').trim() === '[Mensagem de Áudio]') && (
+                                          {(m.message_text || m.content) && m.message_type !== 'reaction' && m.message_type !== 'audio' && m.message_type !== 'voice' && m.message_type !== 'unsupported' && !((m.message_text || m.content || '').trim() === '[Mensagem de Áudio]') && (
                                             <div className="space-y-2">
                                               <div className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5">
                                                 {m.message_text || m.content}
@@ -4657,16 +4657,16 @@ const CRM = () => {
                                             </div>
                                           )}
                                           {m.message_type === 'unsupported' && (
-                                            <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/20 text-[10px] text-red-400">
-                                              Mensagem com formato ainda não suportado pela interface. 
-                                              {m.metadata && (
-                                                <details className="mt-1 cursor-pointer">
-                                                  <summary>Ver dados brutos</summary>
-                                                  <pre className="mt-1 text-[8px] whitespace-pre-wrap bg-black/20 p-1 rounded">
-                                                    {JSON.stringify(m.metadata, null, 2)}
-                                                  </pre>
-                                                </details>
-                                              )}
+                                            <div className="mt-1 p-2 rounded-lg bg-muted/40 border border-border/40 text-xs text-muted-foreground max-w-[280px]">
+                                              <div className="flex items-start gap-2">
+                                                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                <div className="space-y-1">
+                                                  <div className="font-medium text-foreground">{getUnsupportedMetaMessage(m)}</div>
+                                                  {getUnsupportedMetaDetails(m) && (
+                                                    <div className="text-[10px] leading-snug opacity-80">{getUnsupportedMetaDetails(m)}</div>
+                                                  )}
+                                                </div>
+                                              </div>
                                             </div>
                                           )}
                                         </>
