@@ -694,6 +694,7 @@ else if (message.type === "unsupported") {
     text = message.button?.text || "[Botão]";
   } else if (message.type === "reaction") {
     text = `[Reação] ${message.reaction?.emoji || ""}`;
+  }
 
    let { data: contactForSave } = await supabase
      .from('crm_contacts')
@@ -2662,14 +2663,30 @@ async function fetchAndStoreIncomingMedia(
 
     if (action === 'sendMessage') {
       console.log(`[ACTION] sendMessage iniciado para: ${params.to}. HasInteractive: ${!!params.interactive}`);
-      const { data: contact } = await supabase
+      const contactQueryBuilder = supabase
         .from('crm_contacts')
         .select('*')
-        .eq('wa_id', params.to)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid error if contact not found
-        
+        .eq('wa_id', params.to);
+      const filteredQuery = userId ? contactQueryBuilder.eq('user_id', userId) : contactQueryBuilder;
+      const { data: contactRows } = await filteredQuery.order('created_at', { ascending: false }).limit(1);
+      let contact: any = contactRows && contactRows.length > 0 ? contactRows[0] : null;
+
+      if (!contact && userId) {
+        const insertResult = await supabase
+          .from('crm_contacts')
+          .insert({ wa_id: params.to, name: params.to, user_id: userId, status: 'new', source_type: 'manual_send' })
+          .select('*')
+          .maybeSingle();
+        if (insertResult.error) {
+          console.error('[ACTION] Failed to create contact:', insertResult.error.message);
+        } else {
+          contact = insertResult.data;
+          console.log('[ACTION] Created contact for sendMessage');
+        }
+      }
+
       if (!contact) {
-        console.warn(`[ACTION] Contact not found for ${params.to}. Proceeding anyway.`);
+        console.warn('[ACTION] Contact not found. Proceeding anyway.');
       }
         
       const finalUserId = userId || contact?.user_id || null;
