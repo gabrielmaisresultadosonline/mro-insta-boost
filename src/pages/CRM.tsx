@@ -377,6 +377,28 @@ const CRM = () => {
   const [bulkName, setBulkName] = useState('');
   const [isBulkNaming, setIsBulkNaming] = useState(false);
 
+  // Detecta quando a conta WhatsApp foi desregistrada na Meta (erro 133010)
+  const [whatsappDisconnected, setWhatsappDisconnected] = useState(false);
+
+  useEffect(() => {
+    const originalInvoke = supabase.functions.invoke.bind(supabase.functions);
+    (supabase.functions as any).invoke = async (fnName: string, opts?: any) => {
+      const result: any = await originalInvoke(fnName as any, opts);
+      try {
+        if (fnName === 'meta-whatsapp-crm') {
+          const blob = JSON.stringify(result?.error ?? '') + JSON.stringify(result?.data ?? '');
+          if (blob.includes('133010') || blob.includes('Account not registered')) {
+            setWhatsappDisconnected(true);
+          }
+        }
+      } catch {}
+      return result;
+    };
+    return () => {
+      (supabase.functions as any).invoke = originalInvoke;
+    };
+  }, []);
+
   const [mediaUploadProgress, setMediaUploadProgress] = useState<{ [key: string]: number }>({});
 
   const [scheduledMessages, setScheduledMessages] = useState<any[]>([]);
