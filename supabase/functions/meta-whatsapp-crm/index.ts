@@ -2217,6 +2217,9 @@ async function fetchAndStoreIncomingMedia(
      if (!action && body.object === 'whatsapp_business_account' && userSettings) {
        return await handleProcessWebhook(supabase, body.entry, false, userId);
      }
+      if (!action && body.object === 'whatsapp_business_account') {
+        return await handleProcessWebhook(supabase, body.entry, false, userId || undefined);
+      }
     if (action === 'processScheduled') {
       console.log(`[BACKGROUND-LOG] Background processing for action: ${action}`);
       const now = new Date().toISOString();
@@ -3375,7 +3378,7 @@ async function fetchAndStoreIncomingMedia(
 
     if (action === 'processWebhook') {
       const { entry, skipSave } = params;
-      return await handleProcessWebhook(supabase, entry, skipSave);
+      return await handleProcessWebhook(supabase, entry, skipSave, userId || params.userId);
     }
 
 
