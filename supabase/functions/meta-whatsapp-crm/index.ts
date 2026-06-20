@@ -575,6 +575,24 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   const value = entry?.[0]?.changes?.[0]?.value || {};
 
   if (!userId) {
+    const webhookPhoneNumberId = value?.metadata?.phone_number_id;
+    const webhookWabaId = entry?.[0]?.id;
+    if (webhookPhoneNumberId || webhookWabaId) {
+      const query = supabase
+        .from('crm_settings')
+        .select('user_id')
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .limit(1);
+      const { data: resolvedRows, error: resolveError } = webhookPhoneNumberId
+        ? await query.eq('meta_phone_number_id', webhookPhoneNumberId)
+        : await query.eq('meta_waba_id', webhookWabaId);
+      if (resolveError) console.warn('[WEBHOOK] Failed to resolve user inside handler', resolveError);
+      const resolved = Array.isArray(resolvedRows) ? resolvedRows[0] : null;
+      if (resolved?.user_id) userId = resolved.user_id;
+    }
+  }
+
+  if (!userId) {
     console.warn('[WEBHOOK] Event received but no CRM user was resolved for this webhook payload', { hasMessages: !!value?.messages?.length, hasStatuses: !!value?.statuses?.length });
     return jsonResponse({ success: true, ignored: 'missing_user' });
   }
