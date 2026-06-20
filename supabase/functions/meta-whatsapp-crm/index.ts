@@ -2662,14 +2662,34 @@ async function fetchAndStoreIncomingMedia(
 
     if (action === 'sendMessage') {
       console.log(`[ACTION] sendMessage iniciado para: ${params.to}. HasInteractive: ${!!params.interactive}`);
-      const { data: contact } = await supabase
+      // Buscar contato filtrando por user_id também, pois o mesmo wa_id pode existir
+      // em múltiplos usuários (multi-tenant). Sem o filtro, maybeSingle() retorna erro
+      // quando há duplicatas e a mensagem nunca é salva no histórico.
+      let contactQuery = supabase
         .from('crm_contacts')
         .select('*')
-        .eq('wa_id', params.to)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid error if contact not found
-        
+        .eq('wa_id', params.to);
+      if (userId) contactQuery = contactQuery.eq('user_id', userId);
+      const { data: contactRows } = await contactQuery.order('created_at', { ascending: false }).limit(1);
+      let contact = contactRows?.[0] || null;
+
+      // Se não achou para esse user, cria o contato para garantir histórico
+      if (!contact && userId) {
+        const { data: created, error: createErr } = await supabase
+          .from('crm_contacts')
+          .insert({ wa_id: params.to, name: params.to, user_id: userId, status: 'new', source_type: 'manual_send' })
+          .select('*')
+          .maybeSingle();
+        if (createErr) {
+          console.error(`[ACTION] Failed to create contact for ${params.to}:`, createErr.message);
+        } else {
+          contact = created;
+          console.log(`[ACTION] Created contact for ${params.to} user=${userId}`);
+        }
+      }
+
       if (!contact) {
-        console.warn(`[ACTION] Contact not found for ${params.to}. Proceeding anyway.`);
+        console.warn(`[ACTION] Contact not found for ${params.to} user=${userId}. Proceeding anyway.`);
       }
         
       const finalUserId = userId || contact?.user_id || null;
