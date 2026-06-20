@@ -1061,6 +1061,43 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
 
 const DEFAULT_GOOGLE_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
 
+function normalizeMetaSendError(result: any, fallback = 'Erro ao enviar mensagem pela Meta') {
+  const metaError = result?.error || {};
+  const rawMessage = String(metaError?.error_user_msg || metaError?.message || fallback);
+  const rawCode = metaError?.code;
+  const lower = rawMessage.toLowerCase();
+
+  if (Number(rawCode) === 133010 || lower.includes('account not registered')) {
+    return {
+      code: 'WHATSAPP_DISCONNECTED',
+      message: 'Você precisa reconectar seu WhatsApp.',
+      details: rawMessage,
+    };
+  }
+
+  const paymentErrorCodes = [10, 100, 131031, 131042, 131045, 131047, 135000];
+  const isPaymentIssue = paymentErrorCodes.includes(Number(rawCode)) ||
+    lower.includes('payment') ||
+    lower.includes('balance') ||
+    lower.includes('credit') ||
+    lower.includes('missing permissions') ||
+    lower.includes('does not exist');
+
+  if (isPaymentIssue) {
+    return {
+      code: 'META_PAYMENT_OR_PERMISSION_ERROR',
+      message: '⚠️ SALDO INSUFICIENTE NA META: Não foi possível enviar. Por favor, adicione saldo ou um cartão na Central de Pagamentos Meta em Ajustes -> Saldo e Pagamentos.',
+      details: rawMessage,
+    };
+  }
+
+  return {
+    code: rawCode ? `META_${rawCode}` : 'META_SEND_ERROR',
+    message: rawMessage,
+    details: rawMessage,
+  };
+}
+
 function getGoogleOAuthCredentials(settings?: any) {
   const envClientId = Deno.env.get('GOOGLE_CLIENT_ID')?.trim();
   const envClientSecret = (Deno.env.get('GOOGLE_CLIENT_SECRET') || Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET'))?.trim();
