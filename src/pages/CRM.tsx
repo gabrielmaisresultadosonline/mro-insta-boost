@@ -183,6 +183,36 @@ const isBusinessVerificationError = (message: any) => {
   return /business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw);
 };
 
+type UnsupportedMetaRaw = {
+  type?: string;
+  unsupported?: { type?: string };
+  errors?: Array<{ code?: number; message?: string; error_data?: { details?: string } }>;
+};
+
+const getUnsupportedMetaRaw = (message: unknown): UnsupportedMetaRaw => {
+  if (!message || typeof message !== 'object') return {};
+  const metadata = (message as { metadata?: { raw?: UnsupportedMetaRaw } }).metadata;
+  return metadata?.raw || {};
+};
+
+const getUnsupportedMetaMessage = (message: unknown) => {
+  const raw = getUnsupportedMetaRaw(message);
+  const error = Array.isArray(raw.errors) ? raw.errors[0] : null;
+  const details = String(error?.error_data?.details || error?.message || '').trim();
+
+  if (Number(error?.code) === 131060 || /unavailable/i.test(details)) {
+    return 'Mensagem indisponível: o WhatsApp não liberou o conteúdo dessa mensagem para o CRM.';
+  }
+
+  return 'Mensagem recebida em um formato que o WhatsApp ainda não disponibilizou para leitura no CRM.';
+};
+
+const getUnsupportedMetaDetails = (message: unknown) => {
+  const raw = getUnsupportedMetaRaw(message);
+  const error = Array.isArray(raw.errors) ? raw.errors[0] : null;
+  return String(error?.error_data?.details || error?.message || raw.unsupported?.type || raw.type || '').trim();
+};
+
 type ConnectionLogEntry = {
   id: string;
   at: string;
@@ -4617,7 +4647,7 @@ const CRM = () => {
                                               </div>
                                             </div>
                                           )}
-                                          {(m.message_text || m.content) && m.message_type !== 'reaction' && m.message_type !== 'audio' && m.message_type !== 'voice' && !((m.message_text || m.content || '').trim() === '[Mensagem de Áudio]') && (
+                                          {(m.message_text || m.content) && m.message_type !== 'reaction' && m.message_type !== 'audio' && m.message_type !== 'voice' && m.message_type !== 'unsupported' && !((m.message_text || m.content || '').trim() === '[Mensagem de Áudio]') && (
                                             <div className="space-y-2">
                                               <div className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5">
                                                 {m.message_text || m.content}
@@ -4639,16 +4669,16 @@ const CRM = () => {
                                             </div>
                                           )}
                                           {m.message_type === 'unsupported' && (
-                                            <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/20 text-[10px] text-red-400">
-                                              Mensagem com formato ainda não suportado pela interface. 
-                                              {m.metadata && (
-                                                <details className="mt-1 cursor-pointer">
-                                                  <summary>Ver dados brutos</summary>
-                                                  <pre className="mt-1 text-[8px] whitespace-pre-wrap bg-black/20 p-1 rounded">
-                                                    {JSON.stringify(m.metadata, null, 2)}
-                                                  </pre>
-                                                </details>
-                                              )}
+                                            <div className="mt-1 p-2 rounded-lg bg-muted/40 border border-border/40 text-xs text-muted-foreground max-w-[280px]">
+                                              <div className="flex items-start gap-2">
+                                                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                <div className="space-y-1">
+                                                  <div className="font-medium text-foreground">{getUnsupportedMetaMessage(m)}</div>
+                                                  {getUnsupportedMetaDetails(m) && (
+                                                    <div className="text-[10px] leading-snug opacity-80">{getUnsupportedMetaDetails(m)}</div>
+                                                  )}
+                                                </div>
+                                              </div>
                                             </div>
                                           )}
                                         </>
