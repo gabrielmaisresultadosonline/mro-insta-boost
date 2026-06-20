@@ -183,6 +183,24 @@ const isBusinessVerificationError = (message: any) => {
   return /business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw);
 };
 
+const getUnsupportedMetaMessage = (message: any) => {
+  const raw = message?.metadata?.raw || {};
+  const error = Array.isArray(raw?.errors) ? raw.errors[0] : null;
+  const details = String(error?.error_data?.details || error?.message || '').trim();
+
+  if (Number(error?.code) === 131060 || /unavailable/i.test(details)) {
+    return 'Mensagem indisponível: o WhatsApp não liberou o conteúdo dessa mensagem para o CRM.';
+  }
+
+  return 'Mensagem recebida em um formato que o WhatsApp ainda não disponibilizou para leitura no CRM.';
+};
+
+const getUnsupportedMetaDetails = (message: any) => {
+  const raw = message?.metadata?.raw || {};
+  const error = Array.isArray(raw?.errors) ? raw.errors[0] : null;
+  return String(error?.error_data?.details || error?.message || raw?.unsupported?.type || raw?.type || '').trim();
+};
+
 type ConnectionLogEntry = {
   id: string;
   at: string;
