@@ -3595,7 +3595,7 @@ async function fetchAndStoreIncomingMedia(
     console.error('Error in Edge Function:', error);
     return new Response(JSON.stringify({ success: false, error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     });
   }
 });
