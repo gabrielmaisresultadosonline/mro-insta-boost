@@ -2220,6 +2220,9 @@ async function fetchAndStoreIncomingMedia(
       if (!action && body.object === 'whatsapp_business_account') {
         return await handleProcessWebhook(supabase, body.entry, false, userId || undefined);
       }
+      if (!action && Array.isArray(body.entry)) {
+        return await handleProcessWebhook(supabase, body.entry, false, userId || undefined);
+      }
     if (action === 'processScheduled') {
       console.log(`[BACKGROUND-LOG] Background processing for action: ${action}`);
       const now = new Date().toISOString();
