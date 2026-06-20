@@ -683,7 +683,6 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     }
     text = mediaCaption || '';
   }
-  } else if (message.type === "unsupported") {
     const error = message.errors?.[0];
     text = `[Formato não suportado pela Meta] ${error?.title || ""}: ${error?.message || ""}`.trim();
   } else if (message.type === "location") {
