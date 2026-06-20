@@ -575,6 +575,24 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   const value = entry?.[0]?.changes?.[0]?.value || {};
 
   if (!userId) {
+    const webhookPhoneNumberId = value?.metadata?.phone_number_id;
+    const webhookWabaId = entry?.[0]?.id;
+    if (webhookPhoneNumberId || webhookWabaId) {
+      const query = supabase
+        .from('crm_settings')
+        .select('user_id')
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .limit(1);
+      const { data: resolvedRows, error: resolveError } = webhookPhoneNumberId
+        ? await query.eq('meta_phone_number_id', webhookPhoneNumberId)
+        : await query.eq('meta_waba_id', webhookWabaId);
+      if (resolveError) console.warn('[WEBHOOK] Failed to resolve user inside handler', resolveError);
+      const resolved = Array.isArray(resolvedRows) ? resolvedRows[0] : null;
+      if (resolved?.user_id) userId = resolved.user_id;
+    }
+  }
+
+  if (!userId) {
     console.warn('[WEBHOOK] Event received but no CRM user was resolved for this webhook payload', { hasMessages: !!value?.messages?.length, hasStatuses: !!value?.statuses?.length });
     return jsonResponse({ success: true, ignored: 'missing_user' });
   }
@@ -1043,6 +1061,43 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
 
 const DEFAULT_GOOGLE_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
 
+function normalizeMetaSendError(result: any, fallback = 'Erro ao enviar mensagem pela Meta') {
+  const metaError = result?.error || {};
+  const rawMessage = String(metaError?.error_user_msg || metaError?.message || fallback);
+  const rawCode = metaError?.code;
+  const lower = rawMessage.toLowerCase();
+
+  if (Number(rawCode) === 133010 || lower.includes('account not registered')) {
+    return {
+      code: 'WHATSAPP_DISCONNECTED',
+      message: 'Você precisa reconectar seu WhatsApp.',
+      details: rawMessage,
+    };
+  }
+
+  const paymentErrorCodes = [10, 100, 131031, 131042, 131045, 131047, 135000];
+  const isPaymentIssue = paymentErrorCodes.includes(Number(rawCode)) ||
+    lower.includes('payment') ||
+    lower.includes('balance') ||
+    lower.includes('credit') ||
+    lower.includes('missing permissions') ||
+    lower.includes('does not exist');
+
+  if (isPaymentIssue) {
+    return {
+      code: 'META_PAYMENT_OR_PERMISSION_ERROR',
+      message: '⚠️ SALDO INSUFICIENTE NA META: Não foi possível enviar. Por favor, adicione saldo ou um cartão na Central de Pagamentos Meta em Ajustes -> Saldo e Pagamentos.',
+      details: rawMessage,
+    };
+  }
+
+  return {
+    code: rawCode ? `META_${rawCode}` : 'META_SEND_ERROR',
+    message: rawMessage,
+    details: rawMessage,
+  };
+}
+
 function getGoogleOAuthCredentials(settings?: any) {
   const envClientId = Deno.env.get('GOOGLE_CLIENT_ID')?.trim();
   const envClientSecret = (Deno.env.get('GOOGLE_CLIENT_SECRET') || Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET'))?.trim();
@@ -1345,20 +1400,31 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   console.log(`[META-SEND] Resposta Meta status=${response.status} ok=${response.ok} body=${JSON.stringify(result)}`);
   if (!response.ok) {
     console.error(`[META-SEND] ERRO Meta status=${response.status} phoneId=${phoneNumberId} to=${to} payloadType=${payload.type} error=${JSON.stringify(result?.error)}`);
-    const errorMsg = result?.error?.message || result?.error?.error_user_msg || `Erro ${response.status} ao enviar mensagem pela Meta`;
-    
-    // Verificação de saldo/pagamento
-    const paymentErrorCodes = [10, 100, 131031, 131042, 131045, 131047, 135000];
-    const isPaymentIssue = paymentErrorCodes.includes(result?.error?.code) || 
-                          errorMsg.toLowerCase().includes('payment') || 
-                          errorMsg.toLowerCase().includes('balance') ||
-                          errorMsg.toLowerCase().includes('credit');
+    const normalizedError = normalizeMetaSendError(result, `Erro ${response.status} ao enviar mensagem pela Meta`);
 
-    if (isPaymentIssue) {
-      throw new Error(`⚠️ SALDO INSUFICIENTE NA META: Não foi possível enviar. Por favor, adicione saldo ou um cartão na Central de Pagamentos Meta em Ajustes -> Saldo e Pagamentos.`);
+    if (contact && !params.skipLocalSave) {
+      const messageType = params.interactive ? 'interactive' : (media?.type || 'text');
+      const content = media ? (params.text || `[${media.type}]`) : (params.interactive?.body?.text || params.text || '');
+      await supabase.from('crm_messages').insert({
+        contact_id: contact.id,
+        user_id: userId || contact.user_id || null,
+        direction: 'outbound',
+        message_type: messageType,
+        content,
+        media_url: media?.url || null,
+        status: 'failed',
+        error_code: normalizedError.code,
+        error_message: normalizedError.message,
+        metadata: {
+          ...(params.metadata || {}),
+          meta_error: result?.error || null,
+          meta_error_details: normalizedError.details,
+        },
+      });
+      await supabase.from('crm_contacts').update({ last_interaction: new Date().toISOString() }).eq('id', contact.id);
     }
 
-    throw new Error(errorMsg)
+    return jsonResponse({ success: false, ...normalizedError, metaError: result?.error || null }, 200);
   }
   console.log(`[META-SEND] OK messageId=${result?.messages?.[0]?.id} to=${to} type=${payload.type}`);
 
@@ -1617,20 +1683,29 @@ async function internalSendTemplate(
 
   if (!response.ok) {
     console.error(`[TEMPLATE] Error sending template:`, JSON.stringify(result));
-    const errorMsg = result?.error?.message || 'Erro ao enviar template pela Meta';
-    
-    // Se o erro indicar falta de saldo ou problemas de pagamento (códigos comuns da Meta)
-    const paymentErrorCodes = [10, 100, 131031, 131042, 131045, 131047, 135000];
-    const isPaymentIssue = paymentErrorCodes.includes(result?.error?.code) || 
-                          errorMsg.toLowerCase().includes('payment') || 
-                          errorMsg.toLowerCase().includes('balance') ||
-                          errorMsg.toLowerCase().includes('credit');
+    const normalizedError = normalizeMetaSendError(result, 'Erro ao enviar template pela Meta');
 
-    if (isPaymentIssue) {
-      throw new Error(`⚠️ SALDO INSUFICIENTE NA META: Não foi possível enviar o template. Por favor, adicione saldo ou um cartão de crédito na sua Central de Pagamentos Meta em Ajustes -> Saldo e Pagamentos.`);
+    if (contact) {
+      await supabase.from('crm_messages').insert({
+        contact_id: contact.id,
+        user_id: contact.user_id || userId || null,
+        direction: 'outbound',
+        message_type: 'template',
+        content: `[Template: ${templateName}]`,
+        status: 'failed',
+        error_code: normalizedError.code,
+        error_message: normalizedError.message,
+        metadata: {
+          template_name: templateName,
+          source: 'api_automation',
+          meta_error: result?.error || null,
+          meta_error_details: normalizedError.details,
+        },
+      });
+      await supabase.from('crm_contacts').update({ last_interaction: new Date().toISOString() }).eq('id', contact.id);
     }
 
-    throw new Error(errorMsg)
+    return jsonResponse({ success: false, ...normalizedError, metaError: result?.error || null }, 200);
   }
 
   if (contact) {
@@ -2142,6 +2217,12 @@ async function fetchAndStoreIncomingMedia(
      if (!action && body.object === 'whatsapp_business_account' && userSettings) {
        return await handleProcessWebhook(supabase, body.entry, false, userId);
      }
+      if (!action && body.object === 'whatsapp_business_account') {
+        return await handleProcessWebhook(supabase, body.entry, false, userId || undefined);
+      }
+      if (!action && Array.isArray(body.entry)) {
+        return await handleProcessWebhook(supabase, body.entry, false, userId || undefined);
+      }
     if (action === 'processScheduled') {
       console.log(`[BACKGROUND-LOG] Background processing for action: ${action}`);
       const now = new Date().toISOString();
@@ -3300,7 +3381,7 @@ async function fetchAndStoreIncomingMedia(
 
     if (action === 'processWebhook') {
       const { entry, skipSave } = params;
-      return await handleProcessWebhook(supabase, entry, skipSave);
+      return await handleProcessWebhook(supabase, entry, skipSave, userId || params.userId);
     }
 
 
@@ -3512,12 +3593,17 @@ async function fetchAndStoreIncomingMedia(
       return jsonResponse({ success: true, message: 'Histórico limpo com sucesso' });
     }
 
+    if (!action) {
+      console.warn('[REQUEST-DEBUG] POST ignored because it had no action and was not a resolvable webhook');
+      return jsonResponse({ success: true, ignored: 'no_action' });
+    }
+
     throw new Error(`Unhandled action: ${action}`);
   } catch (error: any) {
     console.error('Error in Edge Function:', error);
     return new Response(JSON.stringify({ success: false, error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     });
   }
 });
