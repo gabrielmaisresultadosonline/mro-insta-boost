@@ -6419,6 +6419,27 @@ const CRM = () => {
                           {(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) && (
                             <div className="pt-3 border-t border-border/60 space-y-2">
                               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Recebimento de mensagens
+                              </Label>
+                              <p className="text-[11px] text-muted-foreground">
+                                Se as mensagens não aparecem em Conversas, repare a inscrição do webhook da Meta para este número.
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isRepairingWebhook}
+                                className="w-full h-11 rounded-xl font-semibold"
+                                onClick={repairWhatsAppWebhook}
+                              >
+                                {isRepairingWebhook ? <RefreshCcw className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCcw className="w-4 h-4 mr-2" />}
+                                Reparar recebimento
+                              </Button>
+                            </div>
+                          )}
+
+                          {(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) && (
+                            <div className="pt-3 border-t border-border/60 space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                 Desconectar WhatsApp
                               </Label>
                               <p className="text-[11px] text-muted-foreground">
