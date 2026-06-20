@@ -458,6 +458,14 @@ const CRM = () => {
 
       if (error || !data?.success) {
         addConnectionLog('error', 'Falha ao reparar o webhook da Meta', data || error);
+        if (data?.requiresReconnect) {
+          toast({
+            title: 'Você precisa reconectar seu WhatsApp',
+            description: 'Clique em Desconectar WhatsApp e conecte novamente pelo Facebook para receber as conversas.',
+            variant: 'destructive',
+          });
+          return;
+        }
         throw new Error(data?.error || error?.message || 'Falha ao reparar recebimento');
       }
 
