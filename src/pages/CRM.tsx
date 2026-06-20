@@ -448,6 +448,36 @@ const CRM = () => {
     logger('[WhatsApp Connection]', message, details || '');
   }, []);
 
+  const repairWhatsAppWebhook = useCallback(async () => {
+    setIsRepairingWebhook(true);
+    addConnectionLog('info', 'Reparando recebimento de mensagens do WhatsApp');
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: { action: 'repairMetaWebhook' },
+      });
+
+      if (error || !data?.success) {
+        addConnectionLog('error', 'Falha ao reparar o webhook da Meta', data || error);
+        throw new Error(data?.error || error?.message || 'Falha ao reparar recebimento');
+      }
+
+      addConnectionLog('success', 'Recebimento de mensagens reparado', data);
+      toast({
+        title: 'Recebimento reparado',
+        description: 'Envie uma mensagem de teste para este WhatsApp e atualize as Conversas.',
+      });
+      await fetchContacts();
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao reparar recebimento',
+        description: err?.message || 'Reconecte o WhatsApp e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRepairingWebhook(false);
+    }
+  }, [addConnectionLog, toast]);
+
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
