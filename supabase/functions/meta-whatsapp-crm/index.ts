@@ -2265,12 +2265,16 @@ async function fetchAndStoreIncomingMedia(
 
        const appWebhook = await ensureMetaAppWebhookConfigured();
        const wabaSubscription = await ensureWabaSubscribed(settings.meta_waba_id, settings.meta_access_token);
+       const success = !!appWebhook.success && !!wabaSubscription.success;
+       const repairError = success ? null : getWebhookRepairError(appWebhook, wabaSubscription);
 
        return jsonResponse({
-         success: !!appWebhook.success && !!wabaSubscription.success,
+         success,
+         error: repairError?.error || null,
+         requiresReconnect: repairError?.requiresReconnect || false,
          appWebhook,
          wabaSubscription,
-       }, (!appWebhook.success || !wabaSubscription.success) ? 500 : 200);
+       }, 200);
      }
 
       if (!action && body.object === 'whatsapp_business_account' && !userSettings) {
