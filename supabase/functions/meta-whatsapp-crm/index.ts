@@ -1848,7 +1848,10 @@ async function ensureMetaAppWebhookConfigured() {
   const form = new URLSearchParams();
   form.set('object', 'whatsapp_business_account');
   form.set('callback_url', callbackUrl);
-  form.set('fields', 'messages,message_echoes');
+  // "message_echoes" requires permissions that are not granted in every Meta app.
+  // If we request it together with "messages", Meta rejects the whole webhook subscription
+  // and inbound conversations stop arriving. Keep the required field minimal.
+  form.set('fields', 'messages');
   form.set('verify_token', getGlobalWebhookVerifyToken());
   form.set('access_token', `${APP_ID}|${APP_SECRET}`);
 
@@ -1865,6 +1868,35 @@ async function ensureMetaAppWebhookConfigured() {
     console.error('[META WEBHOOK] app subscription failed', { message: e?.message || String(e) });
     return { success: false, error: e?.message || String(e) };
   }
+}
+
+function getWebhookRepairError(appWebhook: any, wabaSubscription: any) {
+  const appError = appWebhook?.result?.error || {};
+  const wabaError = wabaSubscription?.result?.error || {};
+  const rawMessage = String(
+    wabaError?.error_user_msg ||
+    wabaError?.message ||
+    appError?.error_user_msg ||
+    appError?.message ||
+    'Não foi possível ativar o recebimento de mensagens.'
+  );
+
+  const invalidWaba = Number(wabaError?.code) === 100 || Number(wabaError?.error_subcode) === 33;
+  const invalidPermissions = /permission|permissions|permiss/i.test(rawMessage) || Number(appError?.error_subcode) === 1929002;
+
+  if (invalidWaba || invalidPermissions) {
+    return {
+      error: 'Você precisa reconectar seu WhatsApp. A Meta recusou a inscrição de recebimento porque o WABA/número salvo não tem permissão ou não pertence mais ao token conectado.',
+      requiresReconnect: true,
+      details: rawMessage,
+    };
+  }
+
+  return {
+    error: rawMessage,
+    requiresReconnect: false,
+    details: rawMessage,
+  };
 }
 
 async function ensureWabaSubscribed(wabaId?: string | null, accessToken?: string | null) {
