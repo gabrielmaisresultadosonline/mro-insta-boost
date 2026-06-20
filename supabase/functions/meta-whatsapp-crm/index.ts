@@ -3593,6 +3593,11 @@ async function fetchAndStoreIncomingMedia(
       return jsonResponse({ success: true, message: 'Histórico limpo com sucesso' });
     }
 
+    if (!action) {
+      console.warn('[REQUEST-DEBUG] POST ignored because it had no action and was not a resolvable webhook');
+      return jsonResponse({ success: true, ignored: 'no_action' });
+    }
+
     throw new Error(`Unhandled action: ${action}`);
   } catch (error: any) {
     console.error('Error in Edge Function:', error);
