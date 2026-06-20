@@ -420,6 +420,7 @@ const CRM = () => {
   const [metricsChartData, setMetricsChartData] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [activeFlowsView, setActiveFlowsView] = useState(false);
+  const [isRepairingWebhook, setIsRepairingWebhook] = useState(false);
   const [connectionLogs, setConnectionLogs] = useState<ConnectionLogEntry[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -446,6 +447,36 @@ const CRM = () => {
     const logger = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
     logger('[WhatsApp Connection]', message, details || '');
   }, []);
+
+  const repairWhatsAppWebhook = useCallback(async () => {
+    setIsRepairingWebhook(true);
+    addConnectionLog('info', 'Reparando recebimento de mensagens do WhatsApp');
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: { action: 'repairMetaWebhook' },
+      });
+
+      if (error || !data?.success) {
+        addConnectionLog('error', 'Falha ao reparar o webhook da Meta', data || error);
+        throw new Error(data?.error || error?.message || 'Falha ao reparar recebimento');
+      }
+
+      addConnectionLog('success', 'Recebimento de mensagens reparado', data);
+      toast({
+        title: 'Recebimento reparado',
+        description: 'Envie uma mensagem de teste para este WhatsApp e atualize as Conversas.',
+      });
+      await fetchContacts();
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao reparar recebimento',
+        description: err?.message || 'Reconecte o WhatsApp e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRepairingWebhook(false);
+    }
+  }, [addConnectionLog, toast]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -6382,6 +6413,27 @@ const CRM = () => {
                               {metaSettings.meta_verified_name && (
                                 <p className="text-xs text-muted-foreground">{metaSettings.meta_verified_name}</p>
                               )}
+                            </div>
+                          )}
+
+                          {(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) && (
+                            <div className="pt-3 border-t border-border/60 space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Recebimento de mensagens
+                              </Label>
+                              <p className="text-[11px] text-muted-foreground">
+                                Se as mensagens não aparecem em Conversas, repare a inscrição do webhook da Meta para este número.
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isRepairingWebhook}
+                                className="w-full h-11 rounded-xl font-semibold"
+                                onClick={repairWhatsAppWebhook}
+                              >
+                                {isRepairingWebhook ? <RefreshCcw className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCcw className="w-4 h-4 mr-2" />}
+                                Reparar recebimento
+                              </Button>
                             </div>
                           )}
 

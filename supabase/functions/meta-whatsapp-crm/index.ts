@@ -572,6 +572,57 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
 }
 
 async function handleProcessWebhook(supabase: any, entry: any, skipSave = false, userId?: string) {
+  const entries = Array.isArray(entry) ? entry : (entry ? [entry] : []);
+  const changes = entries.flatMap((entryItem: any) =>
+    Array.isArray(entryItem?.changes)
+      ? entryItem.changes.map((change: any) => ({ entryItem, change }))
+      : []
+  );
+
+  const shouldSplitPayload = changes.length > 1 || changes.some(({ change }: any) => {
+    const value = change?.value || {};
+    const messagesCount = Array.isArray(value.messages) ? value.messages.length : 0;
+    const statusesCount = Array.isArray(value.statuses) ? value.statuses.length : 0;
+    const echoesCount = Array.isArray(value.message_echoes) ? value.message_echoes.length : 0;
+    return messagesCount > 1 || (statusesCount > 0 && (messagesCount > 0 || echoesCount > 0));
+  });
+
+  if (shouldSplitPayload) {
+    const results = [];
+    for (const { entryItem, change } of changes) {
+      const value = change?.value || {};
+      const baseValue = { ...value };
+      delete (baseValue as any).messages;
+      delete (baseValue as any).statuses;
+      delete (baseValue as any).message_echoes;
+
+      const units: any[] = [];
+      if (Array.isArray(value.statuses) && value.statuses.length > 0) {
+        units.push({ ...baseValue, statuses: value.statuses });
+      }
+      if (Array.isArray(value.message_echoes) && value.message_echoes.length > 0) {
+        units.push({ ...baseValue, message_echoes: value.message_echoes });
+      }
+      if (Array.isArray(value.messages) && value.messages.length > 0) {
+        for (const message of value.messages) {
+          units.push({ ...baseValue, messages: [message] });
+        }
+      }
+      if (units.length === 0) units.push(value);
+
+      for (const unitValue of units) {
+        const singleEntry = [{ ...entryItem, changes: [{ ...change, value: unitValue }] }];
+        const response = await handleProcessWebhook(supabase, singleEntry, skipSave, userId);
+        try {
+          results.push(await response.clone().json());
+        } catch {
+          results.push({ success: response.ok, status: response.status });
+        }
+      }
+    }
+    return jsonResponse({ success: true, type: 'batched_webhook', results });
+  }
+
   const value = entry?.[0]?.changes?.[0]?.value || {};
 
   if (!userId) {
