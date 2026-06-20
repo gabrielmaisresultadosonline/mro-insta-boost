@@ -377,6 +377,28 @@ const CRM = () => {
   const [bulkName, setBulkName] = useState('');
   const [isBulkNaming, setIsBulkNaming] = useState(false);
 
+  // Detecta quando a conta WhatsApp foi desregistrada na Meta (erro 133010)
+  const [whatsappDisconnected, setWhatsappDisconnected] = useState(false);
+
+  useEffect(() => {
+    const originalInvoke = supabase.functions.invoke.bind(supabase.functions);
+    (supabase.functions as any).invoke = async (fnName: string, opts?: any) => {
+      const result: any = await originalInvoke(fnName as any, opts);
+      try {
+        if (fnName === 'meta-whatsapp-crm') {
+          const blob = JSON.stringify(result?.error ?? '') + JSON.stringify(result?.data ?? '');
+          if (blob.includes('133010') || blob.includes('Account not registered')) {
+            setWhatsappDisconnected(true);
+          }
+        }
+      } catch {}
+      return result;
+    };
+    return () => {
+      (supabase.functions as any).invoke = originalInvoke;
+    };
+  }, []);
+
   const [mediaUploadProgress, setMediaUploadProgress] = useState<{ [key: string]: number }>({});
 
   const [scheduledMessages, setScheduledMessages] = useState<any[]>([]);
@@ -3145,6 +3167,23 @@ const CRM = () => {
   return (
     <SidebarProvider>
       <div className="h-[100dvh] w-full flex overflow-hidden bg-[#f0f2f5] dark:bg-[#0c1317]">
+        {whatsappDisconnected && (
+          <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white px-4 py-3 shadow-lg flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span>
+                Seu WhatsApp foi desconectado da Meta (erro 133010 — Account not registered).
+                Você precisa reconectar seu WhatsApp no Meta Business Manager (registrar o número novamente com o PIN de 2 etapas) para voltar a enviar mensagens e disparar fluxos.
+              </span>
+            </div>
+            <button
+              onClick={() => setWhatsappDisconnected(false)}
+              className="text-white/80 hover:text-white text-xs underline flex-shrink-0"
+            >
+              Fechar
+            </button>
+          </div>
+        )}
         <Sidebar className="border-r border-border/50 shadow-xl bg-[#111b21] dark:bg-[#111b21] text-white">
            <SidebarHeader className="p-4 border-b border-white/5 flex items-center justify-center bg-[#202c33]">
              <Link to="/vendas">
