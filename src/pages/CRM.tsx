@@ -6385,6 +6385,49 @@ const CRM = () => {
                             </div>
                           )}
 
+                          {(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) && (
+                            <div className="pt-3 border-t border-border/60 space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Desconectar WhatsApp
+                              </Label>
+                              <p className="text-[11px] text-muted-foreground">
+                                Remove o token, o WABA e o número conectado deste CRM. Use isso quando o número for desregistrado na Meta ("Account not registered") para então reconectar do zero.
+                              </p>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                className="w-full h-11 rounded-xl font-semibold"
+                                onClick={async () => {
+                                  if (!window.confirm('Tem certeza que deseja desconectar o WhatsApp? Você precisará reconectar pelo Facebook em seguida.')) return;
+                                  try {
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (!user) return;
+                                    const cleared = {
+                                      meta_access_token: '',
+                                      meta_phone_number_id: '',
+                                      meta_waba_id: '',
+                                      meta_display_phone_number: '',
+                                      meta_verified_name: '',
+                                    };
+                                    const { error } = await supabase
+                                      .from('crm_settings')
+                                      .update({ ...cleared, updated_at: new Date().toISOString() })
+                                      .eq('user_id', user.id);
+                                    if (error) throw error;
+                                    setMetaSettings((prev: any) => ({ ...prev, ...cleared }));
+                                    setWhatsAppConnectionConfirmed(false);
+                                    toast({ title: 'WhatsApp desconectado', description: 'Agora você pode conectar um novo número.' });
+                                  } catch (err: any) {
+                                    console.error('[CRM] disconnect whatsapp error:', err);
+                                    toast({ title: 'Erro ao desconectar', description: err?.message || 'Tente novamente.', variant: 'destructive' });
+                                  }
+                                }}
+                              >
+                                Desconectar WhatsApp
+                              </Button>
+                            </div>
+                          )}
+
                           {!(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id) && (
                             <div className="pt-3 border-t border-border/60 space-y-2">
                               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
