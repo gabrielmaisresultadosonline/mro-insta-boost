@@ -306,6 +306,8 @@ const CRM = () => {
   const [flows, setFlows] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
+  // Pre-computed once whenever `contacts` changes — used by the Conversas
+  // tab. Avoids re-scanning 14k+ rows on every tab switch / status change.
   const contactsCacheKeyRef = useRef<string | null>(null);
   const lastContactsSyncRef = useRef<string | null>(null);
   const contactsSeededRef = useRef<boolean>(false);
