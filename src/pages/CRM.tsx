@@ -908,8 +908,8 @@ const CRM = () => {
 
       const rows = data || [];
       realtimeFallbackCursorRef.current = rows.length > 0
-        ? rows.reduce((latest: string, row: any) => row.created_at > latest ? row.created_at : latest, firstCursor)
-        : new Date().toISOString();
+        ? new Date(new Date(rows.reduce((latest: string, row: any) => row.created_at > latest ? row.created_at : latest, firstCursor)).getTime() - 1000).toISOString()
+        : firstCursor;
 
       if (rows.length === 0) return;
 
