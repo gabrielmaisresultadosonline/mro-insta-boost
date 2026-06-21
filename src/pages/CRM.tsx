@@ -1631,6 +1631,39 @@ const CRM = () => {
     }
   };
 
+  // Sincronização automática em tempo real com Google Contatos
+  // Executa silenciosamente a cada 2 minutos quando ativado, e uma vez ao montar.
+  useEffect(() => {
+    if (!googleContactsEnabled) return;
+    if (!metaSettings.google_auto_sync) return;
+
+    let cancelled = false;
+
+    const silentSync = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+          body: { action: 'syncGoogleContacts' }
+        });
+        if (cancelled) return;
+        if (!error && data?.success) {
+          await fetchContacts();
+        }
+      } catch (e) {
+        console.warn('[AUTO-SYNC] Falha na sincronização silenciosa do Google:', e);
+      }
+    };
+
+    // Roda imediatamente ao montar/ativar
+    silentSync();
+    // E depois a cada 2 minutos
+    const intervalId = window.setInterval(silentSync, 2 * 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [googleContactsEnabled, metaSettings.google_auto_sync]);
+
   const handleImprovePrompt = async () => {
     if (!metaSettings.ai_system_prompt?.trim() || improvingPrompt) {
       toast({ title: "Aviso", description: "Escreva algo no prompt primeiro para que eu possa melhorar." });
