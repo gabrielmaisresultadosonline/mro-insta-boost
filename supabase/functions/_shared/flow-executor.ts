@@ -245,6 +245,33 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       
       const prompt = node.data?.prompt || "";
       const labelOnTransfer = node.data?.labelOnHumanTransfer || "";
+      const { data: currentContact } = await supabase
+        .from('crm_contacts')
+        .select('metadata')
+        .eq('id', contactId)
+        .maybeSingle();
+      const { data: settings } = await supabase
+        .from('crm_settings')
+        .select('ai_agent_enabled')
+        .eq('user_id', flow.user_id)
+        .maybeSingle();
+      const shouldActivateAi = settings?.ai_agent_enabled === true || currentContact?.metadata?.manual_ai_activation === true;
+
+      if (!shouldActivateAi) {
+        console.log(`[EXECUTOR] AI Agent node ${node.id} skipped: general AI disabled and no manual activation for contact ${contactId}`);
+        await supabase.from('crm_contacts').update({
+          flow_state: 'idle',
+          current_node_id: null,
+          ai_active: false,
+          metadata: {
+            ...(currentContact?.metadata || {}),
+            ai_agent_prompt: prompt,
+            ai_agent_label_on_transfer: labelOnTransfer,
+            ai_agent_node_id: node.id
+          }
+        }).eq('id', contactId);
+        return { success: true, message: 'AI agent skipped because it is not enabled for this contact' };
+      }
       
       // Se tiver uma mensagem inicial configurada no nó, envia antes de disparar a IA
       const initialMessageText = node.data?.initialMessage || "";
@@ -256,12 +283,6 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       }
 
       console.log(`[EXECUTOR] Updating contact ${contactId} to ai_handling state. prompt length: ${prompt.length}`);
-      const { data: currentContact } = await supabase
-        .from('crm_contacts')
-        .select('metadata')
-        .eq('id', contactId)
-        .maybeSingle();
-
       await supabase.from('crm_contacts').update({
         flow_state: 'ai_handling',
         current_node_id: node.id,
