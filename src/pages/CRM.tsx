@@ -1586,11 +1586,11 @@ const CRM = () => {
       .filter((m: any) => !m.isOptimistic && m.created_at)
       .reduce((latest: number, m: any) => Math.max(latest, new Date(m.created_at).getTime()), 0);
 
-    let query = supabase.from('crm_messages').select('*').eq('contact_id', contactId).limit(25);
+    let query = supabase.from('crm_messages').select('*').eq('contact_id', contactId);
     if (latestPersistedTime > 0) {
-      query = query.gt('created_at', new Date(latestPersistedTime).toISOString()).order('created_at', { ascending: true });
+      query = query.gt('created_at', new Date(latestPersistedTime).toISOString()).order('created_at', { ascending: true }).limit(25);
     } else {
-      query = query.order('created_at', { ascending: false });
+      query = query.order('created_at', { ascending: false }).limit(25);
     }
 
     const { data } = await query;
