@@ -1197,6 +1197,27 @@ const normalizePhone = (raw: string) => {
   return digits
 }
 
+const getBrazilianPhoneVariants = (raw: string) => {
+  const normalized = normalizePhone(raw)
+  const variants = new Set<string>([normalized])
+
+  if (normalized.startsWith('55') && (normalized.length === 12 || normalized.length === 13)) {
+    const country = normalized.slice(0, 2)
+    const areaCode = normalized.slice(2, 4)
+    const localNumber = normalized.slice(4)
+
+    if (localNumber.length === 9 && localNumber.startsWith('9')) {
+      variants.add(`${country}${areaCode}${localNumber.slice(1)}`)
+    }
+
+    if (localNumber.length === 8) {
+      variants.add(`${country}${areaCode}9${localNumber}`)
+    }
+  }
+
+  return Array.from(variants)
+}
+
 async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusEvent: any) {
   const metaMessageId = statusEvent?.id;
   if (!metaMessageId) return { updated: false, reason: 'missing_meta_message_id' };
