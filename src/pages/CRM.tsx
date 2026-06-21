@@ -1140,11 +1140,17 @@ const CRM = () => {
   useEffect(() => {
     let filtered = contacts;
     
-    // In the "Conversations" (chat) tab, we only show contacts that have at least one message.
-    // However, we should be careful not to hide them if they just arrived.
-    if (activeTab === 'dashboard' || activeTab === 'contacts') {
-      // For contacts list/conversations view, we show all that have interaction
-      filtered = filtered.filter(c => c.last_interaction !== null || c.total_messages_received > 0);
+    // The "Conversas" tab (activeTab === 'contacts') must ONLY show
+    // contacts that have an actual conversation history (a message was
+    // sent or received). Google-synced contacts without messages live
+    // in the "Contatos" tab, never here.
+    if (activeTab === 'contacts' || activeTab === 'dashboard') {
+      filtered = filtered.filter(c =>
+        c.last_interaction != null ||
+        (c.total_messages_received ?? 0) > 0 ||
+        (c.total_messages_sent ?? 0) > 0 ||
+        c.last_message_received_at != null
+      );
     }
 
     if (statusFilter !== 'all') {
