@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
  import { useNavigate, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -305,7 +305,6 @@ const CRM = () => {
   const CONVERSATION_COST = 0.33;
   const [flows, setFlows] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
-  const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
   // Pre-computed once whenever `contacts` changes — used by the Conversas
   // tab. Avoids re-scanning 14k+ rows on every tab switch / status change.
   const contactsCacheKeyRef = useRef<string | null>(null);
@@ -1159,26 +1158,21 @@ const CRM = () => {
     [contacts]
   );
 
-  useLayoutEffect(() => {
-    // For the "Conversas" and dashboard views we use the pre-filtered
-    // conversational subset (already small). For other tabs we use the
-    // full contact list.
-    const base = (activeTab === 'contacts' || activeTab === 'dashboard')
-      ? conversationContacts
-      : contacts;
+  const filteredContacts = useMemo(() => {
+    // Conversas must never render the full Google/imported contact base.
+    // Keeping this derived list synchronous avoids the brief 3s heavy render
+    // where all contacts appeared before the conversation-only filter applied.
+    const base = activeTab === 'contacts' ? conversationContacts : [];
 
-    if (statusFilter === 'all') {
-      setFilteredContacts(base);
-      return;
-    }
+    if (statusFilter === 'all') return base;
 
     const needle = statusFilter.toLowerCase();
-    setFilteredContacts(base.filter(c =>
+    return base.filter(c =>
       c.status === statusFilter ||
       c.name?.toLowerCase().includes(needle) ||
       c.wa_id?.includes(statusFilter)
-    ));
-  }, [statusFilter, conversationContacts, contacts, activeTab]);
+    );
+  }, [statusFilter, conversationContacts, activeTab]);
 
   const fetchData = async (isInitialLoad = false) => {
      if (isInitialLoad) setLoading(true);
