@@ -306,6 +306,10 @@ const CRM = () => {
   const [flows, setFlows] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
+  const contactsCacheKeyRef = useRef<string | null>(null);
+  const lastContactsSyncRef = useRef<string | null>(null);
+  const contactsSeededRef = useRef<boolean>(false);
+  const contactsInFlightRef = useRef<boolean>(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [kanbanView, setKanbanView] = useState(false);
