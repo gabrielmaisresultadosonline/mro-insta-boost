@@ -4584,10 +4584,10 @@ const CRM = () => {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className={cn(
-                                        "h-6 w-6 rounded-full transition-all shrink-0",
-                                        selectedContact.ai_active && metaSettings.ai_agent_enabled ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20" : "text-muted-foreground bg-muted hover:bg-muted/80 grayscale"
-                                      )}
+                                       className={cn(
+                                         "h-6 w-6 rounded-full transition-all shrink-0",
+                                         selectedContact.ai_active ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20" : "text-muted-foreground bg-muted hover:bg-muted/80 grayscale"
+                                       )}
                                       onClick={async () => {
                                         const newStatus = !selectedContact.ai_active;
                                         await updateContactStatus(selectedContact.id, { ai_active: newStatus });
