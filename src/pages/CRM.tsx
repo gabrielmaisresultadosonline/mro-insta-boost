@@ -1137,7 +1137,7 @@ const CRM = () => {
     }
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let filtered = contacts;
     
     // The "Conversas" tab (activeTab === 'contacts') must ONLY show
