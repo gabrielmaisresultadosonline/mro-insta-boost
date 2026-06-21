@@ -3928,7 +3928,7 @@ const CRM = () => {
                       <ScrollArea className="flex-1 min-h-0 bg-white dark:bg-[#111b21]">
                         {/* Fila de Contatos Sem Nome */}
                         {(() => {
-                          const unnamed = contacts.filter(c => !c.name || c.name === c.wa_id);
+                          const unnamed = unnamedContacts;
                           if (unnamed.length === 0) return null;
                           return (
                             <div className="border-b border-border/10">
