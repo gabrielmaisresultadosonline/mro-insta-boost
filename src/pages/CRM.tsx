@@ -1580,6 +1580,40 @@ const CRM = () => {
     }
   };
 
+  const fetchRecentActiveMessages = async (contactId: string) => {
+    if (!contactId) return;
+    const latestPersistedTime = chatMessagesRef.current
+      .filter((m: any) => !m.isOptimistic && m.created_at)
+      .reduce((latest: number, m: any) => Math.max(latest, new Date(m.created_at).getTime()), 0);
+
+    let query = supabase.from('crm_messages').select('*').eq('contact_id', contactId).limit(25);
+    if (latestPersistedTime > 0) {
+      query = query.gt('created_at', new Date(latestPersistedTime).toISOString()).order('created_at', { ascending: true });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    const { data } = await query;
+    if (!data?.length || selectedContactRef.current?.id !== contactId) return;
+
+    const rows = latestPersistedTime > 0 ? data : [...data].reverse();
+    setChatMessages(prev => {
+      const byId = new Map(prev.map((m: any) => [m.id, m]));
+      rows.forEach((m: any) => byId.set(m.id, m));
+      return Array.from(byId.values()).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    });
+
+    const lastInbound = [...rows].reverse().find((m: any) => m.direction === 'inbound');
+    if (lastInbound) {
+      const nowIso = new Date().toISOString();
+      setContacts(prev => prev.map(c => c.id === contactId
+        ? { ...c, last_message_received_at: lastInbound.created_at, last_read_at: nowIso }
+        : c
+      ));
+      await supabase.from('crm_contacts').update({ last_read_at: nowIso }).eq('id', contactId);
+    }
+  };
+
   const getLastInboundTime = (contact: any) => {
     const raw = contact?.last_message_received_at;
     if (!raw) return 0;
