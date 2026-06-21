@@ -256,12 +256,20 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       }
 
       console.log(`[EXECUTOR] Updating contact ${contactId} to ai_handling state. prompt length: ${prompt.length}`);
+      const { data: currentContact } = await supabase
+        .from('crm_contacts')
+        .select('metadata')
+        .eq('id', contactId)
+        .maybeSingle();
+
       await supabase.from('crm_contacts').update({
         flow_state: 'ai_handling',
         current_node_id: node.id,
         ai_active: true,
         metadata: { 
+          ...(currentContact?.metadata || {}),
           ...(node.data || {}),
+          manual_ai_activation: currentContact?.metadata?.manual_ai_activation === true,
           ai_agent_prompt: prompt,
           ai_agent_label_on_transfer: labelOnTransfer,
           ai_agent_node_id: node.id
