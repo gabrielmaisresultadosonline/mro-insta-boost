@@ -319,6 +319,11 @@ const CRM = () => {
   const realtimeFallbackInFlightRef = useRef<boolean>(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
+  // Dedicated search state for the Contatos and Sincronizados Google tabs.
+  // Keeping it separate from `statusFilter` ensures that searching/filtering
+  // there does NOT silently filter the Conversas list (which uses
+  // `statusFilter`) when the user navigates back to Conversas.
+  const [contactListSearch, setContactListSearch] = useState('all');
   const [kanbanView, setKanbanView] = useState(false);
   const [draggedContact, setDraggedContact] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
