@@ -4675,7 +4675,28 @@ const CRM = () => {
                                   </div>
                                 </div>
                               )}
-                              {[...chatMessages].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((m, idx) => {
+                              {(() => {
+                                const sortedMessages = [...chatMessages].sort(
+                                  (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                                );
+                                const formatDaySeparator = (iso: string) => {
+                                  const d = new Date(iso);
+                                  const today = new Date();
+                                  const yesterday = new Date();
+                                  yesterday.setDate(today.getDate() - 1);
+                                  const sameDay = (a: Date, b: Date) =>
+                                    a.getFullYear() === b.getFullYear() &&
+                                    a.getMonth() === b.getMonth() &&
+                                    a.getDate() === b.getDate();
+                                  if (sameDay(d, today)) return 'HOJE';
+                                  if (sameDay(d, yesterday)) return 'ONTEM';
+                                  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
+                                };
+                                return sortedMessages.map((m, idx) => {
+                                const prev = idx > 0 ? sortedMessages[idx - 1] : null;
+                                const currentDay = new Date(m.created_at).toDateString();
+                                const prevDay = prev ? new Date(prev.created_at).toDateString() : null;
+                                const showDaySeparator = currentDay !== prevDay;
                                 const isTemplate = m.message_type === 'template' || (m.message_type !== 'carousel' && m.content?.includes('[Template:'));
                                 const templateName = m.content?.match(/\[Template: (.*?)\]/)?.[1];
                                 let template = isTemplate ? templates.find(t => t.name === templateName) : null;
