@@ -2316,7 +2316,7 @@ const CRM = () => {
         const metaMsgId = data?.messageId || data?.messages?.[0]?.id || data?.result?.messages?.[0]?.id || null;
         await updatePersistedAudio('accepted', 'standard_send', metaMsgId);
       }
-      await fetchMessages(targetContactId);
+      await fetchMessages(targetContactId, true);
       toast({ title: "Mídia enviada para a Meta", description: "Aguardando confirmação de entrega." });
     } catch (err: any) {
       console.error('[CRM][sendMedia] EXCEPTION', err);
