@@ -3392,7 +3392,9 @@ const CRM = () => {
     return statusObj ? statusObj.label : status.toUpperCase();
   };
 
-  if (loading && !contacts.length) {
+  // Mantém a tela de carregamento até o fetch inicial terminar, mesmo que
+  // exista cache local — evita "piscar" UI vazia antes dos contatos chegarem.
+  if (loading) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0c1317] relative overflow-hidden">
         {/* Efeito de luzes e partículas ao fundo */}
