@@ -947,6 +947,13 @@ const CRM = () => {
             setSelectedContact((prev: any) => prev && prev.id === newMessage.contact_id
               ? { ...prev, last_message_received_at: newMessage.created_at }
               : prev);
+            // Track inbound timestamp for unread badge (unless the chat is open)
+            if (!selectedContactRef.current || selectedContactRef.current.id !== newMessage.contact_id) {
+              setInboundTimestampsByContact(prev => {
+                const list = prev[newMessage.contact_id] || [];
+                return { ...prev, [newMessage.contact_id]: [newMessage.created_at, ...list].slice(0, 200) };
+              });
+            }
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedMessage = payload.new;
