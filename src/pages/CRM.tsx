@@ -4484,8 +4484,8 @@ const CRM = () => {
                                     "font-bold truncate text-sm flex items-center gap-1.5 min-w-0",
                                     contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) ? "text-foreground" : "text-foreground/80"
                                   )}>
-                                    <span className="truncate shrink grow min-w-0">{contact.name || contact.wa_id}</span>
-                                    {contact.google_sync_account_id && (
+                                    <span className="truncate shrink grow min-w-0">{getGoogleResolvedContact(contact).displayName}</span>
+                                    {getGoogleResolvedContact(contact).googleSyncAccountId && (
                                       <span className="w-3.5 h-3.5 bg-[#4285F4] rounded-full flex items-center justify-center shrink-0">
                                          <span className="text-[6px] font-bold text-white">G</span>
                                       </span>
@@ -4670,9 +4670,9 @@ const CRM = () => {
                                 <div className="flex flex-col min-w-0">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <p className="font-bold text-sm md:text-base hover:text-primary cursor-pointer truncate" onClick={() => openContactInfo(selectedContact)}>
-                                      {selectedContact.name || selectedContact.wa_id}
+                                      {getGoogleResolvedContact(selectedContact).displayName}
                                     </p>
-                                    {selectedContact.google_sync_account_id && (
+                                    {getGoogleResolvedContact(selectedContact).googleSyncAccountId && (
                                       <span className="w-3 h-3 bg-[#4285F4] rounded-full flex items-center justify-center shrink-0">
                                          <span className="text-[5px] font-bold text-white">G</span>
                                       </span>
