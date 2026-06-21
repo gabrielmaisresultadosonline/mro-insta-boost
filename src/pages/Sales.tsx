@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { BookOpen } from "lucide-react";
  import whatsappGirlBgImg from "@/assets/whatsapp-meta-hero.png";
  const metaBgImg = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=2000";
 const professionalButtonsImg = "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&q=80&w=800";
@@ -94,6 +96,93 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                Sem cartão de crédito necessário
              </div>
            </div>
+
+            {/* Info CTA - Como Funciona */}
+            <div className="mt-8 flex justify-center">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600 text-white text-base md:text-lg px-8 py-7 rounded-2xl shadow-xl shadow-orange-200 animate-pulse-glow font-bold w-full sm:w-auto"
+                  >
+                    <BookOpen className="mr-2 w-6 h-6" />
+                    Quer usar? Leia antes como funciona
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl md:text-3xl font-black text-slate-900">
+                      Informativo sobre a Meta API do WhatsApp
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-6 text-left text-slate-700 leading-relaxed mt-4">
+                    <p>Para utilizar a <strong>Meta API do WhatsApp</strong>, existem algumas regras e requisitos importantes.</p>
+
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">Requisitos para utilização</h3>
+                      <p className="mb-2">A Meta API não está disponível para qualquer conta. Para utilizar o recurso, é necessário:</p>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Possuir uma <strong>Business Manager do Facebook verificada</strong>;</li>
+                        <li>Ter o número do WhatsApp cadastrado dentro da Business Manager;</li>
+                        <li>Possuir uma conta do WhatsApp Business vinculada corretamente à empresa.</li>
+                      </ul>
+                      <p className="mt-2">Após a aprovação e configuração, será possível utilizar a modalidade de <strong>coexistência via QR Code</strong> em nossa plataforma.</p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">Regras da Coexistência</h3>
+                      <p>Seu número do WhatsApp precisa estar cadastrado no Business Manager para utilizar a Meta API em modo de coexistência.</p>
+                      <p className="mt-2">Além disso, o número não pode ser recém-adicionado ao WhatsApp Business. É necessário que ele já possua um histórico de utilização, com conversas e movimentações por pelo menos <strong>7 dias</strong>. Caso contrário, a Meta pode não liberar a utilização da API.</p>
+                    </div>
+
+                    <div className="border-t pt-6">
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">Custos da Meta API do WhatsApp</h3>
+                      <p>Na Meta API, os custos são cobrados principalmente pela <strong>inicialização de conversas</strong>.</p>
+                      <p className="mt-2">Se um cliente entrar em contato com você primeiro, é possível atendê-lo gratuitamente dentro da janela de <strong>24 horas</strong>, sem nenhum custo da API.</p>
+                      <p className="mt-2">Ou seja, você só paga quando inicia uma conversa com o cliente.</p>
+                      <h4 className="font-bold text-slate-900 mt-4 mb-2">Exemplos:</h4>
+                      <ul className="list-disc pl-6 space-y-1">
+                        <li>Cliente envia uma mensagem → você responde em até 24 horas → <strong>sem custo</strong>.</li>
+                        <li>Sua empresa inicia uma conversa → <strong>há cobrança da Meta</strong>.</li>
+                        <li>Disparos, remarketing ou reativação de clientes após as 24 horas → cobrança aproximada de <strong>R$ 0,30 por envio</strong>, dependendo da categoria da mensagem e das tarifas vigentes da Meta.</li>
+                      </ul>
+                      <p className="mt-2">A grande vantagem é que esse processo pode ser realizado com muito mais segurança, reduzindo significativamente os riscos de bloqueio ou perda do número.</p>
+                    </div>
+
+                    <div className="border-t pt-6">
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">Atendimento pelo aplicativo e pelo sistema</h3>
+                      <p>Com a funcionalidade de <strong>coexistência via WhatsApp Business App</strong>, você pode:</p>
+                      <ul className="list-disc pl-6 space-y-1 mt-2">
+                        <li>Iniciar uma conversa pelo celular;</li>
+                        <li>Continuar o atendimento pelo nosso sistema;</li>
+                        <li>Receber as respostas diretamente na plataforma.</li>
+                      </ul>
+                      <p className="mt-2">Dessa forma, em muitos atendimentos você não terá custos de envio pela API, mantendo a praticidade do aplicativo e os recursos profissionais do sistema.</p>
+                    </div>
+
+                    <div className="border-t pt-6">
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">Vantagens da Meta API do WhatsApp</h3>
+                      <p>A Meta API leva seu atendimento para um nível mais profissional, oferecendo:</p>
+                      <ul className="list-disc pl-6 space-y-1 mt-2">
+                        <li>Risco praticamente zero de bloqueios;</li>
+                        <li>Maior segurança para o número;</li>
+                        <li>Atendimento multiatendente;</li>
+                        <li>Integrações e automações;</li>
+                        <li>Maior estabilidade e confiabilidade.</li>
+                      </ul>
+                      <p className="mt-2">Quanto mais o número é utilizado pela API oficial da Meta, maior tende a ser sua reputação, reduzindo ainda mais os riscos relacionados à conta.</p>
+                    </div>
+
+                    <div className="border-t pt-6">
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">É possível utilizar a API sem pagar pelos envios?</h3>
+                      <p>Sim. Em muitos casos é possível utilizar o WhatsApp Business API sem custos de envio, aproveitando as janelas gratuitas de atendimento.</p>
+                      <p className="mt-2">Nós possuímos um passo a passo que utilizamos internamente para ajudar nossos clientes a reduzirem ou até eliminarem esses custos em determinados cenários.</p>
+                      <p className="mt-2">Entretanto, caso você utilize recursos de disparo em massa ou campanhas ativas, será necessário cadastrar uma forma de pagamento na Meta.</p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
  
             {/* Main Banner / Hero Image */}
             <div className="mt-16 relative max-w-5xl mx-auto group">
