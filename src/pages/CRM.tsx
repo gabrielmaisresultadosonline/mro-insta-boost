@@ -1470,7 +1470,15 @@ const CRM = () => {
        const { data: { user } } = await supabase.auth.getUser();
        if (!user) return;
  
-        const targetSettings = customSettings || metaSettings;
+        // Se o handler for usado como onClick direto, customSettings vem como
+        // SyntheticEvent — ignorar e usar o estado atual.
+        const isPlainSettings =
+          customSettings &&
+          typeof customSettings === 'object' &&
+          !('nativeEvent' in customSettings) &&
+          !('_reactName' in customSettings) &&
+          !(typeof (customSettings as any).preventDefault === 'function');
+        const targetSettings = isPlainSettings ? customSettings : metaSettings;
          // Whitelist explícito de colunas existentes em crm_settings — evita
          // erro de upsert quando o estado tem campos auxiliares (vps_status,
          // email, etc.) que não existem no banco.
