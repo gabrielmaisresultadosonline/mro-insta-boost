@@ -1589,10 +1589,11 @@ const CRM = () => {
         throw new Error(data.error || "Erro ao enviar mensagem pela Meta");
       }
       // Remove optimistic and fetch real
-      if (selectedContactRef.current?.id === targetContactId) {
-        setChatMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
-      }
-      await fetchMessages(targetContactId);
+      // Silent fetch (no loading flash) — chatMessages is replaced atomically
+      // including the real sent message, so the optimistic bubble gets swapped
+      // in-place without the previous "conversation reloads, then message
+      // appears" flicker.
+      await fetchMessages(targetContactId, true);
     } catch (err: any) {
       if (selectedContactRef.current?.id === targetContactId) {
         setChatMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
