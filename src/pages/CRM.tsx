@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react';
  import { useNavigate, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1589,10 +1589,11 @@ const CRM = () => {
         throw new Error(data.error || "Erro ao enviar mensagem pela Meta");
       }
       // Remove optimistic and fetch real
-      if (selectedContactRef.current?.id === targetContactId) {
-        setChatMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
-      }
-      await fetchMessages(targetContactId);
+      // Silent fetch (no loading flash) — chatMessages is replaced atomically
+      // including the real sent message, so the optimistic bubble gets swapped
+      // in-place without the previous "conversation reloads, then message
+      // appears" flicker.
+      await fetchMessages(targetContactId, true);
     } catch (err: any) {
       if (selectedContactRef.current?.id === targetContactId) {
         setChatMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
@@ -2315,7 +2316,7 @@ const CRM = () => {
         const metaMsgId = data?.messageId || data?.messages?.[0]?.id || data?.result?.messages?.[0]?.id || null;
         await updatePersistedAudio('accepted', 'standard_send', metaMsgId);
       }
-      await fetchMessages(targetContactId);
+      await fetchMessages(targetContactId, true);
       toast({ title: "Mídia enviada para a Meta", description: "Aguardando confirmação de entrega." });
     } catch (err: any) {
       console.error('[CRM][sendMedia] EXCEPTION', err);
@@ -4674,7 +4675,28 @@ const CRM = () => {
                                   </div>
                                 </div>
                               )}
-                              {[...chatMessages].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((m, idx) => {
+                              {(() => {
+                                const sortedMessages = [...chatMessages].sort(
+                                  (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                                );
+                                const formatDaySeparator = (iso: string) => {
+                                  const d = new Date(iso);
+                                  const today = new Date();
+                                  const yesterday = new Date();
+                                  yesterday.setDate(today.getDate() - 1);
+                                  const sameDay = (a: Date, b: Date) =>
+                                    a.getFullYear() === b.getFullYear() &&
+                                    a.getMonth() === b.getMonth() &&
+                                    a.getDate() === b.getDate();
+                                  if (sameDay(d, today)) return 'HOJE';
+                                  if (sameDay(d, yesterday)) return 'ONTEM';
+                                  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
+                                };
+                                return sortedMessages.map((m, idx) => {
+                                const prev = idx > 0 ? sortedMessages[idx - 1] : null;
+                                const currentDay = new Date(m.created_at).toDateString();
+                                const prevDay = prev ? new Date(prev.created_at).toDateString() : null;
+                                const showDaySeparator = currentDay !== prevDay;
                                 const isTemplate = m.message_type === 'template' || (m.message_type !== 'carousel' && m.content?.includes('[Template:'));
                                 const templateName = m.content?.match(/\[Template: (.*?)\]/)?.[1];
                                 let template = isTemplate ? templates.find(t => t.name === templateName) : null;
@@ -4696,7 +4718,15 @@ const CRM = () => {
 
                                 
                                 return (
-                                  <div key={m.id || idx} className={cn(
+                                  <Fragment key={m.id || idx}>
+                                    {showDaySeparator && (
+                                      <div className="flex justify-center my-3 px-2">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-[#202c33]/80 text-[#e9edef] dark:bg-[#202c33] px-3 py-1 rounded-lg shadow-sm">
+                                          {formatDaySeparator(m.created_at)}
+                                        </span>
+                                      </div>
+                                    )}
+                                  <div className={cn(
                                     "flex w-full mb-1 min-w-0",
                                     m.direction === 'inbound' ? 'justify-start' : 'justify-end'
                                   )}>
@@ -4980,13 +5010,17 @@ const CRM = () => {
                                         {m.direction === 'outbound' && (
                                           m.status === 'failed'
                                             ? <XCircle className="w-3.5 h-3.5 text-destructive" />
-                                            : <LucideIcons.CheckCheck className={cn("w-3.5 h-3.5", m.status === 'read' ? "text-[#53bdeb]" : "text-muted-foreground/60")} />
+                                            : (m.isOptimistic || m.status === 'pending' || m.status === 'sending')
+                                              ? <Clock className="w-3 h-3 text-muted-foreground/70 animate-pulse" />
+                                              : <LucideIcons.CheckCheck className={cn("w-3.5 h-3.5", m.status === 'read' ? "text-[#53bdeb]" : "text-muted-foreground/60")} />
                                         )}
                                       </div>
                                     </div>
                                   </div>
+                                  </Fragment>
                                 );
-                              })}
+                              });
+                              })()}
                               <div ref={scrollRef} className="h-4" />
                             </div>
                           </ScrollArea>
