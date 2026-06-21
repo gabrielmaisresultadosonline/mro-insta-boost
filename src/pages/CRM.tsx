@@ -6777,8 +6777,8 @@ const CRM = () => {
                         <Input
                           placeholder="Pesquisar..."
                           className="pl-9 bg-background h-10 rounded-xl w-full lg:w-72"
-                          value={statusFilter === 'all' ? '' : statusFilter}
-                          onChange={e => setStatusFilter(e.target.value || 'all')}
+                          value={contactListSearch === 'all' ? '' : contactListSearch}
+                          onChange={e => setContactListSearch(e.target.value || 'all')}
                         />
                       </div>
                       <Button
@@ -6796,9 +6796,9 @@ const CRM = () => {
                   {(() => {
                     const synced = contacts.filter(c => c.google_sync_account_id || c.metadata?.google_resource_name);
                     const filtered = synced.filter(c => {
-                      if (statusFilter === 'all') return true;
-                      const q = statusFilter.toLowerCase();
-                      return c.name?.toLowerCase().includes(q) || c.wa_id?.includes(statusFilter);
+                      if (contactListSearch === 'all') return true;
+                      const q = contactListSearch.toLowerCase();
+                      return c.name?.toLowerCase().includes(q) || c.wa_id?.includes(contactListSearch);
                     });
 
                     return (
