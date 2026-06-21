@@ -4718,7 +4718,7 @@ const CRM = () => {
 
                                 
                                 return (
-                                  <React.Fragment key={m.id || idx}>
+                                  <Fragment key={m.id || idx}>
                                     {showDaySeparator && (
                                       <div className="flex justify-center my-3 px-2">
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-[#202c33]/80 text-[#e9edef] dark:bg-[#202c33] px-3 py-1 rounded-lg shadow-sm">
@@ -5017,8 +5017,10 @@ const CRM = () => {
                                       </div>
                                     </div>
                                   </div>
+                                  </Fragment>
                                 );
-                              })}
+                              });
+                              })()}
                               <div ref={scrollRef} className="h-4" />
                             </div>
                           </ScrollArea>
