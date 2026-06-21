@@ -1108,7 +1108,7 @@ const CRM = () => {
     const activeChatSyncInterval = setInterval(() => {
       const activeContactId = selectedContactRef.current?.id;
       if (activeContactId && document.visibilityState === 'visible') {
-        fetchMessages(activeContactId, true);
+        fetchRecentActiveMessages(activeContactId);
       }
     }, 1200);
 
