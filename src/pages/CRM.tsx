@@ -4586,6 +4586,14 @@ const CRM = () => {
                                             {contact.flow_state === 'error' ? 'Erro' : 
                                              contact.flow_state === 'waiting_response' ? 'Aguardando' : 'Fluxo'}
                                             {contact.current_step_name && <span className="ml-1 text-white/90">({contact.current_step_name})</span>}
+                                            {contact.flow_state === 'waiting_response' && (() => {
+                                              const timeoutMinutes = contact.flow_timeout_minutes || 20;
+                                              const lastInteraction = new Date(contact.last_flow_interaction || Date.now()).getTime();
+                                              const timeoutThreshold = lastInteraction + (timeoutMinutes * 60 * 1000);
+                                              const remainingSeconds = Math.max(0, Math.floor((timeoutThreshold - now) / 1000));
+                                              if (remainingSeconds <= 0) return null;
+                                              return <span className="ml-1 text-white/90 tabular-nums">· {Math.floor(remainingSeconds / 60)}m {remainingSeconds % 60}s</span>;
+                                            })()}
                                           </span>
                                         </Badge>
                                         <div className="flex items-center gap-0.5 shrink-0">
@@ -4616,29 +4624,6 @@ const CRM = () => {
                                     )}
                                   </div>
                                 </div>
-                                 {(contact.next_execution_time || contact.flow_state === 'waiting_response' || (contact.ai_active && contact.flow_state === 'ai_handling')) && (!contact.last_message_received_at || (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000)) && (
-                                   <div className={cn(
-                                     "flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded-sm tabular-nums whitespace-nowrap overflow-hidden shadow-sm",
-                                     contact.ai_active ? "hidden" : "bg-red-600 text-white"
-                                   )}>
-                                     {contact.ai_active ? null : <Clock className="w-2.5 h-2.5" />}
-                                     {(() => {
-                                       if (contact.ai_active && contact.flow_state === 'ai_handling') {
-                                         return null;
-                                       }
-                                       if (contact.flow_state === 'waiting_response') {
-                                         const timeoutMinutes = contact.flow_timeout_minutes || 20;
-                                         const lastInteraction = new Date(contact.last_flow_interaction || Date.now()).getTime();
-                                         const timeoutThreshold = lastInteraction + (timeoutMinutes * 60 * 1000);
-                                         const remainingSeconds = Math.max(0, Math.floor((timeoutThreshold - now) / 1000));
-                                        return `Exp: ${Math.floor(remainingSeconds / 60)}m ${remainingSeconds % 60}s`;
-                                      }
-                                      const next = new Date(contact.next_execution_time).getTime();
-                                      const diff = Math.max(0, Math.floor((next - now) / 1000));
-                                      return diff > 0 ? `${Math.floor(diff / 60)}m ${diff % 60}s` : 'Próximo...';
-                                    })()}
-                                  </div>
-                                )}
                               </div>
                             </button>
                           ))
