@@ -305,7 +305,7 @@ const CRM = () => {
   const CONVERSATION_COST = 0.33;
   const [flows, setFlows] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
-  const [filteredContacts, _setFilteredContactsInternal] = useState<any[]>([]);
+  const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
   const contactsCacheKeyRef = useRef<string | null>(null);
   const lastContactsSyncRef = useRef<string | null>(null);
   const contactsSeededRef = useRef<boolean>(false);
