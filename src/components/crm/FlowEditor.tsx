@@ -521,7 +521,21 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
 
   const addNode = (type: string) => {
     const id = `${type}_${Date.now()}`;
-    const position = { x: 100, y: 100 };
+    // Posiciona o novo bloco no centro do viewport atual do canvas
+    // (acompanha pan/zoom do usuário) em vez de fixo em 100,100.
+    let position = { x: 100, y: 100 };
+    try {
+      const wrapper = document.querySelector('.react-flow') as HTMLElement | null;
+      if (wrapper && screenToFlowPosition) {
+        const rect = wrapper.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const flowPos = screenToFlowPosition({ x: centerX, y: centerY });
+        // Pequeno deslocamento para não sobrepor exatamente outros nós já no centro
+        const jitter = (Math.random() - 0.5) * 60;
+        position = { x: flowPos.x - 110 + jitter, y: flowPos.y - 60 + jitter };
+      }
+    } catch {}
     let data: any = {};
 
     switch (type) {
