@@ -2991,6 +2991,8 @@ const CRM = () => {
     setSelectedContact(contact);
     fetchMessages(contact.id);
     fetchScheduledMessages(contact.id);
+    // Clear unread count for this contact
+    setInboundTimestampsByContact(prev => ({ ...prev, [contact.id]: [] }));
   };
 
   const fetchScheduledMessages = async (contactId: string) => {
