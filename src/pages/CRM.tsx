@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react';
+import { WhatsAppAudioPlayer } from '@/components/crm/WhatsAppAudioPlayer';
  import { useNavigate, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -4974,14 +4975,8 @@ const CRM = () => {
                                             </div>
                                           )}
                                            {(m.message_type === 'audio' || m.message_type === 'voice') && m.media_url && (
-                                             <div className="mb-1 p-2 rounded-xl bg-[#00a884]/10 dark:bg-[#00a884]/20 border border-[#00a884]/20 w-[min(280px,calc(100vw-100px))] sm:w-[280px] max-w-full">
-                                               <audio
-                                                 src={m.media_url}
-                                                 controls
-                                                 preload="metadata"
-                                                 controlsList="nodownload"
-                                                 className="block w-full h-10 rounded-lg filter dark:invert-[0.1]"
-                                               />
+                                             <div className="mb-1">
+                                               <WhatsAppAudioPlayer src={m.media_url} outbound={m.direction === 'outbound'} />
                                               {m.direction === 'outbound' && m.status === 'failed' && !m.meta_message_id && (
                                                 <div className="mt-2 flex items-center justify-between gap-2 p-2 rounded-lg bg-red-500/10 border border-red-500/30">
                                                   <div className="flex items-center gap-1.5 text-[10px] text-red-500 dark:text-red-300 font-medium">
