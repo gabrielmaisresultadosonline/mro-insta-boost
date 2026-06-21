@@ -1139,32 +1139,39 @@ const CRM = () => {
     }
   };
 
+  // Pre-compute the conversational subset ONCE per `contacts` change.
+  // This avoids re-scanning 14k+ contacts every time the user switches
+  // tabs or types in the status filter (which was making the Conversas
+  // tab take ~3s to open after a Google sync).
+  const conversationContacts = useMemo(() => {
+    return contacts.filter(c =>
+      c.last_interaction != null ||
+      (c.total_messages_received ?? 0) > 0 ||
+      (c.total_messages_sent ?? 0) > 0 ||
+      c.last_message_received_at != null
+    );
+  }, [contacts]);
+
   useLayoutEffect(() => {
-    let filtered = contacts;
-    
-    // The "Conversas" tab (activeTab === 'contacts') must ONLY show
-    // contacts that have an actual conversation history (a message was
-    // sent or received). Google-synced contacts without messages live
-    // in the "Contatos" tab, never here.
-    if (activeTab === 'contacts' || activeTab === 'dashboard') {
-      filtered = filtered.filter(c =>
-        c.last_interaction != null ||
-        (c.total_messages_received ?? 0) > 0 ||
-        (c.total_messages_sent ?? 0) > 0 ||
-        c.last_message_received_at != null
-      );
+    // For the "Conversas" and dashboard views we use the pre-filtered
+    // conversational subset (already small). For other tabs we use the
+    // full contact list.
+    const base = (activeTab === 'contacts' || activeTab === 'dashboard')
+      ? conversationContacts
+      : contacts;
+
+    if (statusFilter === 'all') {
+      setFilteredContacts(base);
+      return;
     }
 
-    if (statusFilter !== 'all') {
-      // Allow searching by name/phone or filtering by status
-      filtered = filtered.filter(c => 
-        c.status === statusFilter || 
-        c.name?.toLowerCase().includes(statusFilter.toLowerCase()) || 
-        c.wa_id?.includes(statusFilter)
-      );
-    }
-    setFilteredContacts(filtered);
-  }, [statusFilter, contacts, activeTab]);
+    const needle = statusFilter.toLowerCase();
+    setFilteredContacts(base.filter(c =>
+      c.status === statusFilter ||
+      c.name?.toLowerCase().includes(needle) ||
+      c.wa_id?.includes(statusFilter)
+    ));
+  }, [statusFilter, conversationContacts, contacts, activeTab]);
 
   const fetchData = async (isInitialLoad = false) => {
      if (isInitialLoad) setLoading(true);
