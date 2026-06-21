@@ -947,12 +947,21 @@ const CRM = () => {
             setSelectedContact((prev: any) => prev && prev.id === newMessage.contact_id
               ? { ...prev, last_message_received_at: newMessage.created_at }
               : prev);
-            // Track inbound timestamp for unread badge (unless the chat is open)
-            if (!selectedContactRef.current || selectedContactRef.current.id !== newMessage.contact_id) {
-              setInboundTimestampsByContact(prev => {
-                const list = prev[newMessage.contact_id] || [];
-                return { ...prev, [newMessage.contact_id]: [newMessage.created_at, ...list].slice(0, 200) };
-              });
+            // Always track inbound timestamp so the yellow unread badge can
+            // appear on the contact list. If the chat is currently open we
+            // also bump last_read_at immediately so the unread count stays at
+            // zero for the active conversation (effectively "auto-read").
+            setInboundTimestampsByContact(prev => {
+              const list = prev[newMessage.contact_id] || [];
+              return { ...prev, [newMessage.contact_id]: [newMessage.created_at, ...list].slice(0, 200) };
+            });
+            if (selectedContactRef.current?.id === newMessage.contact_id) {
+              const nowIso = new Date().toISOString();
+              setContacts(prev => prev.map(c => c.id === newMessage.contact_id
+                ? { ...c, last_read_at: nowIso }
+                : c
+              ));
+              supabase.from('crm_contacts').update({ last_read_at: nowIso }).eq('id', newMessage.contact_id).then(() => {});
             }
           }
         } else if (payload.eventType === 'UPDATE') {
