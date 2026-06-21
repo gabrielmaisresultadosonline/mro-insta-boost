@@ -4067,12 +4067,22 @@ const CRM = () => {
                             >
                               <div className="flex items-center w-full gap-2 min-w-0">
                                 <div className="flex flex-1 min-w-0 items-center gap-2 overflow-hidden">
-                                  {contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) && (
-                                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md bg-[#EAB308] shadow-[0_0_10px_rgba(234,179,8,0.3)] animate-in fade-in zoom-in duration-300 shrink-0" title="Nova mensagem">
-                                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse shrink-0" />
-                                      <span className="text-[9px] font-black text-white uppercase tracking-tighter">Nova</span>
-                                    </div>
-                                  )}
+                                  {(() => {
+                                    const lastReadT = contact.last_read_at ? new Date(contact.last_read_at).getTime() : 0;
+                                    const stamps = inboundTimestampsByContact[contact.id] || [];
+                                    const unread = stamps.filter(ts => new Date(ts).getTime() > lastReadT).length;
+                                    if (unread <= 0) return null;
+                                    return (
+                                      <div
+                                        className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#EAB308] shadow-[0_0_10px_rgba(234,179,8,0.45)] animate-in fade-in zoom-in duration-300 shrink-0"
+                                        title={`${unread} mensagem${unread > 1 ? 's' : ''} não lida${unread > 1 ? 's' : ''}`}
+                                      >
+                                        <span className="text-[10px] font-black text-black tabular-nums leading-none">
+                                          {unread > 99 ? '99+' : unread}
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
                                   <p className={cn(
                                     "font-bold truncate text-sm flex items-center gap-1.5 min-w-0",
                                     contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) ? "text-foreground" : "text-foreground/80"
