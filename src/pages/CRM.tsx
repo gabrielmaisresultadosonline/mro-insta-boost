@@ -1141,6 +1141,28 @@ const CRM = () => {
     }
   };
 
+  // Fetch inbound message timestamps from the last 7 days to compute
+  // unread counts per contact (number = inbound messages whose
+  // created_at is greater than the contact.last_read_at).
+  const fetchInboundTimestamps = async () => {
+    try {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('crm_messages')
+        .select('contact_id, created_at')
+        .eq('direction', 'inbound')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(5000);
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((m: any) => {
+        if (!m.contact_id) return;
+        (map[m.contact_id] = map[m.contact_id] || []).push(m.created_at);
+      });
+      setInboundTimestampsByContact(map);
+    } catch {}
+  };
+
   // Pre-compute the conversational subset ONCE per `contacts` change.
   // This avoids re-scanning 14k+ contacts every time the user switches
   // tabs or types in the status filter (which was making the Conversas
