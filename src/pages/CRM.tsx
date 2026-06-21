@@ -885,6 +885,54 @@ const CRM = () => {
   }, [selectedContact]);
 
   useEffect(() => {
+    const activeContactId = selectedContact?.id;
+    if (!activeContactId) return;
+
+    const activeMessageChannel = supabase
+      .channel(`crm_active_messages_${activeContactId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'crm_messages',
+          filter: `contact_id=eq.${activeContactId}`,
+        },
+        (payload) => {
+          const row: any = payload.new;
+          if (!row?.id || selectedContactRef.current?.id !== activeContactId) return;
+
+          if (payload.eventType === 'INSERT') {
+            setChatMessages(prev => {
+              if (prev.some(m => m.id === row.id)) return prev;
+              return [...prev, row];
+            });
+
+            if (row.direction === 'inbound') {
+              const nowIso = new Date().toISOString();
+              setContacts(prev => prev.map(c => c.id === row.contact_id
+                ? { ...c, last_message_received_at: row.created_at, last_read_at: nowIso }
+                : c
+              ));
+              setSelectedContact((prev: any) => prev && prev.id === row.contact_id
+                ? { ...prev, last_message_received_at: row.created_at, last_read_at: nowIso }
+                : prev
+              );
+              supabase.from('crm_contacts').update({ last_read_at: nowIso }).eq('id', row.contact_id).then(() => {});
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setChatMessages(prev => prev.map(m => m.id === row.id ? row : m));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(activeMessageChannel);
+    };
+  }, [selectedContact?.id]);
+
+  useEffect(() => {
     if (selectedContact?.next_execution_time) {
       const next = new Date(selectedContact.next_execution_time).getTime();
       const diff = Math.max(0, Math.floor((next - now) / 1000));
@@ -1057,7 +1105,7 @@ const CRM = () => {
       if (activeContactId && document.visibilityState === 'visible') {
         fetchMessages(activeContactId, true);
       }
-    }, 4000);
+    }, 1200);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
