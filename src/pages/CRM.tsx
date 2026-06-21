@@ -1365,16 +1365,27 @@ const CRM = () => {
     return Array.from(variants).filter(Boolean);
   };
 
+  const hasReadableContactName = (name: string, rawPhone: string) => {
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) return false;
+
+    const nameDigits = trimmedName.replace(/\D/g, '');
+    const phoneVariants = getPhoneVariants(rawPhone);
+
+    return trimmedName !== String(rawPhone || '').trim() && !phoneVariants.includes(nameDigits);
+  };
+
   const googleContactNameByPhone = useMemo(() => {
     const map = new Map<string, { name: string; googleSyncAccountId: string | null }>();
 
     contacts.forEach((contact: any) => {
       const name = String(contact.name || '').trim();
-      if (!contact.google_sync_account_id || !name || name === contact.wa_id) return;
+      const googleSyncAccountId = contact.google_sync_account_id || contact.metadata?.google_resource_name || null;
+      if (!googleSyncAccountId || !hasReadableContactName(name, contact.wa_id)) return;
 
       getPhoneVariants(contact.wa_id).forEach(phone => {
         if (!map.has(phone)) {
-          map.set(phone, { name, googleSyncAccountId: contact.google_sync_account_id });
+          map.set(phone, { name, googleSyncAccountId });
         }
       });
     });
@@ -1384,7 +1395,7 @@ const CRM = () => {
 
   const getGoogleResolvedContact = useCallback((contact: any) => {
     const currentName = String(contact?.name || '').trim();
-    const needsGoogleName = !currentName || currentName === contact?.wa_id;
+    const needsGoogleName = !hasReadableContactName(currentName, contact?.wa_id);
     const match = getPhoneVariants(contact?.wa_id).map(phone => googleContactNameByPhone.get(phone)).find(Boolean);
 
     return {
@@ -1411,8 +1422,7 @@ const CRM = () => {
   const unnamedContacts = useMemo(
     () => conversationContacts.filter(c => {
       const resolvedName = String(getGoogleResolvedContact(c).displayName || '').trim();
-      const waId = String(c.wa_id || '').trim();
-      return !resolvedName || resolvedName === waId;
+      return !hasReadableContactName(resolvedName, c.wa_id);
     }),
     [conversationContacts, getGoogleResolvedContact]
   );
