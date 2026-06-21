@@ -1152,6 +1152,13 @@ const CRM = () => {
     );
   }, [contacts]);
 
+  // Memoize the "contatos sem nome" subset so we don't iterate all 14k+
+  // contacts on every render of the Conversas sidebar.
+  const unnamedContacts = useMemo(
+    () => contacts.filter(c => !c.name || c.name === c.wa_id),
+    [contacts]
+  );
+
   useLayoutEffect(() => {
     // For the "Conversas" and dashboard views we use the pre-filtered
     // conversational subset (already small). For other tabs we use the
