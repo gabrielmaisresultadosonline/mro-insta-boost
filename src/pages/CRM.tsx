@@ -1471,14 +1471,38 @@ const CRM = () => {
        if (!user) return;
  
         const targetSettings = customSettings || metaSettings;
-        const { id, created_at, updated_at, webhook_verify_token, vps_status, user_id, email, ...rest } = targetSettings;
-        
-        // Garante que o ID do webhook seja preservado ou gerado
-        const settingsToSave = {
-          ...rest,
-          user_id: user.id,
-          updated_at: new Date().toISOString()
-        };
+         // Whitelist explícito de colunas existentes em crm_settings — evita
+         // erro de upsert quando o estado tem campos auxiliares (vps_status,
+         // email, etc.) que não existem no banco.
+         const ALLOWED_COLUMNS = [
+           'meta_access_token','meta_phone_number_id','meta_waba_id','meta_app_id',
+           'meta_app_secret','meta_display_phone_number','meta_verified_name','meta_business_id',
+           'google_client_id','google_client_secret','google_auto_sync',
+           'openai_api_key','ai_agent_enabled','ai_operation_mode','ai_system_prompt',
+           'ai_agent_trigger','ai_agent_trigger_keyword','ai_agent_prompt','ai_agent_label_on_transfer',
+           'auto_generate_strategy','strategy_generation_prompt',
+           'initial_auto_response_enabled','initial_response_text','initial_response_buttons','initial_flow_id',
+           'shortcut_size','tag_size',
+           'business_hours_enabled','business_hours_start','business_hours_end','business_hours_tz',
+           'outside_hours_message','business_description',
+           'countdown_trigger_enabled','countdown_trigger_flow_id','countdown_trigger_template_id',
+           'countdown_trigger_message_type','countdown_trigger_content','countdown_trigger_threshold_minutes',
+           'vps_transcoder_url','webhook_identifier',
+         ];
+         const rest: Record<string, any> = {};
+         for (const col of ALLOWED_COLUMNS) {
+           if (targetSettings[col] !== undefined) rest[col] = targetSettings[col];
+         }
+         // Normaliza FKs vazias para null (evita violar FK)
+         if (rest.initial_flow_id === '') rest.initial_flow_id = null;
+         if (rest.countdown_trigger_flow_id === '') rest.countdown_trigger_flow_id = null;
+         if (rest.countdown_trigger_template_id === '') rest.countdown_trigger_template_id = null;
+
+         const settingsToSave: Record<string, any> = {
+           ...rest,
+           user_id: user.id,
+           updated_at: new Date().toISOString()
+         };
 
        if (!settingsToSave.webhook_identifier) {
          settingsToSave.webhook_identifier = Math.random().toString(36).substring(2, 15);
@@ -1495,9 +1519,13 @@ const CRM = () => {
        fetchData(false);
 
 
-     } catch (error) {
+      } catch (error: any) {
        console.error("Erro ao salvar:", error);
-       toast({ title: "Erro ao salvar", variant: "destructive" });
+        toast({
+          title: "Erro ao salvar",
+          description: error?.message || error?.details || String(error),
+          variant: "destructive",
+        });
      } finally {
        setSaving(false);
      }
