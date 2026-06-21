@@ -3408,20 +3408,22 @@ async function fetchAndStoreIncomingMedia(
                 if (!phone.startsWith('55')) phone = `55${phone}`;
               }
 
-              // Check for duplicates within the same batch to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
-              if (seenWaIds.has(phone)) {
-                console.log(`[SYNC] Skipping duplicate phone in batch: ${phone}`);
-                continue;
-              }
-              seenWaIds.add(phone);
+              for (const phoneVariant of getBrazilianPhoneVariants(phone)) {
+                // Check for duplicates within the same batch to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
+                if (seenWaIds.has(phoneVariant)) {
+                  console.log(`[SYNC] Skipping duplicate phone in batch: ${phoneVariant}`);
+                  continue;
+                }
+                seenWaIds.add(phoneVariant);
 
-              upsertBatch.push({
-                wa_id: phone,
-                name: name || null,
-                google_sync_account_id: account.id,
-                user_id: userId,
-                updated_at: new Date().toISOString()
-              });
+                upsertBatch.push({
+                  wa_id: phoneVariant,
+                  name: name || null,
+                  google_sync_account_id: account.id,
+                  user_id: userId,
+                  updated_at: new Date().toISOString()
+                });
+              }
             }
           }
 
