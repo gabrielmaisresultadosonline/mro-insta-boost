@@ -4981,7 +4981,9 @@ const CRM = () => {
                                         {m.direction === 'outbound' && (
                                           m.status === 'failed'
                                             ? <XCircle className="w-3.5 h-3.5 text-destructive" />
-                                            : <LucideIcons.CheckCheck className={cn("w-3.5 h-3.5", m.status === 'read' ? "text-[#53bdeb]" : "text-muted-foreground/60")} />
+                                            : (m.isOptimistic || m.status === 'pending' || m.status === 'sending' || !m.status)
+                                              ? <Clock className="w-3 h-3 text-muted-foreground/70 animate-pulse" />
+                                              : <LucideIcons.CheckCheck className={cn("w-3.5 h-3.5", m.status === 'read' ? "text-[#53bdeb]" : "text-muted-foreground/60")} />
                                         )}
                                       </div>
                                     </div>
