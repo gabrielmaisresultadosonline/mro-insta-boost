@@ -4119,17 +4119,30 @@ const CRM = () => {
                               <div className="flex flex-col gap-1 mt-1 w-full min-w-0 pr-1">
                                 <div className="flex flex-wrap items-center justify-between gap-1 w-full min-w-0">
                                   <div className="flex items-center gap-1 flex-wrap min-w-0">
-                                    <Badge 
-                                      variant="outline" 
-                                      style={{ height: `${16 * ((metaSettings.tag_size || 100) / 100)}px`, fontSize: `${9 * ((metaSettings.tag_size || 100) / 100)}px` }}
-                                      className={cn(
-                                        "px-2 capitalize font-black shadow-sm shrink-0", 
-                                        getStatusColor(contact.status),
-                                        contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) && "ring-2 ring-[#25D366]/20"
-                                      )}
-                                    >
-                                      {statusFilter === 'all' && (contact.status === 'human' || contact.status === 'new') ? 'Atendimento' : getStatusLabel(contact.status)}
-                                    </Badge>
+                                    {(() => {
+                                      // Only show the status badge when the user has manually
+                                      // assigned a custom kanban label (not the automatic
+                                      // 'human' / 'new' / null defaults that come from inbound
+                                      // messages). Default contacts live in the "GERAL" column
+                                      // of the Kanban without any visible tag.
+                                      const customStatus = kanbanStatuses.find(
+                                        s => s.value === contact.status && s.value !== 'human' && s.value !== 'new'
+                                      );
+                                      if (!customStatus) return null;
+                                      return (
+                                        <Badge
+                                          variant="outline"
+                                          style={{ height: `${16 * ((metaSettings.tag_size || 100) / 100)}px`, fontSize: `${9 * ((metaSettings.tag_size || 100) / 100)}px` }}
+                                          className={cn(
+                                            "px-2 capitalize font-black shadow-sm shrink-0",
+                                            getStatusColor(contact.status),
+                                            contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) && "ring-2 ring-[#25D366]/20"
+                                          )}
+                                        >
+                                          {getStatusLabel(contact.status)}
+                                        </Badge>
+                                      );
+                                    })()}
                                     
                                     {contact.last_message_received_at && (() => {
                                       const elapsed = Date.now() - new Date(contact.last_message_received_at).getTime();
