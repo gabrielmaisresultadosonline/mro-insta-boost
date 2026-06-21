@@ -1043,55 +1043,83 @@ const CRM = () => {
   };
 
   const fetchContacts = async () => {
-    // Paginate to bypass Supabase's default 1000-row cap and load ALL contacts (14k+)
-    const pageSize = 1000;
-    let allRows: any[] = [];
-    let from = 0;
-    // Hard safety cap of 100k contacts to avoid runaway loops
-    while (from < 100000) {
-      const { data, error } = await supabase
-        .from('crm_contacts')
-        .select('*')
-        .order('last_interaction', { ascending: false, nullsFirst: false })
-        .range(from, from + pageSize - 1);
-      if (error) break;
-      if (!data || data.length === 0) break;
-      allRows = allRows.concat(data);
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
-    
-    // Enrich with last inbound timestamp per contact (24h window logic)
-    // Field doesn't exist in DB yet, so derive from crm_messages
+    // Strategy: load from localStorage cache first (instant) then do an
+    // INCREMENTAL fetch (only rows changed since last sync). This avoids
+    // re-downloading 14k+ contacts on every reload / realtime event.
+    if (contactsInFlightRef.current) return;
+    contactsInFlightRef.current = true;
     try {
-      const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-      const { data: recentInbound } = await supabase
-        .from('crm_messages')
-        .select('contact_id, created_at')
-        .eq('direction', 'inbound')
-        .gte('created_at', since)
-        .order('created_at', { ascending: false });
-      const lastInboundByContact: Record<string, string> = {};
-      (recentInbound || []).forEach((m: any) => {
-        if (m.contact_id && !lastInboundByContact[m.contact_id]) {
-          lastInboundByContact[m.contact_id] = m.created_at;
-        }
-      });
-      allRows = allRows.map((c: any) => {
-        const derived = lastInboundByContact[c.id];
-        if (derived) {
-          const existing = c.last_message_received_at ? new Date(c.last_message_received_at).getTime() : 0;
-          if (new Date(derived).getTime() > existing) {
-            return { ...c, last_message_received_at: derived };
+      // Resolve cache key once per user
+      if (!contactsCacheKeyRef.current) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) contactsCacheKeyRef.current = `crm_contacts_cache_v2_${user.id}`;
+        } catch {}
+      }
+      const cacheKey = contactsCacheKeyRef.current;
+
+      // Seed from cache only on the first call this session
+      if (!contactsSeededRef.current && cacheKey) {
+        try {
+          const raw = localStorage.getItem(cacheKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed?.rows) && parsed.rows.length > 0) {
+              setContacts(parsed.rows);
+              lastContactsSyncRef.current = parsed.lastSyncedAt || null;
+            }
           }
+        } catch {}
+        contactsSeededRef.current = true;
+      }
+
+      // Incremental paginated fetch
+      const pageSize = 1000;
+      const newRows: any[] = [];
+      const fetchStartedAt = new Date().toISOString();
+      let from = 0;
+      while (from < 100000) {
+        let q = supabase
+          .from('crm_contacts')
+          .select('*')
+          .order('updated_at', { ascending: true, nullsFirst: true })
+          .range(from, from + pageSize - 1);
+        if (lastContactsSyncRef.current) {
+          q = q.gt('updated_at', lastContactsSyncRef.current);
         }
-        return c;
-      });
-    } catch (e) {
-      console.warn('[CRM] Failed to enrich last_message_received_at:', e);
+        const { data, error } = await q;
+        if (error) break;
+        if (!data || data.length === 0) break;
+        newRows.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      if (newRows.length > 0 || !lastContactsSyncRef.current) {
+        setContacts(prev => {
+          const map = new Map<string, any>();
+          for (const c of prev) map.set(c.id, c);
+          for (const c of newRows) map.set(c.id, { ...map.get(c.id), ...c });
+          const merged = Array.from(map.values()).sort((a, b) => {
+            const aT = a.last_interaction ? new Date(a.last_interaction).getTime() : 0;
+            const bT = b.last_interaction ? new Date(b.last_interaction).getTime() : 0;
+            return bT - aT;
+          });
+          if (cacheKey) {
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify({
+                rows: merged,
+                lastSyncedAt: fetchStartedAt,
+              }));
+            } catch {}
+          }
+          return merged;
+        });
+      }
+      lastContactsSyncRef.current = fetchStartedAt;
+    } finally {
+      contactsInFlightRef.current = false;
     }
-    
-    setContacts(allRows);
   };
 
   useEffect(() => {
