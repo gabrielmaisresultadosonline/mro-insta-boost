@@ -1197,6 +1197,27 @@ const normalizePhone = (raw: string) => {
   return digits
 }
 
+const getBrazilianPhoneVariants = (raw: string) => {
+  const normalized = normalizePhone(raw)
+  const variants = new Set<string>([normalized])
+
+  if (normalized.startsWith('55') && (normalized.length === 12 || normalized.length === 13)) {
+    const country = normalized.slice(0, 2)
+    const areaCode = normalized.slice(2, 4)
+    const localNumber = normalized.slice(4)
+
+    if (localNumber.length === 9 && localNumber.startsWith('9')) {
+      variants.add(`${country}${areaCode}${localNumber.slice(1)}`)
+    }
+
+    if (localNumber.length === 8) {
+      variants.add(`${country}${areaCode}9${localNumber}`)
+    }
+  }
+
+  return Array.from(variants)
+}
+
 async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusEvent: any) {
   const metaMessageId = statusEvent?.id;
   if (!metaMessageId) return { updated: false, reason: 'missing_meta_message_id' };
@@ -3387,20 +3408,22 @@ async function fetchAndStoreIncomingMedia(
                 if (!phone.startsWith('55')) phone = `55${phone}`;
               }
 
-              // Check for duplicates within the same batch to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
-              if (seenWaIds.has(phone)) {
-                console.log(`[SYNC] Skipping duplicate phone in batch: ${phone}`);
-                continue;
-              }
-              seenWaIds.add(phone);
+              for (const phoneVariant of getBrazilianPhoneVariants(phone)) {
+                // Check for duplicates within the same batch to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
+                if (seenWaIds.has(phoneVariant)) {
+                  console.log(`[SYNC] Skipping duplicate phone in batch: ${phoneVariant}`);
+                  continue;
+                }
+                seenWaIds.add(phoneVariant);
 
-              upsertBatch.push({
-                wa_id: phone,
-                name: name || null,
-                google_sync_account_id: account.id,
-                user_id: userId,
-                updated_at: new Date().toISOString()
-              });
+                upsertBatch.push({
+                  wa_id: phoneVariant,
+                  name: name || null,
+                  google_sync_account_id: account.id,
+                  user_id: userId,
+                  updated_at: new Date().toISOString()
+                });
+              }
             }
           }
 

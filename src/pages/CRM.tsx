@@ -1338,6 +1338,56 @@ const CRM = () => {
     } catch {}
   };
 
+  const getPhoneVariants = (rawPhone: string) => {
+    const digits = String(rawPhone || '').replace(/\D/g, '');
+    const normalized = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+    const variants = new Set<string>([normalized]);
+
+    if (normalized.startsWith('55') && (normalized.length === 12 || normalized.length === 13)) {
+      const country = normalized.slice(0, 2);
+      const areaCode = normalized.slice(2, 4);
+      const localNumber = normalized.slice(4);
+
+      if (localNumber.length === 9 && localNumber.startsWith('9')) {
+        variants.add(`${country}${areaCode}${localNumber.slice(1)}`);
+      }
+
+      if (localNumber.length === 8) {
+        variants.add(`${country}${areaCode}9${localNumber}`);
+      }
+    }
+
+    return Array.from(variants).filter(Boolean);
+  };
+
+  const googleContactNameByPhone = useMemo(() => {
+    const map = new Map<string, { name: string; googleSyncAccountId: string | null }>();
+
+    contacts.forEach((contact: any) => {
+      const name = String(contact.name || '').trim();
+      if (!contact.google_sync_account_id || !name || name === contact.wa_id) return;
+
+      getPhoneVariants(contact.wa_id).forEach(phone => {
+        if (!map.has(phone)) {
+          map.set(phone, { name, googleSyncAccountId: contact.google_sync_account_id });
+        }
+      });
+    });
+
+    return map;
+  }, [contacts]);
+
+  const getGoogleResolvedContact = useCallback((contact: any) => {
+    const currentName = String(contact?.name || '').trim();
+    const needsGoogleName = !currentName || currentName === contact?.wa_id;
+    const match = getPhoneVariants(contact?.wa_id).map(phone => googleContactNameByPhone.get(phone)).find(Boolean);
+
+    return {
+      displayName: needsGoogleName && match?.name ? match.name : currentName || contact?.wa_id,
+      googleSyncAccountId: contact?.google_sync_account_id || match?.googleSyncAccountId || null,
+    };
+  }, [googleContactNameByPhone]);
+
   // Pre-compute the conversational subset ONCE per `contacts` change.
   // This avoids re-scanning 14k+ contacts every time the user switches
   // tabs or types in the status filter (which was making the Conversas
@@ -4434,8 +4484,8 @@ const CRM = () => {
                                     "font-bold truncate text-sm flex items-center gap-1.5 min-w-0",
                                     contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) ? "text-foreground" : "text-foreground/80"
                                   )}>
-                                    <span className="truncate shrink grow min-w-0">{contact.name || contact.wa_id}</span>
-                                    {contact.google_sync_account_id && (
+                                    <span className="truncate shrink grow min-w-0">{getGoogleResolvedContact(contact).displayName}</span>
+                                    {getGoogleResolvedContact(contact).googleSyncAccountId && (
                                       <span className="w-3.5 h-3.5 bg-[#4285F4] rounded-full flex items-center justify-center shrink-0">
                                          <span className="text-[6px] font-bold text-white">G</span>
                                       </span>
@@ -4620,9 +4670,9 @@ const CRM = () => {
                                 <div className="flex flex-col min-w-0">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <p className="font-bold text-sm md:text-base hover:text-primary cursor-pointer truncate" onClick={() => openContactInfo(selectedContact)}>
-                                      {selectedContact.name || selectedContact.wa_id}
+                                      {getGoogleResolvedContact(selectedContact).displayName}
                                     </p>
-                                    {selectedContact.google_sync_account_id && (
+                                    {getGoogleResolvedContact(selectedContact).googleSyncAccountId && (
                                       <span className="w-3 h-3 bg-[#4285F4] rounded-full flex items-center justify-center shrink-0">
                                          <span className="text-[5px] font-bold text-white">G</span>
                                       </span>
