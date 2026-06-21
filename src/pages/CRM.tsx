@@ -305,6 +305,9 @@ const CRM = () => {
   const CONVERSATION_COST = 0.33;
   const [flows, setFlows] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  // Per-contact inbound message timestamps (last 7 days) used to compute
+  // unread counts shown as a yellow badge on the conversation list.
+  const [inboundTimestampsByContact, setInboundTimestampsByContact] = useState<Record<string, string[]>>({});
   // Pre-computed once whenever `contacts` changes — used by the Conversas
   // tab. Avoids re-scanning 14k+ rows on every tab switch / status change.
   const contactsCacheKeyRef = useRef<string | null>(null);
