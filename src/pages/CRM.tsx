@@ -892,6 +892,81 @@ const CRM = () => {
     chatMessagesRef.current = chatMessages;
   }, [chatMessages]);
 
+  const syncRecentRealtimeMessages = async () => {
+    if (realtimeFallbackInFlightRef.current) return;
+    realtimeFallbackInFlightRef.current = true;
+
+    try {
+      const cursor = realtimeFallbackCursorRef.current;
+      const firstCursor = cursor || new Date(Date.now() - 30_000).toISOString();
+      const { data } = await supabase
+        .from('crm_messages')
+        .select('*')
+        .gt('created_at', firstCursor)
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      const rows = data || [];
+      realtimeFallbackCursorRef.current = rows.length > 0
+        ? rows.reduce((latest: string, row: any) => row.created_at > latest ? row.created_at : latest, firstCursor)
+        : new Date().toISOString();
+
+      if (rows.length === 0) return;
+
+      const activeContactId = selectedContactRef.current?.id;
+      const activeRows = activeContactId ? rows.filter((row: any) => row.contact_id === activeContactId) : [];
+
+      if (activeRows.length > 0) {
+        setChatMessages(prev => {
+          const byId = new Map(prev.map((m: any) => [m.id, m]));
+          activeRows.forEach((m: any) => byId.set(m.id, m));
+          return Array.from(byId.values()).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        });
+      }
+
+      const inboundRows = rows.filter((row: any) => row.direction === 'inbound');
+      if (inboundRows.length > 0) {
+        setInboundTimestampsByContact(prev => {
+          const next = { ...prev };
+          inboundRows.forEach((row: any) => {
+            const list = next[row.contact_id] || [];
+            if (!list.includes(row.created_at)) next[row.contact_id] = [row.created_at, ...list].slice(0, 200);
+          });
+          return next;
+        });
+      }
+
+      const contactIds = Array.from(new Set(rows.map((row: any) => row.contact_id).filter(Boolean)));
+      if (contactIds.length > 0) {
+        const { data: changedContacts } = await supabase
+          .from('crm_contacts')
+          .select('*')
+          .in('id', contactIds);
+
+        if (changedContacts?.length) {
+          setContacts(prev => {
+            const map = new Map(prev.map((contact: any) => [contact.id, contact]));
+            changedContacts.forEach((contact: any) => map.set(contact.id, { ...map.get(contact.id), ...contact }));
+            return Array.from(map.values()).sort((a: any, b: any) => {
+              const aT = a.last_interaction ? new Date(a.last_interaction).getTime() : 0;
+              const bT = b.last_interaction ? new Date(b.last_interaction).getTime() : 0;
+              return bT - aT;
+            });
+          });
+
+          const selectedUpdate = changedContacts.find((contact: any) => contact.id === activeContactId);
+          if (selectedUpdate) {
+            setSelectedContact((prev: any) => prev && prev.id === selectedUpdate.id ? { ...prev, ...selectedUpdate } : prev);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('[CRM] Falha no fallback de tempo real:', error);
+    } finally {
+      realtimeFallbackInFlightRef.current = false;
+    }
+  };
+
   useEffect(() => {
     const activeContactId = selectedContact?.id;
     if (!activeContactId) return;
