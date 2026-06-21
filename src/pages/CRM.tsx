@@ -321,6 +321,7 @@ const CRM = () => {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const selectedContactRef = useRef<any>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const chatMessagesRef = useRef<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sendingContacts, setSendingContacts] = useState<Record<string, boolean>>({});
   const [loadingChat, setLoadingChat] = useState(false);
@@ -885,6 +886,58 @@ const CRM = () => {
   }, [selectedContact]);
 
   useEffect(() => {
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
+
+  useEffect(() => {
+    const activeContactId = selectedContact?.id;
+    if (!activeContactId) return;
+
+    const activeMessageChannel = supabase
+      .channel(`crm_active_messages_${activeContactId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'crm_messages',
+          filter: `contact_id=eq.${activeContactId}`,
+        },
+        (payload) => {
+          const row: any = payload.new;
+          if (!row?.id || selectedContactRef.current?.id !== activeContactId) return;
+
+          if (payload.eventType === 'INSERT') {
+            setChatMessages(prev => {
+              if (prev.some(m => m.id === row.id)) return prev;
+              return [...prev, row];
+            });
+
+            if (row.direction === 'inbound') {
+              const nowIso = new Date().toISOString();
+              setContacts(prev => prev.map(c => c.id === row.contact_id
+                ? { ...c, last_message_received_at: row.created_at, last_read_at: nowIso }
+                : c
+              ));
+              setSelectedContact((prev: any) => prev && prev.id === row.contact_id
+                ? { ...prev, last_message_received_at: row.created_at, last_read_at: nowIso }
+                : prev
+              );
+              supabase.from('crm_contacts').update({ last_read_at: nowIso }).eq('id', row.contact_id).then(() => {});
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setChatMessages(prev => prev.map(m => m.id === row.id ? row : m));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(activeMessageChannel);
+    };
+  }, [selectedContact?.id]);
+
+  useEffect(() => {
     if (selectedContact?.next_execution_time) {
       const next = new Date(selectedContact.next_execution_time).getTime();
       const diff = Math.max(0, Math.floor((next - now) / 1000));
@@ -1055,9 +1108,9 @@ const CRM = () => {
     const activeChatSyncInterval = setInterval(() => {
       const activeContactId = selectedContactRef.current?.id;
       if (activeContactId && document.visibilityState === 'visible') {
-        fetchMessages(activeContactId, true);
+        fetchRecentActiveMessages(activeContactId);
       }
-    }, 4000);
+    }, 1200);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -1524,6 +1577,40 @@ const CRM = () => {
       }
       
       await supabase.from('crm_contacts').update({ last_read_at: new Date().toISOString() }).eq('id', contactId);
+    }
+  };
+
+  const fetchRecentActiveMessages = async (contactId: string) => {
+    if (!contactId) return;
+    const latestPersistedTime = chatMessagesRef.current
+      .filter((m: any) => !m.isOptimistic && m.created_at)
+      .reduce((latest: number, m: any) => Math.max(latest, new Date(m.created_at).getTime()), 0);
+
+    let query = supabase.from('crm_messages').select('*').eq('contact_id', contactId);
+    if (latestPersistedTime > 0) {
+      query = query.gt('created_at', new Date(latestPersistedTime).toISOString()).order('created_at', { ascending: true }).limit(25);
+    } else {
+      query = query.order('created_at', { ascending: false }).limit(25);
+    }
+
+    const { data } = await query;
+    if (!data?.length || selectedContactRef.current?.id !== contactId) return;
+
+    const rows = latestPersistedTime > 0 ? data : [...data].reverse();
+    setChatMessages(prev => {
+      const byId = new Map(prev.map((m: any) => [m.id, m]));
+      rows.forEach((m: any) => byId.set(m.id, m));
+      return Array.from(byId.values()).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    });
+
+    const lastInbound = [...rows].reverse().find((m: any) => m.direction === 'inbound');
+    if (lastInbound) {
+      const nowIso = new Date().toISOString();
+      setContacts(prev => prev.map(c => c.id === contactId
+        ? { ...c, last_message_received_at: lastInbound.created_at, last_read_at: nowIso }
+        : c
+      ));
+      await supabase.from('crm_contacts').update({ last_read_at: nowIso }).eq('id', contactId);
     }
   };
 
