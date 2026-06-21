@@ -4718,7 +4718,15 @@ const CRM = () => {
 
                                 
                                 return (
-                                  <div key={m.id || idx} className={cn(
+                                  <React.Fragment key={m.id || idx}>
+                                    {showDaySeparator && (
+                                      <div className="flex justify-center my-3 px-2">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-[#202c33]/80 text-[#e9edef] dark:bg-[#202c33] px-3 py-1 rounded-lg shadow-sm">
+                                          {formatDaySeparator(m.created_at)}
+                                        </span>
+                                      </div>
+                                    )}
+                                  <div className={cn(
                                     "flex w-full mb-1 min-w-0",
                                     m.direction === 'inbound' ? 'justify-start' : 'justify-end'
                                   )}>
