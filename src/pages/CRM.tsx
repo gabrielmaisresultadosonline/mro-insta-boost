@@ -1409,8 +1409,12 @@ const CRM = () => {
   // Memoize the "contatos sem nome" subset so we don't iterate all 14k+
   // contacts on every render of the Conversas sidebar.
   const unnamedContacts = useMemo(
-    () => contacts.filter(c => !c.name || c.name === c.wa_id),
-    [contacts]
+    () => conversationContacts.filter(c => {
+      const resolvedName = String(getGoogleResolvedContact(c).displayName || '').trim();
+      const waId = String(c.wa_id || '').trim();
+      return !resolvedName || resolvedName === waId;
+    }),
+    [conversationContacts, getGoogleResolvedContact]
   );
 
   const filteredContacts = useMemo(() => {
