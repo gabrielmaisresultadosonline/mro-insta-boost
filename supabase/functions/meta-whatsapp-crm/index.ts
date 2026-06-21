@@ -3394,6 +3394,7 @@ async function fetchAndStoreIncomingMedia(
                 wa_id: phone,
                 name: name || null,
                 google_sync_account_id: account.id,
+                user_id: userId,
                 updated_at: new Date().toISOString()
               });
             }
@@ -3401,7 +3402,7 @@ async function fetchAndStoreIncomingMedia(
 
           if (upsertBatch.length > 0) {
             console.log(`[SYNC] Tentando upsert de batch com ${upsertBatch.length} registros únicos...`);
-            const { error: upsertError } = await supabase.from('crm_contacts').upsert(upsertBatch, { onConflict: 'wa_id' });
+            const { error: upsertError } = await supabase.from('crm_contacts').upsert(upsertBatch, { onConflict: 'wa_id,user_id' });
             if (!upsertError) {
               count += upsertBatch.length;
             } else {
