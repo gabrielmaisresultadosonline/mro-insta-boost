@@ -1256,6 +1256,7 @@ const CRM = () => {
 
       // Paginated fetch to load ALL contacts (default cap is 1000)
       await fetchContacts();
+      fetchInboundTimestamps();
 
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       const { data: templatesData } = await supabase.from('crm_templates').select('*').eq('user_id', currentUser?.id);
