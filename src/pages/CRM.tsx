@@ -315,6 +315,8 @@ const CRM = () => {
   const lastContactsSyncRef = useRef<string | null>(null);
   const contactsSeededRef = useRef<boolean>(false);
   const contactsInFlightRef = useRef<boolean>(false);
+  const realtimeFallbackCursorRef = useRef<string | null>(null);
+  const realtimeFallbackInFlightRef = useRef<boolean>(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [kanbanView, setKanbanView] = useState(false);
@@ -1134,11 +1136,18 @@ const CRM = () => {
       }
     }, 1200);
 
+    const realtimeFallbackInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        syncRecentRealtimeMessages();
+      }
+    }, 900);
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(messageChannel);
       clearInterval(scheduledInterval);
       clearInterval(activeChatSyncInterval);
+      clearInterval(realtimeFallbackInterval);
     };
   }, [navigate]);
 
