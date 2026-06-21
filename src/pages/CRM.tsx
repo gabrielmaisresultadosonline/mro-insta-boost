@@ -321,6 +321,7 @@ const CRM = () => {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const selectedContactRef = useRef<any>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const chatMessagesRef = useRef<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sendingContacts, setSendingContacts] = useState<Record<string, boolean>>({});
   const [loadingChat, setLoadingChat] = useState(false);
@@ -883,6 +884,10 @@ const CRM = () => {
   useEffect(() => {
     selectedContactRef.current = selectedContact;
   }, [selectedContact]);
+
+  useEffect(() => {
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
 
   useEffect(() => {
     const activeContactId = selectedContact?.id;
