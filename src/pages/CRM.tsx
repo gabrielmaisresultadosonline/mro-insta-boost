@@ -3782,7 +3782,71 @@ const CRM = () => {
                         <h3 className="text-lg font-bold">Nenhuma etiqueta configurada</h3>
                         <p className="text-sm">Clique no botão "+" no topo para criar sua primeira etapa do Kanban.</p>
                       </div>
-                    ) : kanbanStatuses.filter(s => s.value !== 'human' && s.value !== 'new').map(status => (
+                    ) : (
+                      <>
+                      {/* GERAL: virtual column for every conversation without a
+                          custom kanban label. Dropping a contact here clears the
+                          status so it goes back to "untagged" (default). */}
+                      {(() => {
+                        const customValues = new Set(
+                          kanbanStatuses
+                            .filter(s => s.value !== 'human' && s.value !== 'new')
+                            .map(s => s.value)
+                        );
+                        const geralContacts = contacts.filter(
+                          c => c.last_interaction !== null && !customValues.has(c.status)
+                        );
+                        return (
+                          <div
+                            key="__geral__"
+                            className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden"
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={() => handleDrop('new')}
+                          >
+                            <div className="p-4 border-b border-border/10 font-black uppercase text-[11px] flex justify-between items-center bg-[#202c33] text-[#e9edef]">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-slate-400" />
+                                Geral
+                              </div>
+                              <Badge variant="secondary" className="bg-background/80 shadow-sm border font-black">
+                                {geralContacts.length}
+                              </Badge>
+                            </div>
+                            <ScrollArea className="flex-1 p-3">
+                              {geralContacts.map(contact => (
+                                <Card
+                                  key={contact.id}
+                                  draggable
+                                  onDragStart={() => handleDragStart(contact)}
+                                  className="p-4 mb-3 cursor-grab active:cursor-grabbing border-none bg-white dark:bg-[#202c33] shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg rounded-xl animate-in fade-in slide-in-from-top-2"
+                                  onClick={() => { openChat(contact); setKanbanView(false); }}
+                                >
+                                  <p className="text-sm font-bold truncate">{contact.name || contact.wa_id}</p>
+                                  <div className="flex justify-between items-center mt-3">
+                                    {contact.last_interaction && (
+                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+                                        <Clock className="w-3 h-3 opacity-50" />
+                                        {new Date(contact.last_interaction).toLocaleDateString([], {day: '2-digit', month: '2-digit'})}
+                                      </div>
+                                    )}
+                                    {contact.last_message_received_at && (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000) && (
+                                      <Badge variant="outline" className="text-[9px] font-black bg-[#00a884]/10 text-[#00a884] border-none">
+                                        <Zap className="w-2 h-2 mr-1" /> ATIVO
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </Card>
+                              ))}
+                              {geralContacts.length === 0 && (
+                                <div className="h-20 flex items-center justify-center border-2 border-dashed border-muted rounded-xl opacity-40">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest">Vazio</p>
+                                </div>
+                              )}
+                            </ScrollArea>
+                          </div>
+                        );
+                      })()}
+                      {kanbanStatuses.filter(s => s.value !== 'human' && s.value !== 'new').map(status => (
                       <div 
                         key={status.value} 
                         className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden" 
@@ -3899,6 +3963,8 @@ const CRM = () => {
                         </ScrollArea>
                       </div>
                     ))}
+                      </>
+                    )}
                   </div>
                 ) : (
                   <>
