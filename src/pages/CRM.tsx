@@ -4504,11 +4504,6 @@ const CRM = () => {
                                     contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) ? "text-foreground" : "text-foreground/80"
                                   )}>
                                     <span className="truncate shrink grow min-w-0">{getGoogleResolvedContact(contact).displayName}</span>
-                                    {getGoogleResolvedContact(contact).googleSyncAccountId && (
-                                      <span className="w-3.5 h-3.5 bg-[#4285F4] rounded-full flex items-center justify-center shrink-0">
-                                         <span className="text-[6px] font-bold text-white">G</span>
-                                      </span>
-                                    )}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0 ml-auto">
