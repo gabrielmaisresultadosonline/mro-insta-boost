@@ -957,10 +957,25 @@ const CRM = () => {
             }
           }
         }
-        fetchContacts();
+        // Avoid refetching the entire 14k-row contact list on every
+        // message event. The contact row will be refreshed by the
+        // crm_contacts realtime subscription below when last_interaction
+        // changes, or by the next visibility-driven refresh.
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_contacts' }, (payload) => {
-        fetchContacts();
+        const newRow: any = (payload as any).new;
+        const oldRow: any = (payload as any).old;
+        if (payload.eventType === 'DELETE' && oldRow?.id) {
+          setContacts(prev => prev.filter(c => c.id !== oldRow.id));
+        } else if (newRow?.id) {
+          setContacts(prev => {
+            const idx = prev.findIndex(c => c.id === newRow.id);
+            if (idx === -1) return [newRow, ...prev];
+            const next = prev.slice();
+            next[idx] = { ...next[idx], ...newRow };
+            return next;
+          });
+        }
         if (selectedContactRef.current && payload.new && (payload.new as any).id === selectedContactRef.current.id) {
           setSelectedContact((prev: any) => ({ ...prev, ...payload.new }));
         }
