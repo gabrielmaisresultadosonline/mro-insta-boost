@@ -4259,7 +4259,7 @@ const CRM = () => {
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                                  {contact.ai_active && (
+                                  {contact.ai_active && metaSettings.ai_agent_enabled && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
