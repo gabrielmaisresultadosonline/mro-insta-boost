@@ -306,6 +306,8 @@ const CRM = () => {
   const [flows, setFlows] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
+  // Pre-computed once whenever `contacts` changes — used by the Conversas
+  // tab. Avoids re-scanning 14k+ rows on every tab switch / status change.
   const contactsCacheKeyRef = useRef<string | null>(null);
   const lastContactsSyncRef = useRef<string | null>(null);
   const contactsSeededRef = useRef<boolean>(false);
@@ -1137,32 +1139,46 @@ const CRM = () => {
     }
   };
 
+  // Pre-compute the conversational subset ONCE per `contacts` change.
+  // This avoids re-scanning 14k+ contacts every time the user switches
+  // tabs or types in the status filter (which was making the Conversas
+  // tab take ~3s to open after a Google sync).
+  const conversationContacts = useMemo(() => {
+    return contacts.filter(c =>
+      c.last_interaction != null ||
+      (c.total_messages_received ?? 0) > 0 ||
+      (c.total_messages_sent ?? 0) > 0 ||
+      c.last_message_received_at != null
+    );
+  }, [contacts]);
+
+  // Memoize the "contatos sem nome" subset so we don't iterate all 14k+
+  // contacts on every render of the Conversas sidebar.
+  const unnamedContacts = useMemo(
+    () => contacts.filter(c => !c.name || c.name === c.wa_id),
+    [contacts]
+  );
+
   useLayoutEffect(() => {
-    let filtered = contacts;
-    
-    // The "Conversas" tab (activeTab === 'contacts') must ONLY show
-    // contacts that have an actual conversation history (a message was
-    // sent or received). Google-synced contacts without messages live
-    // in the "Contatos" tab, never here.
-    if (activeTab === 'contacts' || activeTab === 'dashboard') {
-      filtered = filtered.filter(c =>
-        c.last_interaction != null ||
-        (c.total_messages_received ?? 0) > 0 ||
-        (c.total_messages_sent ?? 0) > 0 ||
-        c.last_message_received_at != null
-      );
+    // For the "Conversas" and dashboard views we use the pre-filtered
+    // conversational subset (already small). For other tabs we use the
+    // full contact list.
+    const base = (activeTab === 'contacts' || activeTab === 'dashboard')
+      ? conversationContacts
+      : contacts;
+
+    if (statusFilter === 'all') {
+      setFilteredContacts(base);
+      return;
     }
 
-    if (statusFilter !== 'all') {
-      // Allow searching by name/phone or filtering by status
-      filtered = filtered.filter(c => 
-        c.status === statusFilter || 
-        c.name?.toLowerCase().includes(statusFilter.toLowerCase()) || 
-        c.wa_id?.includes(statusFilter)
-      );
-    }
-    setFilteredContacts(filtered);
-  }, [statusFilter, contacts, activeTab]);
+    const needle = statusFilter.toLowerCase();
+    setFilteredContacts(base.filter(c =>
+      c.status === statusFilter ||
+      c.name?.toLowerCase().includes(needle) ||
+      c.wa_id?.includes(statusFilter)
+    ));
+  }, [statusFilter, conversationContacts, contacts, activeTab]);
 
   const fetchData = async (isInitialLoad = false) => {
      if (isInitialLoad) setLoading(true);
@@ -3912,7 +3928,7 @@ const CRM = () => {
                       <ScrollArea className="flex-1 min-h-0 bg-white dark:bg-[#111b21]">
                         {/* Fila de Contatos Sem Nome */}
                         {(() => {
-                          const unnamed = contacts.filter(c => !c.name || c.name === c.wa_id);
+                          const unnamed = unnamedContacts;
                           if (unnamed.length === 0) return null;
                           return (
                             <div className="border-b border-border/10">
