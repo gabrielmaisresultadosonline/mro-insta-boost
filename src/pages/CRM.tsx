@@ -305,6 +305,9 @@ const CRM = () => {
   const CONVERSATION_COST = 0.33;
   const [flows, setFlows] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  // Per-contact inbound message timestamps (last 7 days) used to compute
+  // unread counts shown as a yellow badge on the conversation list.
+  const [inboundTimestampsByContact, setInboundTimestampsByContact] = useState<Record<string, string[]>>({});
   // Pre-computed once whenever `contacts` changes — used by the Conversas
   // tab. Avoids re-scanning 14k+ rows on every tab switch / status change.
   const contactsCacheKeyRef = useRef<string | null>(null);
@@ -944,6 +947,13 @@ const CRM = () => {
             setSelectedContact((prev: any) => prev && prev.id === newMessage.contact_id
               ? { ...prev, last_message_received_at: newMessage.created_at }
               : prev);
+            // Track inbound timestamp for unread badge (unless the chat is open)
+            if (!selectedContactRef.current || selectedContactRef.current.id !== newMessage.contact_id) {
+              setInboundTimestampsByContact(prev => {
+                const list = prev[newMessage.contact_id] || [];
+                return { ...prev, [newMessage.contact_id]: [newMessage.created_at, ...list].slice(0, 200) };
+              });
+            }
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedMessage = payload.new;
@@ -1138,6 +1148,28 @@ const CRM = () => {
     }
   };
 
+  // Fetch inbound message timestamps from the last 7 days to compute
+  // unread counts per contact (number = inbound messages whose
+  // created_at is greater than the contact.last_read_at).
+  const fetchInboundTimestamps = async () => {
+    try {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('crm_messages')
+        .select('contact_id, created_at')
+        .eq('direction', 'inbound')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(5000);
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((m: any) => {
+        if (!m.contact_id) return;
+        (map[m.contact_id] = map[m.contact_id] || []).push(m.created_at);
+      });
+      setInboundTimestampsByContact(map);
+    } catch {}
+  };
+
   // Pre-compute the conversational subset ONCE per `contacts` change.
   // This avoids re-scanning 14k+ contacts every time the user switches
   // tabs or types in the status filter (which was making the Conversas
@@ -1224,6 +1256,7 @@ const CRM = () => {
 
       // Paginated fetch to load ALL contacts (default cap is 1000)
       await fetchContacts();
+      fetchInboundTimestamps();
 
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       const { data: templatesData } = await supabase.from('crm_templates').select('*').eq('user_id', currentUser?.id);
@@ -2959,6 +2992,8 @@ const CRM = () => {
     setSelectedContact(contact);
     fetchMessages(contact.id);
     fetchScheduledMessages(contact.id);
+    // Clear unread count for this contact
+    setInboundTimestampsByContact(prev => ({ ...prev, [contact.id]: [] }));
   };
 
   const fetchScheduledMessages = async (contactId: string) => {
@@ -3747,7 +3782,71 @@ const CRM = () => {
                         <h3 className="text-lg font-bold">Nenhuma etiqueta configurada</h3>
                         <p className="text-sm">Clique no botão "+" no topo para criar sua primeira etapa do Kanban.</p>
                       </div>
-                    ) : kanbanStatuses.filter(s => s.value !== 'human' && s.value !== 'new').map(status => (
+                    ) : (
+                      <>
+                      {/* GERAL: virtual column for every conversation without a
+                          custom kanban label. Dropping a contact here clears the
+                          status so it goes back to "untagged" (default). */}
+                      {(() => {
+                        const customValues = new Set(
+                          kanbanStatuses
+                            .filter(s => s.value !== 'human' && s.value !== 'new')
+                            .map(s => s.value)
+                        );
+                        const geralContacts = contacts.filter(
+                          c => c.last_interaction !== null && !customValues.has(c.status)
+                        );
+                        return (
+                          <div
+                            key="__geral__"
+                            className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden"
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={() => handleDrop('new')}
+                          >
+                            <div className="p-4 border-b border-border/10 font-black uppercase text-[11px] flex justify-between items-center bg-[#202c33] text-[#e9edef]">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-slate-400" />
+                                Geral
+                              </div>
+                              <Badge variant="secondary" className="bg-background/80 shadow-sm border font-black">
+                                {geralContacts.length}
+                              </Badge>
+                            </div>
+                            <ScrollArea className="flex-1 p-3">
+                              {geralContacts.map(contact => (
+                                <Card
+                                  key={contact.id}
+                                  draggable
+                                  onDragStart={() => handleDragStart(contact)}
+                                  className="p-4 mb-3 cursor-grab active:cursor-grabbing border-none bg-white dark:bg-[#202c33] shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg rounded-xl animate-in fade-in slide-in-from-top-2"
+                                  onClick={() => { openChat(contact); setKanbanView(false); }}
+                                >
+                                  <p className="text-sm font-bold truncate">{contact.name || contact.wa_id}</p>
+                                  <div className="flex justify-between items-center mt-3">
+                                    {contact.last_interaction && (
+                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+                                        <Clock className="w-3 h-3 opacity-50" />
+                                        {new Date(contact.last_interaction).toLocaleDateString([], {day: '2-digit', month: '2-digit'})}
+                                      </div>
+                                    )}
+                                    {contact.last_message_received_at && (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000) && (
+                                      <Badge variant="outline" className="text-[9px] font-black bg-[#00a884]/10 text-[#00a884] border-none">
+                                        <Zap className="w-2 h-2 mr-1" /> ATIVO
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </Card>
+                              ))}
+                              {geralContacts.length === 0 && (
+                                <div className="h-20 flex items-center justify-center border-2 border-dashed border-muted rounded-xl opacity-40">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest">Vazio</p>
+                                </div>
+                              )}
+                            </ScrollArea>
+                          </div>
+                        );
+                      })()}
+                      {kanbanStatuses.filter(s => s.value !== 'human' && s.value !== 'new').map(status => (
                       <div 
                         key={status.value} 
                         className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden" 
@@ -3864,6 +3963,8 @@ const CRM = () => {
                         </ScrollArea>
                       </div>
                     ))}
+                      </>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -4032,12 +4133,22 @@ const CRM = () => {
                             >
                               <div className="flex items-center w-full gap-2 min-w-0">
                                 <div className="flex flex-1 min-w-0 items-center gap-2 overflow-hidden">
-                                  {contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) && (
-                                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md bg-[#EAB308] shadow-[0_0_10px_rgba(234,179,8,0.3)] animate-in fade-in zoom-in duration-300 shrink-0" title="Nova mensagem">
-                                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse shrink-0" />
-                                      <span className="text-[9px] font-black text-white uppercase tracking-tighter">Nova</span>
-                                    </div>
-                                  )}
+                                  {(() => {
+                                    const lastReadT = contact.last_read_at ? new Date(contact.last_read_at).getTime() : 0;
+                                    const stamps = inboundTimestampsByContact[contact.id] || [];
+                                    const unread = stamps.filter(ts => new Date(ts).getTime() > lastReadT).length;
+                                    if (unread <= 0) return null;
+                                    return (
+                                      <div
+                                        className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#EAB308] shadow-[0_0_10px_rgba(234,179,8,0.45)] animate-in fade-in zoom-in duration-300 shrink-0"
+                                        title={`${unread} mensagem${unread > 1 ? 's' : ''} não lida${unread > 1 ? 's' : ''}`}
+                                      >
+                                        <span className="text-[10px] font-black text-black tabular-nums leading-none">
+                                          {unread > 99 ? '99+' : unread}
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
                                   <p className={cn(
                                     "font-bold truncate text-sm flex items-center gap-1.5 min-w-0",
                                     contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) ? "text-foreground" : "text-foreground/80"
@@ -4074,17 +4185,30 @@ const CRM = () => {
                               <div className="flex flex-col gap-1 mt-1 w-full min-w-0 pr-1">
                                 <div className="flex flex-wrap items-center justify-between gap-1 w-full min-w-0">
                                   <div className="flex items-center gap-1 flex-wrap min-w-0">
-                                    <Badge 
-                                      variant="outline" 
-                                      style={{ height: `${16 * ((metaSettings.tag_size || 100) / 100)}px`, fontSize: `${9 * ((metaSettings.tag_size || 100) / 100)}px` }}
-                                      className={cn(
-                                        "px-2 capitalize font-black shadow-sm shrink-0", 
-                                        getStatusColor(contact.status),
-                                        contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) && "ring-2 ring-[#25D366]/20"
-                                      )}
-                                    >
-                                      {statusFilter === 'all' && (contact.status === 'human' || contact.status === 'new') ? 'Atendimento' : getStatusLabel(contact.status)}
-                                    </Badge>
+                                    {(() => {
+                                      // Only show the status badge when the user has manually
+                                      // assigned a custom kanban label (not the automatic
+                                      // 'human' / 'new' / null defaults that come from inbound
+                                      // messages). Default contacts live in the "GERAL" column
+                                      // of the Kanban without any visible tag.
+                                      const customStatus = kanbanStatuses.find(
+                                        s => s.value === contact.status && s.value !== 'human' && s.value !== 'new'
+                                      );
+                                      if (!customStatus) return null;
+                                      return (
+                                        <Badge
+                                          variant="outline"
+                                          style={{ height: `${16 * ((metaSettings.tag_size || 100) / 100)}px`, fontSize: `${9 * ((metaSettings.tag_size || 100) / 100)}px` }}
+                                          className={cn(
+                                            "px-2 capitalize font-black shadow-sm shrink-0",
+                                            getStatusColor(contact.status),
+                                            contact.last_interaction && (!contact.last_read_at || new Date(contact.last_interaction) > new Date(contact.last_read_at)) && "ring-2 ring-[#25D366]/20"
+                                          )}
+                                        >
+                                          {getStatusLabel(contact.status)}
+                                        </Badge>
+                                      );
+                                    })()}
                                     
                                     {contact.last_message_received_at && (() => {
                                       const elapsed = Date.now() - new Date(contact.last_message_received_at).getTime();
