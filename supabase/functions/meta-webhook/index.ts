@@ -129,22 +129,21 @@ serve(async (req) => {
                   }
                 }
 
+                const { data: contactBeforeUpdate } = await supabase
+                  .from('crm_contacts')
+                  .select('*')
+                  .eq('wa_id', wa_id)
+                  .maybeSingle()
+
                 let contact_name = value.contacts?.[0]?.profile?.name || wa_id
                 
-                // Real-time Google Contact lookup if enabled
-                if (settings?.google_auto_sync) {
+                if (settings?.google_auto_sync && (!contactBeforeUpdate || !contactBeforeUpdate.name || contactBeforeUpdate.name === wa_id)) {
                   const googleName = await lookupGoogleContact(wa_id, settings);
                   if (googleName) {
                     console.log(`Found name "${googleName}" for ${wa_id} in Google Contacts`);
                     contact_name = googleName;
                   }
                 }
-
-                const { data: contactBeforeUpdate } = await supabase
-                  .from('crm_contacts')
-                  .select('*')
-                  .eq('wa_id', wa_id)
-                  .single()
                 
                 const now = new Date();
                 const lastIntDate = contactBeforeUpdate?.last_interaction ? new Date(contactBeforeUpdate.last_interaction) : null;
@@ -203,29 +202,14 @@ serve(async (req) => {
                     }
                   } else if (message.type === 'audio') {
                     content = `[Mensagem de Áudio]`
-                    if (meta_access_token) {
-                      media_url = await downloadAndUploadMedia(supabase, meta_access_token, message.audio.id, 'audio')
-                    }
                   } else if (message.type === 'image') {
                     content = message.image.caption || `[Image Message]`
-                    if (meta_access_token) {
-                      media_url = await downloadAndUploadMedia(supabase, meta_access_token, message.image.id, 'image')
-                    }
                   } else if (message.type === 'video') {
                     content = message.video.caption || `[Video Message]`
-                    if (meta_access_token) {
-                      media_url = await downloadAndUploadMedia(supabase, meta_access_token, message.video.id, 'video')
-                    }
                   } else if (message.type === 'document') {
                     content = message.document.filename || `[Document]`
-                    if (meta_access_token) {
-                      media_url = await downloadAndUploadMedia(supabase, meta_access_token, message.document.id, 'document', message.document.filename)
-                    }
                   } else if (message.type === 'sticker') {
                     content = `[Sticker]`
-                    if (meta_access_token) {
-                      media_url = await downloadAndUploadMedia(supabase, meta_access_token, message.sticker.id, 'image')
-                    }
                   } else if (message.type === 'location') {
                     content = `[Localização] Lat: ${message.location.latitude}, Long: ${message.location.longitude}`
                     if (message.location.name) content += ` (${message.location.name})`
@@ -238,16 +222,28 @@ serve(async (req) => {
                     content = `[Mensagem: ${message.type}]`
                   }
 
-                  await supabase.from('crm_messages').insert({
+                  const { data: insertedMsg } = await supabase.from('crm_messages').insert({
                     contact_id: contact.id,
                     direction: 'inbound',
                     message_type: message_type,
                     content: content,
-                    media_url: media_url,
+                    media_url: null,
                     meta_message_id: message.id,
                     status: 'received',
-                    metadata: message // Store raw payload for debugging
-                  })
+                    metadata: message
+                  }).select().single();
+
+                  if (insertedMsg && meta_access_token && ['audio', 'image', 'video', 'document', 'sticker'].includes(message.type)) {
+                    const mediaId = message[message.type]?.id;
+                    if (mediaId) {
+                      console.log(`[WEBHOOK] Downloading media ${mediaId} after insert...`);
+                      const downloadedUrl = await downloadAndUploadMedia(supabase, meta_access_token, mediaId, message.type, message.document?.filename);
+                      if (downloadedUrl) {
+                        media_url = downloadedUrl;
+                        await supabase.from('crm_messages').update({ media_url: downloadedUrl }).eq('id', insertedMsg.id);
+                      }
+                    }
+                  }
 
                   await supabase.rpc('increment_crm_metric', { metric_column: 'responded_count' })
 
