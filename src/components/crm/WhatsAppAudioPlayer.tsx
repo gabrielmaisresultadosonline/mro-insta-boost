@@ -14,17 +14,37 @@ const formatTime = (s: number) => {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 };
 
+// Global playback rate shared across all audio players
+let GLOBAL_RATE = 1;
+const rateListeners = new Set<(r: number) => void>();
+const setGlobalRate = (r: number) => {
+  GLOBAL_RATE = r;
+  rateListeners.forEach((fn) => fn(r));
+};
+
 export function WhatsAppAudioPlayer({ src, outbound = false }: WhatsAppAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [current, setCurrent] = useState(0);
-  const [rate, setRate] = useState(1);
+  const [rate, setRate] = useState<number>(GLOBAL_RATE);
+  const [hasPlayed, setHasPlayed] = useState(false);
+
+  // Subscribe to global rate changes
+  useEffect(() => {
+    const fn = (r: number) => {
+      setRate(r);
+      if (audioRef.current) audioRef.current.playbackRate = r;
+    };
+    rateListeners.add(fn);
+    return () => { rateListeners.delete(fn); };
+  }, []);
 
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
+    a.playbackRate = GLOBAL_RATE;
     const onTime = () => setCurrent(a.currentTime);
     const onLoaded = () => setDuration(a.duration || 0);
     const onEnd = () => { setPlaying(false); setCurrent(0); };
@@ -43,7 +63,7 @@ export function WhatsAppAudioPlayer({ src, outbound = false }: WhatsAppAudioPlay
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
-    if (a.paused) { a.play(); setPlaying(true); }
+    if (a.paused) { a.playbackRate = GLOBAL_RATE; a.play(); setPlaying(true); setHasPlayed(true); }
     else { a.pause(); setPlaying(false); }
   };
 
@@ -58,11 +78,8 @@ export function WhatsAppAudioPlayer({ src, outbound = false }: WhatsAppAudioPlay
   };
 
   const cycleRate = () => {
-    const a = audioRef.current;
-    if (!a) return;
     const next = rate === 1 ? 1.5 : rate === 1.5 ? 2 : 1;
-    a.playbackRate = next;
-    setRate(next);
+    setGlobalRate(next);
   };
 
   const progress = duration ? (current / duration) * 100 : 0;
@@ -76,10 +93,11 @@ export function WhatsAppAudioPlayer({ src, outbound = false }: WhatsAppAudioPlay
   const accent = outbound ? "text-white" : "text-[#00a884]";
   const accentBg = outbound ? "bg-white" : "bg-[#00a884]";
   const inactive = outbound ? "bg-white/30" : "bg-foreground/25";
+  const showRateBtn = hasPlayed || rate !== 1;
 
   return (
     <div className={cn(
-      "flex items-center gap-2.5 py-1.5 pl-1 pr-2 rounded-full min-w-[220px] max-w-[300px]",
+      "flex items-center gap-2 py-1.5 pl-1 pr-1.5 rounded-full w-full min-w-[180px] max-w-full sm:max-w-[320px]",
     )}>
       <audio ref={audioRef} src={src} preload="metadata" />
       <button
@@ -117,19 +135,24 @@ export function WhatsAppAudioPlayer({ src, outbound = false }: WhatsAppAudioPlay
         </div>
         <div className="flex items-center justify-between text-[10px] font-medium opacity-70">
           <span>{formatTime(playing || current > 0 ? current : duration)}</span>
-          <button
-            type="button"
-            onClick={cycleRate}
-            className={cn(
-              "text-[10px] font-bold px-1.5 py-0 rounded-full leading-tight transition-opacity",
-              rate === 1 ? "opacity-0" : "opacity-90",
-              outbound ? "bg-white/20 text-white" : "bg-foreground/10 text-foreground"
-            )}
-          >
-            {rate}x
-          </button>
         </div>
       </div>
+
+      {showRateBtn && (
+        <button
+          type="button"
+          onClick={cycleRate}
+          aria-label={`Velocidade ${rate}x`}
+          className={cn(
+            "shrink-0 text-[11px] font-bold px-2 py-1 rounded-full leading-none transition-all",
+            outbound
+              ? "bg-white/25 text-white hover:bg-white/35"
+              : "bg-foreground/10 text-foreground hover:bg-foreground/20"
+          )}
+        >
+          {rate % 1 === 0 ? `${rate}x` : `${rate}x`}
+        </button>
+      )}
     </div>
   );
 }
