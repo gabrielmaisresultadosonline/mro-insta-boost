@@ -834,6 +834,36 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                         </Button>
                       )}
                     </div>
+
+                    {(selectedNode.data.buttons as any[]).some((b: any) => b.url) && (
+                      <div className="space-y-2 p-3 border rounded-md bg-emerald-50/50 border-emerald-100">
+                        <Label className="text-[11px] font-bold text-emerald-700">Imagem (opcional) — exibida acima do botão com link</Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          disabled={uploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, selectedNode.id, 'image');
+                          }}
+                          className="text-xs h-8"
+                        />
+                        {selectedNode.data.imageUrl && (
+                          <div className="flex items-center gap-2">
+                            <img src={selectedNode.data.imageUrl as string} className="w-16 h-16 object-cover rounded border" alt="Preview" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[10px] h-7 text-red-500"
+                              onClick={() => updateNodeData(selectedNode.id, { imageUrl: '', fileName: '' })}
+                            >
+                              Remover imagem
+                            </Button>
+                          </div>
+                        )}
+                        <p className="text-[9px] text-muted-foreground italic">Deixe vazio para enviar apenas texto + botão.</p>
+                      </div>
+                    )}
                   </div>
                 )}
 

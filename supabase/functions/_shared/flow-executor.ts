@@ -74,6 +74,25 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         // 2) Envia cada botão de link como mensagem cta_url separada
         for (const linkBtn of linkButtons) {
           console.log(`[EXECUTOR] Enviando botão de LINK para ${waId}: ${linkBtn.url}`);
+          const imageUrl = (node.data?.imageUrl || '').toString();
+          const hasImage = imageUrl.startsWith('http');
+          const bodyText = replyButtons.length > 0
+            ? (text || "Acesse pelo link:")
+            : (text || "Clique abaixo para acessar:");
+          const interactive: any = {
+            type: 'cta_url',
+            body: { text: bodyText },
+            action: {
+              name: "cta_url",
+              parameters: {
+                display_text: linkBtn.label || linkBtn.text || "Acessar",
+                url: linkBtn.url
+              }
+            }
+          };
+          if (hasImage) {
+            interactive.header = { type: 'image', image: { link: imageUrl } };
+          }
           await supabase.functions.invoke('meta-whatsapp-crm', {
             headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
             body: {
@@ -82,19 +101,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
               contactId,
               meta_phone_number_id: settings?.meta_phone_number_id,
               meta_access_token: settings?.meta_access_token,
-              interactive: {
-                type: 'cta_url',
-                header: { type: 'text', text: 'Link Externo' },
-                body: { text: replyButtons.length > 0 ? "Ou acesse pelo link:" : (text || "Clique abaixo para acessar:") },
-                footer: { text: "ZAP MRO CRM" },
-                action: {
-                  name: "cta_url",
-                  parameters: {
-                    display_text: linkBtn.label || linkBtn.text || "Acessar Site",
-                    url: linkBtn.url
-                  }
-                }
-              }
+              interactive
             }
           });
           await wait(500);
