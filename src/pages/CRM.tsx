@@ -947,11 +947,32 @@ const CRM = () => {
     }
   }, [selectedContact?.next_execution_time, selectedContact?.id, now]);
 
+  const prevContactIdRef = useRef<string | null>(null);
+  const prevMsgCountRef = useRef<number>(0);
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    const el = scrollRef.current;
+    if (!el) return;
+    const viewport = el.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const currentContactId = selectedContact?.id || null;
+    const contactChanged = prevContactIdRef.current !== currentContactId;
+    const prevCount = prevMsgCountRef.current;
+    const newCount = chatMessages.length;
+    prevContactIdRef.current = currentContactId;
+    prevMsgCountRef.current = newCount;
+
+    // Always scroll to bottom when opening a different conversation
+    if (contactChanged) {
+      el.scrollIntoView({ behavior: 'auto' });
+      return;
     }
-  }, [chatMessages]);
+    // Only auto-scroll on new messages if the user is already near the bottom
+    if (newCount > prevCount && viewport) {
+      const distanceFromBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+      if (distanceFromBottom < 150) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [chatMessages, selectedContact?.id]);
 
    useEffect(() => {
      const checkAuth = async () => {
