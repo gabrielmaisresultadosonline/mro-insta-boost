@@ -319,6 +319,11 @@ const CRM = () => {
   const realtimeFallbackInFlightRef = useRef<boolean>(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
+  // Dedicated search state for the Contatos and Sincronizados Google tabs.
+  // Keeping it separate from `statusFilter` ensures that searching/filtering
+  // there does NOT silently filter the Conversas list (which uses
+  // `statusFilter`) when the user navigates back to Conversas.
+  const [contactListSearch, setContactListSearch] = useState('all');
   const [kanbanView, setKanbanView] = useState(false);
   const [draggedContact, setDraggedContact] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
@@ -6530,8 +6535,8 @@ const CRM = () => {
                         <Input 
                           placeholder="Pesquisar por nome ou número..." 
                           className="pl-9 bg-background h-10 rounded-xl"
-                          value={statusFilter === 'all' ? '' : statusFilter}
-                          onChange={e => setStatusFilter(e.target.value || 'all')}
+                          value={contactListSearch === 'all' ? '' : contactListSearch}
+                          onChange={e => setContactListSearch(e.target.value || 'all')}
                         />
                       </div>
                       
@@ -6571,14 +6576,14 @@ const CRM = () => {
                       <div className="md:hidden divide-y divide-border">
                         {(() => {
                           const filtered = contacts.filter(c => {
-                            const matchesSearch = statusFilter === 'all' || 
-                              c.name?.toLowerCase().includes(statusFilter.toLowerCase()) || 
-                              c.wa_id?.includes(statusFilter);
+                            const matchesSearch = contactListSearch === 'all' || 
+                              c.name?.toLowerCase().includes(contactListSearch.toLowerCase()) || 
+                              c.wa_id?.includes(contactListSearch);
                             const matchesSource = sourceFilter === 'all' || c.source_type === sourceFilter;
                             return matchesSearch && matchesSource;
                           });
                           
-                          const isSearching = statusFilter !== 'all';
+                          const isSearching = contactListSearch !== 'all';
                           const displayContacts = (showAllContacts || isSearching) ? filtered : filtered.slice(0, 10);
 
                           if (displayContacts.length === 0) {
@@ -6656,15 +6661,15 @@ const CRM = () => {
                         <tbody className="divide-y">
                           {(() => {
                             const filtered = contacts.filter(c => {
-                              const matchesSearch = statusFilter === 'all' || 
-                                c.name?.toLowerCase().includes(statusFilter.toLowerCase()) || 
-                                c.wa_id?.includes(statusFilter);
+                              const matchesSearch = contactListSearch === 'all' || 
+                                c.name?.toLowerCase().includes(contactListSearch.toLowerCase()) || 
+                                c.wa_id?.includes(contactListSearch);
                               const matchesSource = sourceFilter === 'all' || c.source_type === sourceFilter;
                               return matchesSearch && matchesSource;
                             });
                             
                             const totalFiltered = filtered.length;
-                            const isSearching = statusFilter !== 'all';
+                            const isSearching = contactListSearch !== 'all';
                             const displayContacts = (showAllContacts || isSearching) ? filtered : filtered.slice(0, 10);
 
                             return (
@@ -6772,8 +6777,8 @@ const CRM = () => {
                         <Input
                           placeholder="Pesquisar..."
                           className="pl-9 bg-background h-10 rounded-xl w-full lg:w-72"
-                          value={statusFilter === 'all' ? '' : statusFilter}
-                          onChange={e => setStatusFilter(e.target.value || 'all')}
+                          value={contactListSearch === 'all' ? '' : contactListSearch}
+                          onChange={e => setContactListSearch(e.target.value || 'all')}
                         />
                       </div>
                       <Button
@@ -6791,9 +6796,9 @@ const CRM = () => {
                   {(() => {
                     const synced = contacts.filter(c => c.google_sync_account_id || c.metadata?.google_resource_name);
                     const filtered = synced.filter(c => {
-                      if (statusFilter === 'all') return true;
-                      const q = statusFilter.toLowerCase();
-                      return c.name?.toLowerCase().includes(q) || c.wa_id?.includes(statusFilter);
+                      if (contactListSearch === 'all') return true;
+                      const q = contactListSearch.toLowerCase();
+                      return c.name?.toLowerCase().includes(q) || c.wa_id?.includes(contactListSearch);
                     });
 
                     return (
