@@ -1666,8 +1666,21 @@ const CRM = () => {
 
   const updateContactStatus = async (contactId: string, updates: any) => {
     try {
-      setContacts(prev => prev.map(c => c.id === contactId ? { ...c, ...updates } : c));
-      const { error } = await supabase.from('crm_contacts').update(updates).eq('id', contactId);
+      const currentContact = contacts.find((c: any) => c.id === contactId) || (selectedContactRef.current?.id === contactId ? selectedContactRef.current : null);
+      const normalizedUpdates = Object.prototype.hasOwnProperty.call(updates, 'ai_active')
+        ? {
+            ...updates,
+            metadata: {
+              ...(currentContact?.metadata || {}),
+              ...(updates.metadata || {}),
+              manual_ai_activation: updates.ai_active === true,
+            },
+          }
+        : updates;
+
+      setContacts(prev => prev.map(c => c.id === contactId ? { ...c, ...normalizedUpdates } : c));
+      setSelectedContact(prev => prev?.id === contactId ? { ...prev, ...normalizedUpdates } : prev);
+      const { error } = await supabase.from('crm_contacts').update(normalizedUpdates).eq('id', contactId);
       if (error) {
         fetchContacts();
         throw error;
