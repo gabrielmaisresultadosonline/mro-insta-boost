@@ -1158,26 +1158,21 @@ const CRM = () => {
     [contacts]
   );
 
-  useLayoutEffect(() => {
-    // For the "Conversas" and dashboard views we use the pre-filtered
-    // conversational subset (already small). For other tabs we use the
-    // full contact list.
-    const base = (activeTab === 'contacts' || activeTab === 'dashboard')
-      ? conversationContacts
-      : contacts;
+  const filteredContacts = useMemo(() => {
+    // Conversas must never render the full Google/imported contact base.
+    // Keeping this derived list synchronous avoids the brief 3s heavy render
+    // where all contacts appeared before the conversation-only filter applied.
+    const base = activeTab === 'contacts' ? conversationContacts : [];
 
-    if (statusFilter === 'all') {
-      setFilteredContacts(base);
-      return;
-    }
+    if (statusFilter === 'all') return base;
 
     const needle = statusFilter.toLowerCase();
-    setFilteredContacts(base.filter(c =>
+    return base.filter(c =>
       c.status === statusFilter ||
       c.name?.toLowerCase().includes(needle) ||
       c.wa_id?.includes(statusFilter)
-    ));
-  }, [statusFilter, conversationContacts, contacts, activeTab]);
+    );
+  }, [statusFilter, conversationContacts, activeTab]);
 
   const fetchData = async (isInitialLoad = false) => {
      if (isInitialLoad) setLoading(true);
