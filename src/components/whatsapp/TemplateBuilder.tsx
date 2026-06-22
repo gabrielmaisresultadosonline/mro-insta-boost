@@ -30,6 +30,7 @@ import {
   Layers
 } from "lucide-react";
 import TemplatePreview from './TemplatePreview';
+import MetaPricingCalculator from './MetaPricingCalculator';
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
