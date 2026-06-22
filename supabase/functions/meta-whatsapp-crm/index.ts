@@ -2983,7 +2983,16 @@ async function fetchAndStoreIncomingMedia(
             'Authorization': `Bearer ${meta_access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name, category, language, components: processedComponents }),
+          body: JSON.stringify({
+            name,
+            category,
+            language,
+            components: processedComponents,
+            // Impede a Meta de reclassificar automaticamente (ex.: UTILITY -> MARKETING).
+            // Se a Meta julgar que a categoria está incorreta, a aprovação será negada
+            // em vez de mudar a categoria sem avisar.
+            allow_category_change: false,
+          }),
         }
       )
       
