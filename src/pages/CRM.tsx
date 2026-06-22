@@ -438,6 +438,13 @@ const CRM = () => {
 
   // Detecta quando a conta WhatsApp foi desregistrada na Meta (erro 133010)
   const [whatsappDisconnected, setWhatsappDisconnected] = useState(false);
+  const [crmTheme, setCrmTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    return (localStorage.getItem('crm_theme') as 'dark' | 'light') || 'dark';
+  });
+  useEffect(() => {
+    try { localStorage.setItem('crm_theme', crmTheme); } catch {}
+  }, [crmTheme]);
 
   useEffect(() => {
     const originalInvoke = supabase.functions.invoke.bind(supabase.functions);
