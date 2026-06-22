@@ -385,11 +385,11 @@ export default function AdminCentral() {
           </div>
         )}
 
-        <Card className="p-3">
+        <Card className="p-3 bg-white border-[#E8F5F1] shadow-sm">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#128C7E]/60" />
             <Input
-              className="pl-9"
+              className="pl-9 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54] placeholder:text-[#128C7E]/50 focus-visible:ring-[#25D366]"
               placeholder="Buscar por e-mail, nome ou número..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -399,34 +399,34 @@ export default function AdminCentral() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#128C7E]/60" />
           </div>
         ) : (
           <div className="grid gap-3">
             {filtered.map((u) => (
-              <Card key={u.id} className="p-4">
+              <Card key={u.id} className="p-4 bg-white border-[#E8F5F1] text-[#075E54] shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold truncate">{u.full_name || u.email}</span>
                       {u.connected ? (
-                        <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 hover:bg-green-500/15 gap-1">
+                        <Badge className="bg-[#25D366]/15 text-[#128C7E] hover:bg-[#25D366]/15 border border-[#25D366]/30 gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           Conectado
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="gap-1 text-muted-foreground">
+                        <Badge variant="outline" className="gap-1 text-slate-500 border-slate-200 bg-slate-50">
                           <XCircle className="h-3 w-3" />
                           Não conectado
                         </Badge>
                       )}
-                      {u.role === "super_admin" && <Badge variant="secondary">super_admin</Badge>}
+                      {u.role === "super_admin" && <Badge className="bg-[#075E54] text-white hover:bg-[#075E54]">super_admin</Badge>}
                     </div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <div className="text-sm text-[#128C7E]/80 flex items-center gap-1">
                       <Mail className="h-3.5 w-3.5" />
                       <span className="select-all">{u.email}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground space-x-3">
+                    <div className="text-xs text-slate-500 space-x-3">
                       {u.meta_display_phone_number && (
                         <span>📱 WA: {u.meta_display_phone_number}</span>
                       )}
@@ -440,17 +440,17 @@ export default function AdminCentral() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openInsights(u)}>
+                    <Button size="sm" variant="outline" onClick={() => openInsights(u)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
                       <BarChart3 className="h-4 w-4 mr-1" /> Insights
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => openPwdDialog(u)}>
+                    <Button size="sm" variant="outline" onClick={() => openPwdDialog(u)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
                       <KeyRound className="h-4 w-4 mr-1" /> Nova senha
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleSendReset(u)}>
+                    <Button size="sm" variant="outline" onClick={() => handleSendReset(u)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
                       <Mail className="h-4 w-4 mr-1" /> Reset e-mail
                     </Button>
                     {u.connected && (
-                      <Button size="sm" variant="outline" onClick={() => handleDisconnect(u)}>
+                      <Button size="sm" variant="outline" onClick={() => handleDisconnect(u)} className="bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
                         <Power className="h-4 w-4 mr-1" /> Desconectar
                       </Button>
                     )}
@@ -462,7 +462,7 @@ export default function AdminCentral() {
               </Card>
             ))}
             {filtered.length === 0 && (
-              <Card className="p-8 text-center text-muted-foreground">Nenhum cadastro encontrado</Card>
+              <Card className="p-8 text-center text-[#128C7E]/70 bg-white border-[#E8F5F1]">Nenhum cadastro encontrado</Card>
             )}
           </div>
         )}
