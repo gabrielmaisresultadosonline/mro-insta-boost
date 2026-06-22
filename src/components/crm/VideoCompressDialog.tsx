@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import * as SliderPrimitive from "@radix-ui/react-slider";
 import { Loader2, Scissors, Play, Pause, Wand2, X, Upload } from "lucide-react";
 import { compressVideoForWhatsApp } from "@/lib/videoCompress";
 import { cn } from "@/lib/utils";
@@ -172,14 +172,21 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
                 {fmtTime(trim[0])} → {fmtTime(trim[1])} ({fmtTime(trimmedDur)})
               </span>
             </div>
-            <Slider
+            <SliderPrimitive.Root
               min={0}
               max={Math.max(duration, 0.5)}
               step={0.1}
               value={trim}
               onValueChange={handleTrim}
               disabled={phase === "compressing" || phase === "uploading" || !duration}
-            />
+              className="relative flex w-full touch-none select-none items-center"
+            >
+              <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
+                <SliderPrimitive.Range className="absolute h-full bg-primary" />
+              </SliderPrimitive.Track>
+              <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background shadow ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+              <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background shadow ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+            </SliderPrimitive.Root>
             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
               <span>Início</span>
               <span>Fim</span>
