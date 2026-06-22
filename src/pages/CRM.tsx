@@ -5544,14 +5544,20 @@ const CRM = () => {
                                         </Button>
                                       </div>
                                       <div className="flex-1 relative flex items-center min-w-0">
-                                        <Input 
+                                        <Textarea 
                                           placeholder={isRecording ? "Gravando..." : "Mensagem"}
                                           value={newMessage} 
                                           disabled={isRecording}
                                           onPaste={handlePaste}
                                           onChange={e => setNewMessage(e.target.value)}
-                                          onKeyDown={e => e.key === 'Enter' && !isRecording && handleSendMessage()}
-                                          className="bg-white dark:bg-[#2a3942] border-none h-10 pr-8 sm:pr-9 rounded-xl shadow-sm text-sm focus-visible:ring-0 w-full min-w-0"
+                                          onKeyDown={e => {
+                                            if (e.key === 'Enter' && !e.shiftKey && !isRecording) {
+                                              e.preventDefault();
+                                              handleSendMessage();
+                                            }
+                                          }}
+                                          rows={1}
+                                          className="bg-white dark:bg-[#2a3942] border-none min-h-10 max-h-32 py-2 pr-8 sm:pr-9 rounded-xl shadow-sm text-sm focus-visible:ring-0 w-full min-w-0 resize-none"
                                         />
                                         <Button 
                                           size="icon" 
