@@ -294,28 +294,28 @@ export default function AdminCentral() {
   const newThisWeek = users.filter((u) => new Date(u.created_at) >= last7).length;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="min-h-screen bg-[#F0FDF4] text-[#075E54] p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Admin Central</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#075E54]">Admin Central</h1>
+            <p className="text-sm text-[#128C7E]/70">
               {users.length} cadastros · {connectedCount} conectados
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Recarregar
             </Button>
-            <Button variant="outline" size="sm" onClick={logout}>
+            <Button variant="outline" size="sm" onClick={logout} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
               Sair
             </Button>
           </div>
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="bg-white border border-[#E8F5F1]">
+          <TabsList className="bg-white border border-[#E8F5F1] shadow-sm">
             <TabsTrigger value="users" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Cadastros & Números</TabsTrigger>
             <TabsTrigger value="announcements" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Avisos (Popup)</TabsTrigger>
           </TabsList>
