@@ -30,9 +30,34 @@ function firstNonEmptyString(...values: unknown[]) {
   return '';
 }
 
+function normalizeTriggerText(value: unknown) {
+  if (typeof value !== 'string') return '';
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 function getReferralFromWebhookMessage(message: any) {
   const referral = message?.referral || message?.context?.referral || message?.unsupported?.referral || null;
   return referral && typeof referral === 'object' ? referral : null;
+}
+
+function getReferralTextParts(referral: any) {
+  if (!referral || typeof referral !== 'object') return [];
+  return [
+    referral.headline,
+    referral.title,
+    referral.body,
+    referral.description,
+    referral.text,
+    referral.caption,
+    referral.cta_text,
+    referral.source_url,
+    referral.url,
+  ].filter((value) => typeof value === 'string' && value.trim());
 }
 
 function extractInboundTextFromWebhookMessage(message: any) {
@@ -57,15 +82,42 @@ function extractInboundTextFromWebhookMessage(message: any) {
 
   const referral = getReferralFromWebhookMessage(message);
   if (referral) {
-    const parts = [
-      firstNonEmptyString(referral.headline, referral.title),
-      firstNonEmptyString(referral.body, referral.description),
-      firstNonEmptyString(referral.source_url, referral.url),
-    ].filter(Boolean);
+    const parts = getReferralTextParts(referral);
     if (parts.length > 0) return parts.join('\n');
   }
 
   return '';
+}
+
+function collectInboundTriggerTexts(message: any, resolvedText?: string) {
+  const node = message?.[message?.type] || {};
+  const referral = getReferralFromWebhookMessage(message);
+  const rawCandidates = [
+    resolvedText,
+    extractInboundTextFromWebhookMessage(message),
+    message?.text?.body,
+    message?.button?.text,
+    message?.interactive?.button_reply?.title,
+    message?.interactive?.list_reply?.title,
+    node?.caption,
+    node?.text,
+    node?.body,
+    message?.body,
+    message?.caption,
+    message?.message?.text,
+    message?.message?.body,
+    message?.unsupported?.text?.body,
+    message?.unsupported?.body,
+    message?.unsupported?.caption,
+    ...getReferralTextParts(referral),
+  ];
+
+  const normalized = rawCandidates
+    .flatMap((value) => typeof value === 'string' ? [value, ...value.split(/\r?\n/)] : [])
+    .map(normalizeTriggerText)
+    .filter(Boolean);
+
+  return [...new Set(normalized)];
 }
 
 async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
