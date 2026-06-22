@@ -1072,6 +1072,7 @@ const CRM = () => {
 
   const prevContactIdRef = useRef<string | null>(null);
   const prevMsgCountRef = useRef<number>(0);
+  const pendingScrollToBottomRef = useRef<boolean>(false);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -1083,9 +1084,34 @@ const CRM = () => {
     prevContactIdRef.current = currentContactId;
     prevMsgCountRef.current = newCount;
 
-    // Always scroll to bottom when opening a different conversation
+    const jumpToBottom = () => {
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      } else {
+        el.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }
+    };
+
+    // Always scroll to bottom when opening a different conversation.
+    // Repeat across a few frames because messages/images can still be loading
+    // and pushing content height after the initial paint.
     if (contactChanged) {
-      el.scrollIntoView({ behavior: 'auto' });
+      pendingScrollToBottomRef.current = true;
+      jumpToBottom();
+      requestAnimationFrame(() => {
+        jumpToBottom();
+        requestAnimationFrame(jumpToBottom);
+      });
+      setTimeout(jumpToBottom, 120);
+      setTimeout(jumpToBottom, 350);
+      setTimeout(() => { pendingScrollToBottomRef.current = false; }, 800);
+      return;
+    }
+    // If we just received the first batch of messages for this conversation,
+    // still force the scroll to the bottom (no "near bottom" heuristic).
+    if (pendingScrollToBottomRef.current && newCount > prevCount) {
+      jumpToBottom();
+      requestAnimationFrame(jumpToBottom);
       return;
     }
     // Only auto-scroll on new messages if the user is already near the bottom
