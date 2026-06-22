@@ -94,7 +94,9 @@ export async function compressVideoForWhatsApp(
     });
 
     await seekTo(startTime);
-    recorder.start(250);
+    // Não use timeslice aqui: chunks parciais geram MP4 fragmentado (vários mdat),
+    // que a Meta aceita no upload, mas costuma reprovar depois com "Media upload error".
+    recorder.start();
     await video.play();
 
     let raf = 0;
@@ -144,5 +146,5 @@ export async function compressVideoForWhatsApp(
   const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
   const base = file.name.replace(/\.[^.]+$/, '');
   const outName = `${base}-compactado.${ext}`;
-  return new File([blob], outName, { type: mimeType });
+  return new File([blob], outName, { type: ext === 'mp4' ? 'video/mp4' : mimeType });
 }
