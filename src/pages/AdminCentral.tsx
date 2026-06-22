@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import AnnouncementsAdminPanel from "@/components/admin/AnnouncementsAdminPanel";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -310,6 +312,13 @@ export default function AdminCentral() {
           </div>
         </div>
 
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="bg-white border border-[#E8F5F1]">
+            <TabsTrigger value="users" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Cadastros & Números</TabsTrigger>
+            <TabsTrigger value="announcements" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Avisos (Popup)</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users" className="space-y-4 mt-4">
         {/* WhatsApp-themed report */}
         {!loading && users.length > 0 && (
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#075E54] via-[#128C7E] to-[#25D366] p-1 shadow-xl">
@@ -455,6 +464,12 @@ export default function AdminCentral() {
             )}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="announcements" className="mt-4">
+            <AnnouncementsAdminPanel creds={creds} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Insights dialog */}
