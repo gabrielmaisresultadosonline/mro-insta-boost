@@ -215,6 +215,13 @@ const getUnsupportedMetaDetails = (message: unknown) => {
   return String(error?.error_data?.details || error?.message || raw.unsupported?.type || raw.type || '').trim();
 };
 
+const hasReadableUnsupportedContent = (message: unknown) => {
+  if (!message || typeof message !== 'object') return false;
+  const value = String((message as { message_text?: string; content?: string }).message_text || (message as { content?: string }).content || '').trim();
+  if (!value || /^\[unsupported\]$/i.test(value)) return false;
+  return !/^\[Formato não suportado pela Meta\]/i.test(value);
+};
+
 type AdReferral = {
   source_url?: string;
   source_type?: string;
@@ -5283,7 +5290,14 @@ const CRM = () => {
                                               )}
                                             </div>
                                           )}
-                                          {m.message_type === 'unsupported' && (
+                                          {m.message_type === 'unsupported' && hasReadableUnsupportedContent(m) && (
+                                            <div className="space-y-2">
+                                              <div className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5">
+                                                {m.message_text || m.content}
+                                              </div>
+                                            </div>
+                                          )}
+                                          {m.message_type === 'unsupported' && !hasReadableUnsupportedContent(m) && (
                                             <div className="mt-1 p-2 rounded-lg bg-muted/40 border border-border/40 text-xs text-muted-foreground max-w-[280px]">
                                               <div className="flex items-start gap-2">
                                                 <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
