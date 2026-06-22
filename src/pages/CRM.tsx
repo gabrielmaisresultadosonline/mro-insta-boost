@@ -75,7 +75,9 @@ import {
    ,
    UserCog,
    ExternalLink,
-   Eraser
+    Eraser,
+    Moon,
+    Sun
   } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
 const Instagram = (LucideIcons as any).Instagram || Camera;
@@ -436,6 +438,13 @@ const CRM = () => {
 
   // Detecta quando a conta WhatsApp foi desregistrada na Meta (erro 133010)
   const [whatsappDisconnected, setWhatsappDisconnected] = useState(false);
+  const [crmTheme, setCrmTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    return (localStorage.getItem('crm_theme') as 'dark' | 'light') || 'dark';
+  });
+  useEffect(() => {
+    try { localStorage.setItem('crm_theme', crmTheme); } catch {}
+  }, [crmTheme]);
 
   useEffect(() => {
     const originalInvoke = supabase.functions.invoke.bind(supabase.functions);
@@ -3759,7 +3768,7 @@ const CRM = () => {
 
   return (
     <SidebarProvider>
-      <div className="h-[100dvh] w-full flex overflow-hidden bg-[#f0f2f5] dark:bg-[#0c1317]">
+      <div className={`h-[100dvh] w-full flex overflow-hidden bg-[#f0f2f5] dark:bg-[#0c1317] ${crmTheme === 'light' ? 'crm-theme-light' : ''}`}>
         <AnnouncementPopup />
         {whatsappDisconnected && (
           <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white px-4 py-3 shadow-lg flex items-center justify-between gap-3">
@@ -3779,10 +3788,30 @@ const CRM = () => {
           </div>
         )}
         <Sidebar className="border-r border-border/50 shadow-xl bg-[#111b21] dark:bg-[#111b21] text-white">
-           <SidebarHeader className="p-4 border-b border-white/5 flex items-center justify-center bg-[#202c33]">
-             <Link to="/vendas">
+           <SidebarHeader className="p-4 border-b border-white/5 flex items-center justify-between gap-2 bg-[#202c33]">
+             <Link to="/vendas" className="flex-1 flex items-center justify-center">
                <Logo size="sm" />
              </Link>
+             <div className="flex items-center gap-1 shrink-0">
+               <button
+                 type="button"
+                 onClick={() => setCrmTheme('light')}
+                 title="Tema claro"
+                 aria-label="Ativar tema claro"
+                 className={`p-1.5 rounded-md transition-colors ${crmTheme === 'light' ? 'bg-[#25D366]/20 text-[#25D366]' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
+               >
+                 <Sun className="w-3.5 h-3.5" />
+               </button>
+               <button
+                 type="button"
+                 onClick={() => setCrmTheme('dark')}
+                 title="Tema escuro"
+                 aria-label="Ativar tema escuro"
+                 className={`p-1.5 rounded-md transition-colors ${crmTheme === 'dark' ? 'bg-[#00a884]/20 text-[#00a884]' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
+               >
+                 <Moon className="w-3.5 h-3.5" />
+               </button>
+             </div>
            </SidebarHeader>
           <SidebarContent className="bg-[#111b21]">
             <SidebarGroup>
