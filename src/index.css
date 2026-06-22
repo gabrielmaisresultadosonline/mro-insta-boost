@@ -254,3 +254,78 @@
   -webkit-text-fill-color: transparent;
   animation: gold-shimmer 3s linear infinite;
 }
+
+/* ============================================================
+   CRM Light Theme — escopado em .crm-theme-light
+   Mantém todo o resto intacto; apenas troca as cores escuras
+   do CRM para um esquema claro inspirado no /admincentral.
+   ============================================================ */
+.crm-theme-light {
+  /* Surfaces (dark hex → light) */
+  --crm-bg: #ffffff;
+  --crm-surface: #F0FDF4;
+  --crm-surface-2: #E8F5F1;
+  --crm-surface-3: #ffffff;
+  --crm-input: #ffffff;
+  --crm-text: #075E54;
+  --crm-text-soft: #128C7E;
+  --crm-border: rgba(7, 94, 84, 0.12);
+  --crm-accent: #25D366;
+}
+
+/* Backgrounds */
+.crm-theme-light .bg-\[\#0c1317\],
+.crm-theme-light .bg-\[\#111b21\],
+.crm-theme-light .dark\:bg-\[\#0c1317\],
+.crm-theme-light .dark\:bg-\[\#111b21\] { background-color: var(--crm-bg) !important; }
+
+.crm-theme-light .bg-\[\#202c33\],
+.crm-theme-light .bg-\[\#1f2c34\],
+.crm-theme-light .dark\:bg-\[\#202c33\],
+.crm-theme-light .dark\:bg-\[\#2a3942\] { background-color: var(--crm-surface) !important; }
+
+.crm-theme-light .bg-\[\#2a3942\],
+.crm-theme-light .bg-\[\#1a2730\],
+.crm-theme-light .bg-\[\#0b141a\] { background-color: var(--crm-surface-2) !important; }
+
+.crm-theme-light .bg-\[\#f0f2f5\] { background-color: var(--crm-surface) !important; }
+
+/* Text */
+.crm-theme-light .text-white,
+.crm-theme-light .dark\:text-white { color: var(--crm-text) !important; }
+.crm-theme-light .text-white\/90 { color: rgba(7, 94, 84, 0.95) !important; }
+.crm-theme-light .text-white\/80 { color: rgba(7, 94, 84, 0.88) !important; }
+.crm-theme-light .text-white\/70 { color: rgba(7, 94, 84, 0.78) !important; }
+.crm-theme-light .text-white\/60 { color: rgba(7, 94, 84, 0.68) !important; }
+.crm-theme-light .text-white\/50 { color: rgba(7, 94, 84, 0.58) !important; }
+.crm-theme-light .text-white\/40 { color: rgba(7, 94, 84, 0.5) !important; }
+.crm-theme-light .text-white\/30 { color: rgba(7, 94, 84, 0.4) !important; }
+.crm-theme-light .placeholder\:text-white\/30::placeholder,
+.crm-theme-light .placeholder\:text-white\/40::placeholder,
+.crm-theme-light .placeholder\:text-white\/50::placeholder { color: rgba(7, 94, 84, 0.45) !important; }
+
+.crm-theme-light .text-\[\#aebac1\],
+.crm-theme-light .text-\[\#8696a0\],
+.crm-theme-light .dark\:text-\[\#aebac1\] { color: var(--crm-text-soft) !important; }
+
+/* Borders */
+.crm-theme-light .border-white\/5,
+.crm-theme-light .border-white\/10,
+.crm-theme-light .border-white\/15,
+.crm-theme-light .border-white\/20 { border-color: var(--crm-border) !important; }
+
+/* Hover surfaces */
+.crm-theme-light .hover\:bg-white\/5:hover,
+.crm-theme-light .hover\:bg-white\/10:hover { background-color: rgba(7, 94, 84, 0.06) !important; }
+
+/* Inputs / chat composer */
+.crm-theme-light .dark\:bg-\[\#2a3942\] { background-color: #ffffff !important; }
+
+/* Sidebar itself (className on Sidebar element) */
+.crm-theme-light [data-sidebar="sidebar"] {
+  background-color: var(--crm-surface) !important;
+  color: var(--crm-text) !important;
+}
+
+/* Scrollbar tweak for light */
+.crm-theme-light ::-webkit-scrollbar-thumb { background: rgba(7, 94, 84, 0.2); }
