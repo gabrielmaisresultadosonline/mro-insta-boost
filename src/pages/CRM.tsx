@@ -5393,7 +5393,7 @@ const CRM = () => {
                                             if (!ref) return null;
                                             const thumb = ref.thumbnail_url || ref.image_url;
                                             return (
-                                              <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-200 max-w-[300px] shadow-sm">
+                                              <div className="mt-2 p-2 rounded-xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-200 max-w-[180px] shadow-sm">
                                                 <div className="flex items-center gap-1.5 mb-1.5">
                                                   <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                                                     📣 Veio de um anúncio
@@ -5403,7 +5403,7 @@ const CRM = () => {
                                                   )}
                                                 </div>
                                                 {thumb && (
-                                                  <img src={thumb} alt="Anúncio" className="w-full h-32 object-cover rounded-lg mb-2 border border-emerald-100" />
+                                                  <img src={thumb} alt="Anúncio" className="w-full aspect-square object-cover rounded-lg mb-2 border border-emerald-100" />
                                                 )}
                                                 {ref.headline && (
                                                   <div className="text-[13px] font-bold text-foreground leading-snug">{ref.headline}</div>
