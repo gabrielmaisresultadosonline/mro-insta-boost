@@ -692,6 +692,89 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                 </div>
               )}
 
+              {/* Recipient preview & management */}
+              {candidateRecipients.length > 0 && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 p-3 rounded-xl bg-[#202c33] border border-white/5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Label className="text-xs md:text-sm font-bold text-[#e9edef] flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#00a884]" />
+                      Destinatários ({finalRecipients.length}{excludedNumbers.size > 0 ? ` • ${excludedNumbers.size} removidos` : ''})
+                    </Label>
+                    <div className="flex gap-2">
+                      {excludedNumbers.size > 0 && (
+                        <Button type="button" variant="ghost" size="sm" className="h-7 text-[10px] text-[#8696a0] hover:text-white" onClick={() => setExcludedNumbers(new Set())}>
+                          Restaurar todos
+                        </Button>
+                      )}
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-[10px]" onClick={handleSaveListForLater}>
+                        <Bookmark className="w-3 h-3 mr-1" /> Salvar lista
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8696a0]" />
+                    <Input
+                      placeholder="Buscar por nome ou número..."
+                      value={recipientSearch}
+                      onChange={e => setRecipientSearch(e.target.value)}
+                      className="h-8 pl-7 rounded-lg bg-[#111b21] border-none text-[#e9edef] text-xs"
+                    />
+                  </div>
+                  <ScrollArea className="h-[180px] rounded-lg bg-[#111b21] border border-white/5">
+                    <div className="p-1">
+                      {visibleRecipients.length === 0 ? (
+                        <p className="text-[10px] text-[#8696a0] text-center py-6">Nenhum destinatário encontrado.</p>
+                      ) : visibleRecipients.map(r => {
+                        const isExcluded = excludedNumbers.has(r.wa_id);
+                        return (
+                          <div key={r.wa_id} className={cn(
+                            "flex items-center justify-between gap-2 px-2 py-1.5 rounded-md transition-colors",
+                            isExcluded ? "opacity-40" : "hover:bg-[#202c33]"
+                          )}>
+                            <div className="min-w-0 flex-1">
+                              <p className={cn("text-xs text-[#e9edef] truncate", isExcluded && "line-through")}>{r.name}</p>
+                              <p className="text-[9px] text-[#8696a0] font-mono">{r.wa_id}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleExclude(r.wa_id)}
+                              title={isExcluded ? "Adicionar de volta" : "Remover deste disparo"}
+                              className={cn(
+                                "shrink-0 w-6 h-6 rounded flex items-center justify-center transition-colors",
+                                isExcluded ? "text-[#00a884] hover:bg-[#00a884]/10" : "text-[#8696a0] hover:text-red-400 hover:bg-red-500/10"
+                              )}
+                            >
+                              {isExcluded ? <Plus className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Saved lists */}
+              {savedLists.length > 0 && (
+                <div className="space-y-2 animate-in fade-in">
+                  <Label className="text-[10px] md:text-xs text-[#8696a0] flex items-center gap-1.5">
+                    <Bookmark className="w-3 h-3" /> Listas salvas (reutilizar)
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {savedLists.map(list => (
+                      <div key={list.name} className="flex items-center gap-1 bg-[#202c33] border border-white/5 rounded-lg pl-2 pr-1 py-1">
+                        <button type="button" onClick={() => handleLoadSavedList(list.name)} className="text-[10px] text-[#e9edef] hover:text-[#00a884]">
+                          {list.name} <span className="text-[#8696a0]">({list.numbers.length})</span>
+                        </button>
+                        <button type="button" onClick={() => handleDeleteSavedList(list.name)} className="text-[#8696a0] hover:text-red-400 p-0.5">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4 pt-4 border-t border-white/5">
                 <Label className="text-xs md:text-sm font-bold uppercase tracking-wider text-muted-foreground">Conteúdo do Disparo</Label>
                 <Tabs value={type} onValueChange={(val: any) => {
