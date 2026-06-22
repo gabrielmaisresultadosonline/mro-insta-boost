@@ -565,7 +565,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       const resultMb = compressed.size / (1024 * 1024);
       setCompressState((s) => s ? { ...s, status: 'done', progress: 100, resultMb } : s);
       // Se ainda acima do limite, deixa o usuário decidir; senão pode subir
-      if (resultMb <= compressState.limitMb) {
+      if (compressed.size <= WHATSAPP_VIDEO_MAX_BYTES) {
         await doUploadFile(compressed, compressState.nodeId, compressState.type);
         setCompressState(null);
       }
