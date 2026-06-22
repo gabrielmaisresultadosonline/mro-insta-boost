@@ -261,11 +261,6 @@
    do CRM para um esquema claro inspirado no /admincentral.
    ============================================================ */
 .crm-theme-light {
-}
-
-/* Logo swap for CRM light/dark themes */
-.crm-theme-light .crm-logo-dark { display: none; }
-.crm-theme-light .crm-logo-light { display: inline-block !important; }
   /* Surfaces (dark hex → light) */
   --crm-bg: #ffffff;
   --crm-surface: #F0FDF4;
@@ -302,6 +297,10 @@
   --sidebar-accent-foreground: 164 48% 8%;
   color: var(--crm-text);
 }
+
+/* Logo swap for CRM light/dark themes */
+.crm-theme-light .crm-logo-dark { display: none !important; }
+.crm-theme-light .crm-logo-light { display: inline-block !important; }
 
 /* Backgrounds */
 .crm-theme-light .bg-\[\#0c1317\],
