@@ -240,6 +240,50 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "list_announcements") {
+      const { data, error } = await supabase
+        .from("admin_announcements")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return json({ success: true, announcements: data || [] });
+    }
+
+    if (action === "create_announcement") {
+      const { title, message, frequency, start_date, end_date, active } = body as any;
+      if (!title || !message) return json({ success: false, error: "Título e mensagem são obrigatórios" }, 400);
+      const { data, error } = await supabase.from("admin_announcements").insert({
+        title,
+        message,
+        frequency: frequency || "once",
+        start_date: start_date || null,
+        end_date: end_date || null,
+        active: active !== false,
+      }).select().single();
+      if (error) throw error;
+      return json({ success: true, announcement: data });
+    }
+
+    if (action === "update_announcement") {
+      const { id, ...rest } = body as any;
+      if (!id) return json({ success: false, error: "id obrigatório" }, 400);
+      const patch: any = {};
+      for (const k of ["title","message","frequency","start_date","end_date","active"]) {
+        if (k in rest) patch[k] = rest[k];
+      }
+      const { error } = await supabase.from("admin_announcements").update(patch).eq("id", id);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    if (action === "delete_announcement") {
+      const { id } = body as any;
+      if (!id) return json({ success: false, error: "id obrigatório" }, 400);
+      const { error } = await supabase.from("admin_announcements").delete().eq("id", id);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
     return json({ success: false, error: "Ação inválida" }, 400);
   } catch (e: any) {
     console.error("[crm-central-admin] error:", e);
