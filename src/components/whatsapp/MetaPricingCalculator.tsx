@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, Info } from "lucide-react";
+import { Calculator, Info, ChevronDown } from "lucide-react";
 
 type Category = 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
 
@@ -18,6 +18,8 @@ interface MetaPricingCalculatorProps {
   defaultCategory?: Category;
   defaultQuantity?: number;
   compact?: boolean;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
 }
 
 const fmt = (n: number) =>
@@ -27,9 +29,12 @@ const MetaPricingCalculator = ({
   defaultCategory = 'MARKETING',
   defaultQuantity = 100,
   compact = false,
+  collapsible = false,
+  defaultOpen = false,
 }: MetaPricingCalculatorProps) => {
   const [category, setCategory] = useState<Category>(defaultCategory);
   const [qty, setQty] = useState<number>(defaultQuantity);
+  const [open, setOpen] = useState<boolean>(defaultOpen);
 
   const price = PRICING[category];
   const totalMin = price.min * qty;
@@ -38,16 +43,27 @@ const MetaPricingCalculator = ({
 
   return (
     <Card className="rounded-2xl border border-amber-200/40 dark:border-amber-900/30 bg-gradient-to-br from-amber-50/60 to-orange-50/40 dark:from-amber-900/10 dark:to-orange-900/10 shadow-sm">
-      <CardHeader className={compact ? "py-3 px-4" : undefined}>
-        <CardTitle className="text-sm md:text-base flex items-center gap-2 text-amber-900 dark:text-amber-200">
-          <Calculator className="w-4 h-4" /> Calculadora de Custo Meta
-        </CardTitle>
-        {!compact && (
+      <CardHeader
+        className={`${compact ? "py-3 px-4" : ""} ${collapsible ? "cursor-pointer select-none" : ""}`}
+        onClick={collapsible ? () => setOpen((o) => !o) : undefined}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-sm md:text-base flex items-center gap-2 text-amber-900 dark:text-amber-200">
+            <Calculator className="w-4 h-4" /> Calculadora de Custo Meta
+          </CardTitle>
+          {collapsible && (
+            <ChevronDown
+              className={`w-4 h-4 text-amber-700 dark:text-amber-300 transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          )}
+        </div>
+        {!compact && (!collapsible || open) && (
           <CardDescription className="text-[11px] md:text-xs text-amber-700/80 dark:text-amber-300/70">
             Estime quanto a Meta vai cobrar antes de enviar templates ou disparos.
           </CardDescription>
         )}
       </CardHeader>
+      {(!collapsible || open) && (
       <CardContent className={compact ? "px-4 pb-4 pt-0 space-y-3" : "space-y-4"}>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
@@ -96,6 +112,7 @@ const MetaPricingCalculator = ({
           </span>
         </div>
       </CardContent>
+      )}
     </Card>
   );
 };
