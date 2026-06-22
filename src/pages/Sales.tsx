@@ -572,19 +572,19 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
              <h2 className="text-3xl md:text-4xl font-bold mb-4">Planos que cabem no seu bolso</h2>
              <p className="text-slate-600">Escolha o plano ideal para a escala do seu negócio</p>
            </div>
-           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-             {/* Monthly */}
-             <Card className="rounded-3xl border-slate-200 overflow-hidden shadow-xl hover:shadow-2xl transition-shadow">
+           <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+             {/* Mensal */}
+             <Card className="rounded-3xl border-slate-200 overflow-hidden shadow-xl hover:shadow-2xl transition-shadow flex flex-col">
                <CardHeader className="p-8 text-center pb-0">
                  <CardTitle className="text-2xl">Mensal</CardTitle>
                  <CardDescription>Para quem está começando</CardDescription>
                  <div className="mt-6">
-                   <span className="text-4xl font-bold">R$ 147</span>
+                   <span className="text-4xl font-bold">R$ 137</span>
                    <span className="text-slate-500 ml-2">/mês</span>
                  </div>
                </CardHeader>
-               <CardContent className="p-8">
-                 <ul className="space-y-4">
+               <CardContent className="p-8 flex-1">
+                 <ul className="space-y-3">
                    {["API Oficial Meta", "Dashboard Completo", "Agente de IA", "Kanban CRM", "Suporte Prioritário"].map(item => (
                      <li key={item} className="flex items-center gap-3">
                        <Check className="w-5 h-5 text-green-500 shrink-0" />
@@ -594,34 +594,30 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                  </ul>
                </CardContent>
                <CardFooter className="p-8 pt-0">
-                 <Link to="/crm/login?mode=register" className="w-full">
-                   <Button variant="outline" className="w-full py-6 rounded-xl border-green-600 text-green-600 hover:bg-green-50">
-                     Começar Agora
-                   </Button>
-                 </Link>
+                 <Button onClick={() => openBuy("mensal")} variant="outline" className="w-full py-6 rounded-xl border-green-600 text-green-600 hover:bg-green-50">
+                   Assinar Mensal
+                 </Button>
                </CardFooter>
              </Card>
- 
-             {/* Annual */}
-              <Card className="rounded-3xl border-green-500 overflow-hidden shadow-2xl relative scale-105 z-10 bg-white text-slate-900">
+
+             {/* 6 meses - destaque */}
+             <Card className="rounded-3xl border-green-500 overflow-hidden shadow-2xl relative md:scale-105 z-10 bg-white text-slate-900 flex flex-col">
                <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-4 py-1 rounded-bl-xl uppercase tracking-wider">
-                 Mais Popular - Economize 77%
+                 Mais Popular
                </div>
                <CardHeader className="p-8 text-center pb-0">
-                  <CardTitle className="text-2xl text-slate-900">Anual</CardTitle>
-                 <CardDescription>O melhor custo-benefício</CardDescription>
+                 <CardTitle className="text-2xl text-slate-900">6 Meses</CardTitle>
+                 <CardDescription>Equilíbrio ideal</CardDescription>
                  <div className="mt-6">
-                   <span className="text-sm text-slate-500 block line-through">R$ 1.764 /ano</span>
                    <span className="text-4xl font-bold text-green-600">R$ 397</span>
-                   <span className="text-slate-500 ml-2">/ano</span>
                  </div>
                  <p className="mt-2 text-sm font-medium text-green-700 bg-green-50 py-2 rounded-lg">
-                   Ou em até 12x de <span className="text-lg font-bold">R$ 41</span>
+                   Ou em até 6x de <span className="text-lg font-bold">R$ 77</span>
                  </p>
                </CardHeader>
-               <CardContent className="p-8">
-                 <ul className="space-y-4">
-                   {["Tudo do plano Mensal", "Economia Gigante", "Treinamento VIP", "Prioridade em Novidades", "Selos de Verificação"].map(item => (
+               <CardContent className="p-8 flex-1">
+                 <ul className="space-y-3">
+                   {["Tudo do plano Mensal", "Economia de ~52%", "Suporte VIP", "Onboarding guiado", "Acesso a novidades"].map(item => (
                      <li key={item} className="flex items-center gap-3">
                        <Check className="w-5 h-5 text-green-500 shrink-0" />
                        <span className="text-slate-700 font-medium">{item}</span>
@@ -630,11 +626,39 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                  </ul>
                </CardContent>
                <CardFooter className="p-8 pt-0">
-                 <Link to="/crm/login?mode=register" className="w-full">
-                   <Button className="w-full py-6 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200">
-                     Assinar Plano Anual
-                   </Button>
-                 </Link>
+                 <Button onClick={() => openBuy("semestral")} className="w-full py-6 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200">
+                   Assinar 6 Meses
+                 </Button>
+               </CardFooter>
+             </Card>
+
+             {/* Anual */}
+             <Card className="rounded-3xl border-slate-200 overflow-hidden shadow-xl hover:shadow-2xl transition-shadow flex flex-col">
+               <CardHeader className="p-8 text-center pb-0">
+                 <CardTitle className="text-2xl">Anual (1 ano)</CardTitle>
+                 <CardDescription>Melhor custo-benefício</CardDescription>
+                 <div className="mt-6">
+                   <span className="text-sm text-slate-500 block line-through">R$ 1.644 /ano</span>
+                   <span className="text-4xl font-bold text-green-600">R$ 597</span>
+                 </div>
+                 <p className="mt-2 text-sm font-medium text-green-700 bg-green-50 py-2 rounded-lg">
+                   Ou em até 12x de <span className="text-lg font-bold">R$ 61</span>
+                 </p>
+               </CardHeader>
+               <CardContent className="p-8 flex-1">
+                 <ul className="space-y-3">
+                   {["Tudo do 6 Meses", "Economia máxima", "Treinamento VIP", "Prioridade total", "Selos de verificação"].map(item => (
+                     <li key={item} className="flex items-center gap-3">
+                       <Check className="w-5 h-5 text-green-500 shrink-0" />
+                       <span className="text-slate-600">{item}</span>
+                     </li>
+                   ))}
+                 </ul>
+               </CardContent>
+               <CardFooter className="p-8 pt-0">
+                 <Button onClick={() => openBuy("anual")} variant="outline" className="w-full py-6 rounded-xl border-green-600 text-green-600 hover:bg-green-50">
+                   Assinar Anual
+                 </Button>
                </CardFooter>
              </Card>
            </div>
