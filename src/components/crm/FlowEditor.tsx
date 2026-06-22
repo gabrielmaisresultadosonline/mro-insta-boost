@@ -1553,6 +1553,61 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
           </ReactFlow>
         </main>
       </div>
+      <AlertDialog open={!!compressState} onOpenChange={(o) => { if (!o && compressState?.status !== 'compressing') setCompressState(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {compressState?.status === 'done' ? 'Vídeo comprimido!' : `Vídeo muito grande (${compressState?.originalMb.toFixed(1)}MB)`}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {compressState?.status === 'ask' && (
+                  <p>O WhatsApp aceita no máximo {compressState.limitMb}MB para vídeo. Quer comprimir agora aqui no navegador e tentar de novo? Nada é enviado para a nuvem.</p>
+                )}
+                {compressState?.status === 'compressing' && (
+                  <>
+                    <p>Comprimindo no seu navegador... {compressState.progress}%</p>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all" style={{ width: `${compressState.progress}%` }} />
+                    </div>
+                  </>
+                )}
+                {compressState?.status === 'done' && (
+                  <p>
+                    Tamanho original: <b>{compressState.originalMb.toFixed(1)}MB</b><br />
+                    Após compressão: <b>{compressState.resultMb?.toFixed(1)}MB</b><br />
+                    {compressState.resultMb && compressState.resultMb > compressState.limitMb
+                      ? `Ainda acima de ${compressState.limitMb}MB. Tente cortar o vídeo antes.`
+                      : 'Pronto, enviando agora...'}
+                  </p>
+                )}
+                {compressState?.status === 'error' && (
+                  <p className="text-destructive">{compressState.errorMsg}</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            {compressState?.status === 'ask' && (
+              <>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={(e) => { e.preventDefault(); runCompression(); }}>
+                  Comprimir e tentar de novo
+                </AlertDialogAction>
+              </>
+            )}
+            {compressState?.status === 'compressing' && (
+              <Button disabled variant="ghost"><Loader2 className="w-4 h-4 mr-2 animate-spin" />Comprimindo...</Button>
+            )}
+            {compressState?.status === 'done' && compressState.resultMb && compressState.resultMb > compressState.limitMb && (
+              <AlertDialogCancel>Fechar</AlertDialogCancel>
+            )}
+            {compressState?.status === 'error' && (
+              <AlertDialogCancel>Fechar</AlertDialogCancel>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
