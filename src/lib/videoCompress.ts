@@ -3,9 +3,16 @@ const TARGET_BYTES = TARGET_MB * 1024 * 1024;
 
 export type CompressProgress = (pct: number) => void;
 
+export interface CompressOptions {
+  startTime?: number;
+  endTime?: number;
+  targetMb?: number;
+}
+
 export async function compressVideoForWhatsApp(
   file: File,
-  onProgress?: CompressProgress
+  onProgress?: CompressProgress,
+  options: CompressOptions = {}
 ): Promise<File> {
   // Carrega metadados (duração)
   const srcUrl = URL.createObjectURL(file);
@@ -19,16 +26,21 @@ export async function compressVideoForWhatsApp(
     video.onerror = () => rej(new Error('Erro ao carregar vídeo'));
   });
 
-  const dur = video.duration;
-  if (!dur || !isFinite(dur)) {
+  const fullDur = video.duration;
+  if (!fullDur || !isFinite(fullDur)) {
     URL.revokeObjectURL(srcUrl);
     throw new Error('Não foi possível ler a duração do vídeo');
   }
 
+  const startTime = Math.max(0, Math.min(options.startTime ?? 0, fullDur));
+  const endTime = Math.max(startTime + 0.1, Math.min(options.endTime ?? fullDur, fullDur));
+  const dur = endTime - startTime;
+  const targetBytes = (options.targetMb ?? TARGET_MB) * 1024 * 1024;
+
   const audioBitrate = 64_000;
   const targetBitrate = Math.max(
     250_000,
-    Math.floor((TARGET_BYTES * 8) / dur) - audioBitrate
+    Math.floor((targetBytes * 8) / dur) - audioBitrate
   );
 
   // captureStream
@@ -65,21 +77,44 @@ export async function compressVideoForWhatsApp(
     recorder.onstop = () => res(new Blob(chunks, { type: mimeType }));
   });
 
+  // Seek até startTime
+  await new Promise<void>((res) => {
+    const onSeek = () => { video.removeEventListener('seeked', onSeek); res(); };
+    video.addEventListener('seeked', onSeek);
+    video.currentTime = startTime;
+  });
+
   recorder.start(250);
-  video.currentTime = 0;
   await video.play();
 
   let raf = 0;
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    try { video.pause(); } catch {}
+  };
   const tick = () => {
-    if (video.ended || recorder.state === 'inactive') return;
-    const pct = Math.min(99, Math.round((video.currentTime / dur) * 100));
+    if (finished || recorder.state === 'inactive') return;
+    const cur = Math.max(0, video.currentTime - startTime);
+    const pct = Math.min(99, Math.round((cur / dur) * 100));
     onProgress?.(pct);
+    if (video.currentTime >= endTime || video.ended) {
+      finish();
+      return;
+    }
     raf = requestAnimationFrame(tick);
   };
   tick();
 
   await new Promise<void>((res) => {
-    video.onended = () => res();
+    const check = () => {
+      if (finished) { res(); return; }
+      if (video.ended || video.currentTime >= endTime) { finish(); res(); return; }
+      setTimeout(check, 100);
+    };
+    video.onended = () => { finish(); res(); };
+    check();
   });
   cancelAnimationFrame(raf);
 
