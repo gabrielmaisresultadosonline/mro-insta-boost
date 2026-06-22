@@ -1531,7 +1531,7 @@ async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusE
 
   const { data: existing, error: lookupError } = await supabase
     .from('crm_messages')
-    .select('id, user_id, metadata')
+    .select('id, user_id, metadata, message_type, media_url')
     .eq('meta_message_id', metaMessageId)
     .or(`user_id.eq.${userId},user_id.is.null`)
     .order('created_at', { ascending: false })
@@ -1561,6 +1561,15 @@ async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusE
   if (firstError) {
     updateData.error_code = String(firstError.code || firstError.error_code || 'meta_failed');
     updateData.error_message = firstError.message || firstError.title || firstError.error_data?.details || 'Meta informou falha na entrega';
+    console.error('[META-STATUS-ERROR] Falha assíncrona informada pela Meta', JSON.stringify({
+      userId,
+      metaMessageId,
+      localId: existing.id,
+      messageType: existing.message_type,
+      mediaUrl: existing.media_url,
+      error: firstError,
+      statusEvent,
+    }));
   }
 
   const { error: updateError } = await supabase
@@ -1592,6 +1601,7 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   
   const arrayBuffer = await mediaResponse.arrayBuffer();
   const responseContentType = mediaResponse.headers.get('content-type') || '';
+  const responseContentLength = mediaResponse.headers.get('content-length') || '';
   
   let contentType = responseContentType || media.mime;
   let fileName = media.fileName;
@@ -1634,6 +1644,14 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   // forçamos o MIME para video/mp4 (o conteúdo precisa estar em H.264/AAC —
   // a compressão no cliente já gera nesse formato quando suportado).
   if (media.type === 'video') {
+    console.log('[UPLOAD-VIDEO-DIAG] Mídia baixada para upload Meta', JSON.stringify({
+      url: media.url,
+      responseContentType,
+      responseContentLength,
+      bytes: arrayBuffer.byteLength,
+      originalMime: media.mime,
+      originalFileName: media.fileName,
+    }));
     if (arrayBuffer.byteLength > 16_000_000) {
       console.error(`[UPLOAD-VIDEO] Vídeo acima do limite oficial da Meta: ${arrayBuffer.byteLength} bytes`);
       throw new Error('Vídeo acima do limite de 16MB da Meta. Comprima ou corte mais um pouco antes de enviar.');
@@ -1664,6 +1682,7 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   })
   const uploadResult = await uploadResponse.json().catch(() => ({}))
   
+  console.log('[UPLOAD-RESULT] Resposta do upload Meta', JSON.stringify({ mediaType: media.type, status: uploadResponse.status, ok: uploadResponse.ok, id: uploadResult?.id || null, error: uploadResult?.error || null }));
   if (!uploadResponse.ok) {
     console.error(`[UPLOAD] Erro Meta detalhado:`, JSON.stringify(uploadResult));
     const details = uploadResult?.error?.error_data?.details || '';
@@ -1723,15 +1742,9 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
     payload.interactive = interactive;
   } else if (media) {
     console.log(`[MEDIA-DETECT] Tipo: ${media.type}, isVoice: ${isVoice}, VPS: ${vpsTranscoderUrl ? 'SIM' : 'NÃO'}`);
-    // Para vídeo: enviar via LINK direto evita o "Media upload error" assíncrono da Meta
-    // que acontece quando o container/codec do MP4 (especialmente vindo do MediaRecorder)
-    // não passa na validação interna pós-upload. A URL pública do Supabase Storage
-    // funciona como CDN e a Meta baixa direto, sem o pipeline de upload de mídia.
-    if (media.type === 'video' && /^https?:\/\//i.test(media.url)) {
-      console.log(`[MEDIA-VIDEO] Enviando vídeo via LINK direto (bypass do upload): ${media.url}`);
-      payload.type = 'video';
-      payload.video = { link: media.url, ...(params.text ? { caption: String(params.text) } : {}) };
-    } else
+    if (media.type === 'video') {
+      console.log('[MEDIA-VIDEO] Enviando vídeo por upload oficial da Meta e mensagem por media_id, não por link direto.');
+    }
     if (media.type === 'audio' && vpsTranscoderUrl) {
       console.log(`[AUDIO-VPS] Usando Transcoder para enviar como gravado: ${vpsTranscoderUrl}`);
       try {
@@ -1798,6 +1811,9 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
         voice: true // Crucial: para aparecer como gravado (blue mic)
       };
       console.log(`[MEDIA-SEND] Enviando áudio ID: ${mediaId} como 'audio'. OGG/Opus detectado. voice=true`);
+    } else if (media.type === 'video') {
+      payload.video = { id: mediaId, ...(params.text ? { caption: String(params.text) } : {}) };
+      console.log(`[MEDIA-SEND] Enviando vídeo ID: ${mediaId} como 'video' via media_id.`);
     } else if (media.type === 'document') {
       payload.document = { id: mediaId, filename: media.fileName };
     } else {
@@ -1868,6 +1884,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       meta_message_id: result?.messages?.[0]?.id || null,
       metadata: { 
         ...(media?.type === 'audio' ? { is_voice: !!params.isVoice } : {}),
+        ...(media?.type === 'video' ? { media_send_strategy: 'meta_upload_id', media_payload: 'video.id' } : {}),
         interactive: params.interactive || null,
         ...(params.metadata || {}),
         flow_executor_node_id: params.nodeId || params.contact?.current_node_id || null

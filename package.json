@@ -12,6 +12,9 @@
     "bridge": "node scripts/vps-whatsapp-bridge.cjs"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -70,9 +73,9 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.61.1",
+    "react-is": "^18.3.1",
     "react-resizable-panels": "^2.1.9",
     "react-router-dom": "^6.30.1",
-    "react-is": "^18.3.1",
     "recharts": "^2.15.0",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
