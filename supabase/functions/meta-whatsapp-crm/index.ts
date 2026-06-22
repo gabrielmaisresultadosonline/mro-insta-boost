@@ -54,11 +54,33 @@ function getReferralTextParts(referral: any) {
     referral.body,
     referral.description,
     referral.text,
+    referral.text?.body,
     referral.caption,
     referral.cta_text,
+    referral.welcome_message?.text,
+    referral.welcome_message?.button?.text,
     referral.source_url,
     referral.url,
   ].filter((value) => typeof value === 'string' && value.trim());
+}
+
+function flowMatchesIncomingTrigger(flow: any, allCandidateTexts: string[]) {
+  const triggerType = flow?.trigger_type;
+  const keywords: string[] = Array.isArray(flow?.trigger_keywords)
+    ? flow.trigger_keywords.map((keyword: string) => normalizeTriggerText(keyword)).filter(Boolean)
+    : (flow?.trigger_keyword ? [normalizeTriggerText(flow.trigger_keyword)] : []);
+
+  if (keywords.length === 0 || allCandidateTexts.length === 0) return false;
+
+  if (triggerType === 'exact_phrase') {
+    return keywords.some((keyword) => allCandidateTexts.some((candidate) => candidate === keyword || candidate.includes(keyword)));
+  }
+
+  if (triggerType === 'keyword') {
+    return keywords.some((keyword) => allCandidateTexts.some((candidate) => candidate.includes(keyword)));
+  }
+
+  return false;
 }
 
 function extractInboundTextFromWebhookMessage(message: any) {
