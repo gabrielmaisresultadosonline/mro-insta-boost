@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_announcement_views: {
+        Row: {
+          announcement_id: string
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          last_viewed_at: string | null
+          user_id: string
+          view_count: number
+        }
+        Insert: {
+          announcement_id: string
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          user_id: string
+          view_count?: number
+        }
+        Update: {
+          announcement_id?: string
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          user_id?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_announcement_views_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "admin_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_announcements: {
+        Row: {
+          active: boolean
+          created_at: string
+          end_date: string | null
+          frequency: string
+          id: string
+          message: string
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          message: string
+          start_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          message?: string
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ads_admins: {
         Row: {
           created_at: string
