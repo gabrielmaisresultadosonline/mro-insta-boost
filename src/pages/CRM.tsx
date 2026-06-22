@@ -4847,30 +4847,6 @@ const CRM = () => {
                                 </div>
                               </div>
                             )}
-                            
-                            <div className="flex items-center gap-1.5 w-full pt-1 border-t border-border/5 overflow-x-auto scrollbar-hide pb-0.5">
-                              {kanbanStatuses.filter(s => s.is_starred).map(status => (
-                                <Button 
-                                  key={status.id}
-                                  size="sm" 
-                                  variant="outline" 
-                                  className={cn("h-6 px-2 text-[9px] font-bold border-zinc-200 hover:bg-zinc-50 transition-all shadow-sm rounded-lg whitespace-nowrap")}
-                                  onClick={() => updateContactStatus(selectedContact.id, { status: status.value })}
-                                >
-                                  {status.label}
-                                </Button>
-                              ))}
-                              <Select onValueChange={(val) => updateContactStatus(selectedContact.id, { status: val })}>
-                                <SelectTrigger className="w-fit h-6 text-[9px] font-bold border-zinc-200 bg-zinc-50/50 rounded-lg px-2 shrink-0">
-                                  <SelectValue placeholder="Etiqueta" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {kanbanStatuses.map(s => (
-                                    <SelectItem key={s.id} value={s.value}>{s.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
                           </div>
                           
                           <div className={cn(
