@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,10 @@ import {
   Upload,
   ArrowRight,
   Save,
-  BrainCircuit
+  BrainCircuit,
+  X,
+  Search,
+  Bookmark
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -67,6 +70,12 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [parsingType, setParsingType] = useState<'vcard' | 'csv' | null>(null);
 
+  // Recipient preview / management
+  const [excludedNumbers, setExcludedNumbers] = useState<Set<string>>(new Set());
+  const [recipientSearch, setRecipientSearch] = useState('');
+  const [savedLists, setSavedLists] = useState<{ name: string; numbers: string[]; createdAt: string }[]>([]);
+  const SAVED_LISTS_KEY = 'crm_broadcast_saved_lists';
+
   // 24h Countdown trigger state
   const [countdownEnabled, setCountdownEnabled] = useState(false);
   const [countdownThreshold, setCountdownThreshold] = useState(60);
@@ -79,7 +88,96 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   useEffect(() => {
     fetchBroadcasts();
     fetchCountdownSettings();
+    try {
+      const raw = localStorage.getItem(SAVED_LISTS_KEY);
+      if (raw) setSavedLists(JSON.parse(raw));
+    } catch {}
   }, []);
+
+  const persistSavedLists = (lists: typeof savedLists) => {
+    setSavedLists(lists);
+    try { localStorage.setItem(SAVED_LISTS_KEY, JSON.stringify(lists)); } catch {}
+  };
+
+  // Reset exclusions when changing target
+  useEffect(() => {
+    setExcludedNumbers(new Set());
+    setRecipientSearch('');
+  }, [targetType, selectedStatus]);
+
+  // Compute candidate recipients (with contact info) based on current target
+  const candidateRecipients = useMemo(() => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    if (targetType === 'conversation') {
+      return contacts.filter(c => c.last_message_received_at && (now - new Date(c.last_message_received_at).getTime()) < DAY)
+        .map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
+    }
+    if (targetType === 'contacts') {
+      return contacts.map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
+    }
+    if (targetType === 'tag' && selectedStatus) {
+      return contacts.filter(c => c.status === selectedStatus).map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
+    }
+    if (targetType === 'uploaded') {
+      return uploadedNumbers.split('\n').map(n => {
+        const digits = n.trim().replace(/\D/g, '');
+        if (digits.length < 10) return null;
+        // Auto add 55 if it's a Brazilian local number without country code
+        const wa = (digits.length === 10 || digits.length === 11) ? `55${digits}` : digits;
+        return { wa_id: wa, name: wa };
+      }).filter(Boolean) as { wa_id: string; name: string }[];
+    }
+    return [];
+  }, [targetType, selectedStatus, contacts, uploadedNumbers]);
+
+  const finalRecipients = useMemo(
+    () => candidateRecipients.filter(r => !excludedNumbers.has(r.wa_id)),
+    [candidateRecipients, excludedNumbers]
+  );
+
+  const visibleRecipients = useMemo(() => {
+    const q = recipientSearch.trim().toLowerCase();
+    if (!q) return candidateRecipients;
+    return candidateRecipients.filter(r =>
+      r.name.toLowerCase().includes(q) || r.wa_id.includes(q)
+    );
+  }, [candidateRecipients, recipientSearch]);
+
+  const toggleExclude = (wa: string) => {
+    setExcludedNumbers(prev => {
+      const next = new Set(prev);
+      if (next.has(wa)) next.delete(wa); else next.add(wa);
+      return next;
+    });
+  };
+
+  const handleSaveListForLater = () => {
+    if (finalRecipients.length === 0) {
+      toast({ title: "Lista vazia", description: "Selecione destinatários antes de salvar.", variant: "destructive" });
+      return;
+    }
+    const listName = window.prompt('Nome da lista (para reutilizar em outro disparo):', name || `Lista ${new Date().toLocaleDateString('pt-BR')}`);
+    if (!listName) return;
+    const numbers = finalRecipients.map(r => r.wa_id);
+    const updated = [...savedLists.filter(l => l.name !== listName), { name: listName, numbers, createdAt: new Date().toISOString() }];
+    persistSavedLists(updated);
+    toast({ title: "Lista salva!", description: `${numbers.length} contatos em "${listName}".` });
+  };
+
+  const handleLoadSavedList = (listName: string) => {
+    const list = savedLists.find(l => l.name === listName);
+    if (!list) return;
+    setTargetType('uploaded');
+    setUploadedNumbers(list.numbers.join('\n'));
+    setExcludedNumbers(new Set());
+    toast({ title: `Lista "${listName}" carregada`, description: `${list.numbers.length} contatos.` });
+  };
+
+  const handleDeleteSavedList = (listName: string) => {
+    if (!confirm(`Excluir a lista "${listName}"?`)) return;
+    persistSavedLists(savedLists.filter(l => l.name !== listName));
+  };
 
   const fetchCountdownSettings = async () => {
     const { data: settings } = await supabase
@@ -142,29 +240,20 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       const DAY = 24 * 60 * 60 * 1000;
       const now = Date.now();
       
+      // Use the curated final recipients (respects exclusions & uploaded normalization)
+      const curated = finalRecipients.map(r => r.wa_id);
+
       if (targetType === 'conversation') {
-        // Filtrar apenas contatos que responderam nas últimas 24 horas (Janela Ativa)
-        numbers = contacts
-          .filter(c => c.last_message_received_at && (now - new Date(c.last_message_received_at).getTime()) < DAY)
-          .map(c => c.wa_id);
+        numbers = curated;
       } else {
         // Lista Geral/Etiqueta/Upload
-        let potentialNumbers: string[] = [];
-        
-        if (targetType === 'contacts') {
-          potentialNumbers = contacts.map(c => c.wa_id);
-        } else if (targetType === 'tag') {
+        let potentialNumbers: string[] = curated;
+        if (targetType === 'tag') {
           if (!selectedStatus) {
             toast({ title: "Selecione uma etiqueta", variant: "destructive" });
             setLoading(false);
             return;
           }
-          potentialNumbers = contacts.filter(c => c.status === selectedStatus).map(c => c.wa_id);
-        } else if (targetType === 'uploaded') {
-          potentialNumbers = uploadedNumbers
-            .split('\n')
-            .map(n => n.trim().replace(/\D/g, ''))
-            .filter(n => n.length >= 10);
         }
 
         // REGRAS DE DISPARO (META API)
@@ -599,7 +688,92 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     value={uploadedNumbers}
                     onChange={e => setUploadedNumbers(e.target.value)}
                   />
-                  <p className="text-[9px] md:text-[10px] text-muted-foreground italic">Dica: Adicione o código do país (Ex: 55 para Brasil).</p>
+                  <p className="text-[9px] md:text-[10px] text-muted-foreground italic">
+                    Aceita com ou sem +55. Números brasileiros (10-11 dígitos) recebem o 55 automaticamente.
+                  </p>
+                </div>
+              )}
+
+              {/* Recipient preview & management */}
+              {candidateRecipients.length > 0 && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 p-3 rounded-xl bg-[#202c33] border border-white/5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Label className="text-xs md:text-sm font-bold text-[#e9edef] flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#00a884]" />
+                      Destinatários ({finalRecipients.length}{excludedNumbers.size > 0 ? ` • ${excludedNumbers.size} removidos` : ''})
+                    </Label>
+                    <div className="flex gap-2">
+                      {excludedNumbers.size > 0 && (
+                        <Button type="button" variant="ghost" size="sm" className="h-7 text-[10px] text-[#8696a0] hover:text-white" onClick={() => setExcludedNumbers(new Set())}>
+                          Restaurar todos
+                        </Button>
+                      )}
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-[10px]" onClick={handleSaveListForLater}>
+                        <Bookmark className="w-3 h-3 mr-1" /> Salvar lista
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8696a0]" />
+                    <Input
+                      placeholder="Buscar por nome ou número..."
+                      value={recipientSearch}
+                      onChange={e => setRecipientSearch(e.target.value)}
+                      className="h-8 pl-7 rounded-lg bg-[#111b21] border-none text-[#e9edef] text-xs"
+                    />
+                  </div>
+                  <ScrollArea className="h-[180px] rounded-lg bg-[#111b21] border border-white/5">
+                    <div className="p-1">
+                      {visibleRecipients.length === 0 ? (
+                        <p className="text-[10px] text-[#8696a0] text-center py-6">Nenhum destinatário encontrado.</p>
+                      ) : visibleRecipients.map(r => {
+                        const isExcluded = excludedNumbers.has(r.wa_id);
+                        return (
+                          <div key={r.wa_id} className={cn(
+                            "flex items-center justify-between gap-2 px-2 py-1.5 rounded-md transition-colors",
+                            isExcluded ? "opacity-40" : "hover:bg-[#202c33]"
+                          )}>
+                            <div className="min-w-0 flex-1">
+                              <p className={cn("text-xs text-[#e9edef] truncate", isExcluded && "line-through")}>{r.name}</p>
+                              <p className="text-[9px] text-[#8696a0] font-mono">{r.wa_id}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleExclude(r.wa_id)}
+                              title={isExcluded ? "Adicionar de volta" : "Remover deste disparo"}
+                              className={cn(
+                                "shrink-0 w-6 h-6 rounded flex items-center justify-center transition-colors",
+                                isExcluded ? "text-[#00a884] hover:bg-[#00a884]/10" : "text-[#8696a0] hover:text-red-400 hover:bg-red-500/10"
+                              )}
+                            >
+                              {isExcluded ? <Plus className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Saved lists */}
+              {savedLists.length > 0 && (
+                <div className="space-y-2 animate-in fade-in">
+                  <Label className="text-[10px] md:text-xs text-[#8696a0] flex items-center gap-1.5">
+                    <Bookmark className="w-3 h-3" /> Listas salvas (reutilizar)
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {savedLists.map(list => (
+                      <div key={list.name} className="flex items-center gap-1 bg-[#202c33] border border-white/5 rounded-lg pl-2 pr-1 py-1">
+                        <button type="button" onClick={() => handleLoadSavedList(list.name)} className="text-[10px] text-[#e9edef] hover:text-[#00a884]">
+                          {list.name} <span className="text-[#8696a0]">({list.numbers.length})</span>
+                        </button>
+                        <button type="button" onClick={() => handleDeleteSavedList(list.name)} className="text-[#8696a0] hover:text-red-400 p-0.5">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
