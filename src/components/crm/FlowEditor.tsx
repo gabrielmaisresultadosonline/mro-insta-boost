@@ -442,7 +442,10 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [flowName, setFlowName] = useState(flow?.name || 'Novo Fluxo');
   const [triggerType, setTriggerType] = useState(flow?.trigger_type || 'manual');
-  const [triggerKeywords, setTriggerKeywords] = useState(flow?.trigger_keywords?.join(', ') || flow?.trigger_keyword || '');
+  const [triggerKeywords, setTriggerKeywords] = useState(
+    flow?.trigger_keywords?.join(flow?.trigger_type === 'exact_phrase' ? '\n' : ', ')
+      || flow?.trigger_keyword || ''
+  );
   const [triggerTag, setTriggerTag] = useState(flow?.trigger_tag || '');
   const [isActive, setIsActive] = useState(flow?.is_active !== false);
   const [uploading, setUploading] = useState(false);
@@ -601,7 +604,9 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       ...flow,
       name: flowName,
       trigger_type: triggerType,
-      trigger_keywords: triggerType === 'exact_phrase' ? [triggerKeywords.trim()] : triggerKeywords.split(',').map(k => k.trim()).filter(k => k !== ''),
+      trigger_keywords: triggerType === 'exact_phrase'
+        ? triggerKeywords.split('\n').map(k => k.trim()).filter(k => k !== '')
+        : triggerKeywords.split(',').map(k => k.trim()).filter(k => k !== ''),
       trigger_tag: triggerTag,
       is_active: isActive,
       nodes,
@@ -1369,10 +1374,10 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                 {(triggerType === 'keyword' || triggerType === 'exact_phrase') && (
                   <div className="space-y-2 animate-in slide-in-from-top-2">
                     <Label className="text-xs">
-                      {triggerType === 'keyword' ? 'Palavras-chave (separado por vírgula)' : 'Frase Completa'}
+                      {triggerType === 'keyword' ? 'Palavras-chave (separado por vírgula)' : 'Frases Completas (uma por linha)'}
                     </Label>
                     <Textarea 
-                      placeholder={triggerType === 'keyword' ? "Ex: olá, preço, ajuda" : "Ex: Estou no site, gostaria de tirar umas dúvidas..."}
+                      placeholder={triggerType === 'keyword' ? "Ex: olá, preço, ajuda" : "Ex:\nGostaria de saber sobre o sistema\nQuero mais informações\nComo funciona?"}
                       value={triggerKeywords}
                       onChange={(e) => {
                         console.log("Updating trigger keywords:", e.target.value);
@@ -1382,7 +1387,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                     />
                     <p className="text-[9px] text-muted-foreground italic">
                       {triggerType === 'exact_phrase' 
-                        ? "O fluxo iniciará apenas se o cliente enviar exatamente essa frase."
+                        ? "Adicione uma frase por linha. O fluxo iniciará se o cliente enviar exatamente qualquer uma dessas frases."
                         : "O fluxo iniciará se a mensagem contiver qualquer uma dessas palavras."}
                     </p>
                   </div>
