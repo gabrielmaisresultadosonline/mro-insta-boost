@@ -1723,6 +1723,15 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
     payload.interactive = interactive;
   } else if (media) {
     console.log(`[MEDIA-DETECT] Tipo: ${media.type}, isVoice: ${isVoice}, VPS: ${vpsTranscoderUrl ? 'SIM' : 'NÃO'}`);
+    // Para vídeo: enviar via LINK direto evita o "Media upload error" assíncrono da Meta
+    // que acontece quando o container/codec do MP4 (especialmente vindo do MediaRecorder)
+    // não passa na validação interna pós-upload. A URL pública do Supabase Storage
+    // funciona como CDN e a Meta baixa direto, sem o pipeline de upload de mídia.
+    if (media.type === 'video' && /^https?:\/\//i.test(media.url)) {
+      console.log(`[MEDIA-VIDEO] Enviando vídeo via LINK direto (bypass do upload): ${media.url}`);
+      payload.type = 'video';
+      payload.video = { link: media.url, ...(params.text ? { caption: String(params.text) } : {}) };
+    } else
     if (media.type === 'audio' && vpsTranscoderUrl) {
       console.log(`[AUDIO-VPS] Usando Transcoder para enviar como gravado: ${vpsTranscoderUrl}`);
       try {
@@ -1766,6 +1775,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       }
     }
 
+    if (!payload.type) {
     console.log(`[MEDIA] Iniciando upload de ${media.type} para Meta. URL: ${media.url}`);
     let mediaId;
     try {
@@ -1792,6 +1802,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       payload.document = { id: mediaId, filename: media.fileName };
     } else {
       payload[media.type] = { id: mediaId };
+    }
     }
   } else {
     payload.type = 'text'
