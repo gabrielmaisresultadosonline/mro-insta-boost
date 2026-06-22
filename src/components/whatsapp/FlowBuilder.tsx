@@ -119,6 +119,17 @@ export default function FlowBuilder({ callProxy, onFlowsChange }: FlowBuilderPro
   const [activeFileStep, setActiveFileStep] = useState<number | null>(null);
 
   const uploadMediaFile = async (file: File, stepIndex: number, field: 'media_url' | 'followup_media_url' = 'media_url') => {
+    // Validação de tamanho para vídeo (limite do WhatsApp: 16MB)
+    if (file.type.startsWith('video/') && file.size > 16 * 1024 * 1024) {
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      toast({
+        title: 'Vídeo muito grande',
+        description: `Seu vídeo tem ${sizeMB}MB. O WhatsApp aceita no máximo 16MB. Use o botão "Converter vídeo" para comprimir antes de subir.`,
+        variant: 'destructive',
+      });
+      setUploadingStep(null);
+      return;
+    }
     setUploadingStep(stepIndex);
     try {
       const ext = file.name.split('.').pop() || 'bin';
