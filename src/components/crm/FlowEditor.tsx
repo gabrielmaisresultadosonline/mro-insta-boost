@@ -57,6 +57,8 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { compressVideoForWhatsApp } from "@/lib/videoCompress";
 
 // Custom Node Types
 const PixNode = ({ data }: any) => (
@@ -452,6 +454,17 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
   const [availableFlows, setAvailableFlows] = useState<any[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
+  const [compressState, setCompressState] = useState<{
+    file: File;
+    nodeId: string;
+    type: 'audio' | 'video' | 'image';
+    originalMb: number;
+    limitMb: number;
+    status: 'ask' | 'compressing' | 'done' | 'error';
+    progress: number;
+    resultMb?: number;
+    errorMsg?: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -476,19 +489,46 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       const limitMb = LIMITS[type] ?? 16;
       const sizeMb = file.size / (1024 * 1024);
       if (sizeMb > limitMb) {
+        if (type === 'video') {
+          // Oferece compressão inline no navegador
+          setCompressState({
+            file,
+            nodeId,
+            type,
+            originalMb: sizeMb,
+            limitMb,
+            status: 'ask',
+            progress: 0,
+          });
+          return;
+        }
         toast({
           title: `Arquivo muito grande (${sizeMb.toFixed(1)}MB)`,
-          description: `O WhatsApp aceita no máximo ${limitMb}MB para ${type === 'video' ? 'vídeo' : type === 'audio' ? 'áudio' : 'imagem'}. Comprima o arquivo e envie novamente.`,
+          description: `O WhatsApp aceita no máximo ${limitMb}MB para ${type === 'audio' ? 'áudio' : 'imagem'}. Comprima o arquivo e envie novamente.`,
           variant: "destructive",
         });
         return;
       }
-      setUploading(true);
+      await doUploadFile(file, nodeId, type);
+    } catch (error: any) {
+      toast({ 
+        title: "Erro no upload", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const doUploadFile = async (file: File, nodeId: string, type: 'audio' | 'video' | 'image') => {
+    setUploading(true);
+    try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `flow-media/${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('crm-media')
         .upload(filePath, file);
 
@@ -505,14 +545,27 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
 
       updateNodeData(nodeId, updateData);
       toast({ title: "Arquivo enviado com sucesso!" });
-    } catch (error: any) {
-      toast({ 
-        title: "Erro no upload", 
-        description: error.message, 
-        variant: "destructive" 
-      });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const runCompression = async () => {
+    if (!compressState) return;
+    setCompressState((s) => s ? { ...s, status: 'compressing', progress: 0 } : s);
+    try {
+      const compressed = await compressVideoForWhatsApp(compressState.file, (pct) => {
+        setCompressState((s) => s ? { ...s, progress: pct } : s);
+      });
+      const resultMb = compressed.size / (1024 * 1024);
+      setCompressState((s) => s ? { ...s, status: 'done', progress: 100, resultMb } : s);
+      // Se ainda acima do limite, deixa o usuário decidir; senão pode subir
+      if (resultMb <= compressState.limitMb) {
+        await doUploadFile(compressed, compressState.nodeId, compressState.type);
+        setCompressState(null);
+      }
+    } catch (e: any) {
+      setCompressState((s) => s ? { ...s, status: 'error', errorMsg: e?.message || 'Erro ao comprimir' } : s);
     }
   };
 
@@ -1500,6 +1553,61 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
           </ReactFlow>
         </main>
       </div>
+      <AlertDialog open={!!compressState} onOpenChange={(o) => { if (!o && compressState?.status !== 'compressing') setCompressState(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {compressState?.status === 'done' ? 'Vídeo comprimido!' : `Vídeo muito grande (${compressState?.originalMb.toFixed(1)}MB)`}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {compressState?.status === 'ask' && (
+                  <p>O WhatsApp aceita no máximo {compressState.limitMb}MB para vídeo. Quer comprimir agora aqui no navegador e tentar de novo? Nada é enviado para a nuvem.</p>
+                )}
+                {compressState?.status === 'compressing' && (
+                  <>
+                    <p>Comprimindo no seu navegador... {compressState.progress}%</p>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all" style={{ width: `${compressState.progress}%` }} />
+                    </div>
+                  </>
+                )}
+                {compressState?.status === 'done' && (
+                  <p>
+                    Tamanho original: <b>{compressState.originalMb.toFixed(1)}MB</b><br />
+                    Após compressão: <b>{compressState.resultMb?.toFixed(1)}MB</b><br />
+                    {compressState.resultMb && compressState.resultMb > compressState.limitMb
+                      ? `Ainda acima de ${compressState.limitMb}MB. Tente cortar o vídeo antes.`
+                      : 'Pronto, enviando agora...'}
+                  </p>
+                )}
+                {compressState?.status === 'error' && (
+                  <p className="text-destructive">{compressState.errorMsg}</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            {compressState?.status === 'ask' && (
+              <>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={(e) => { e.preventDefault(); runCompression(); }}>
+                  Comprimir e tentar de novo
+                </AlertDialogAction>
+              </>
+            )}
+            {compressState?.status === 'compressing' && (
+              <Button disabled variant="ghost"><Loader2 className="w-4 h-4 mr-2 animate-spin" />Comprimindo...</Button>
+            )}
+            {compressState?.status === 'done' && compressState.resultMb && compressState.resultMb > compressState.limitMb && (
+              <AlertDialogCancel>Fechar</AlertDialogCancel>
+            )}
+            {compressState?.status === 'error' && (
+              <AlertDialogCancel>Fechar</AlertDialogCancel>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
