@@ -864,7 +864,11 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   let buttonId = '';
   let mediaUrlForSave: string | null = null;
   let mediaCaption = '';
-  const extractedInboundText = extractInboundTextFromWebhookMessage(message);
+  let extractedInboundText = extractInboundTextFromWebhookMessage(message);
+
+  if (!extractedInboundText && isUnavailableUnsupportedMessage(message)) {
+    extractedInboundText = await getConfiguredCtwaFallbackText(supabase, userId);
+  }
 
   if (message.type === 'image' || message.type === 'video') {
     console.log(`[FLOW-LOG] Received ${message.type} from ${waId}. Resolving media ID...`);
