@@ -1021,6 +1021,8 @@ else if (message.type === "unsupported") {
   if (contact && hasActiveFlow && isWaitingResponse && !isAiHandling && !isAiActive) {
     try {
       const allCandidateTexts = collectInboundTriggerTexts(message, text);
+      const hasReferral = !!getReferralFromWebhookMessage(message);
+      console.log(`[TRIGGER-CTWA] (waiting-flow) waId=${waId} msgType=${message?.type} hasReferral=${hasReferral} candidates=${JSON.stringify(allCandidateTexts)}`);
       const { data: triggeredFlows, error: triggeredFlowsError } = await supabase
         .from('crm_flows')
         .select('id, name, trigger_type, trigger_keywords, trigger_keyword, nodes, edges, user_id')
@@ -1031,10 +1033,16 @@ else if (message.type === "unsupported") {
 
       if (triggeredFlowsError) throw triggeredFlowsError;
 
+      console.log(`[TRIGGER-CTWA] (waiting-flow) ${triggeredFlows?.length || 0} candidate flow(s) loaded for user ${userId}`);
       const priority = ['exact_phrase', 'keyword'];
       let matchingTriggeredFlow = null;
       for (const triggerType of priority) {
-        matchingTriggeredFlow = (triggeredFlows || []).find((flow: any) => flow.trigger_type === triggerType && flowMatchesIncomingTrigger(flow, allCandidateTexts));
+        matchingTriggeredFlow = (triggeredFlows || []).find((flow: any) => {
+          if (flow.trigger_type !== triggerType) return false;
+          const matched = flowMatchesIncomingTrigger(flow, allCandidateTexts);
+          console.log(`[TRIGGER-CTWA] (waiting-flow) eval flow="${flow.name}" type=${flow.trigger_type} kws=${JSON.stringify(flow.trigger_keywords || [flow.trigger_keyword])} => matched=${matched}`);
+          return matched;
+        });
         if (matchingTriggeredFlow) break;
       }
 
