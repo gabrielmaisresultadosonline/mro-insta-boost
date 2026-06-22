@@ -63,6 +63,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [uploadedNumbers, setUploadedNumbers] = useState('');
   const [delayMin, setDelayMin] = useState(10);
   const [delayMax, setDelayMax] = useState(60);
+  const [applyTag, setApplyTag] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [parsingType, setParsingType] = useState<'vcard' | 'csv' | null>(null);
 
@@ -298,6 +299,34 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     }
     
     await supabase.from('crm_broadcasts').update({ status: 'completed' }).eq('id', broadcastId);
+
+    // Apply etiqueta (tag) to all contacts in this broadcast, if selected
+    if (applyTag) {
+      try {
+        for (const number of numbers) {
+          const { data: existing } = await supabase
+            .from('crm_contacts')
+            .select('id')
+            .eq('wa_id', number)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase
+              .from('crm_contacts')
+              .update({ status: applyTag })
+              .eq('id', existing.id);
+          } else {
+            await supabase
+              .from('crm_contacts')
+              .insert([{ wa_id: number, name: number, status: applyTag, source_type: 'broadcast' }]);
+          }
+        }
+        toast({ title: `Etiqueta aplicada a ${numbers.length} contatos!` });
+      } catch (err) {
+        console.error('Error applying tag to broadcast contacts:', err);
+      }
+    }
+
     fetchBroadcasts();
     toast({ title: "Campanha finalizada!" });
   };
@@ -791,6 +820,33 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                       className="h-10 rounded-xl bg-[#202c33] border-none text-[#e9edef] text-xs md:text-sm"
                     />
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs md:text-sm font-bold uppercase tracking-wider text-[#8696a0] flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Aplicar Etiqueta (Opcional)
+                  </Label>
+                  <Badge variant="outline" className="text-[8px] md:text-[10px] text-[#00a884] border-[#00a884]/20 bg-[#00a884]/5">
+                    Organiza no CRM
+                  </Badge>
+                </div>
+                <p className="text-[10px] md:text-xs text-[#8696a0] italic">
+                  Todos os contatos desta campanha receberão automaticamente esta etiqueta no CRM ao final do disparo.
+                </p>
+                <div className="flex gap-2">
+                  <Select value={applyTag || 'none'} onValueChange={(v) => setApplyTag(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="h-10 md:h-11 rounded-xl bg-[#202c33] border-none text-[#e9edef] text-xs md:text-sm flex-1">
+                      <SelectValue placeholder="Nenhuma etiqueta (não organizar)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma etiqueta</SelectItem>
+                      {statuses.map(s => (
+                        <SelectItem key={s.id} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
