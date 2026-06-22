@@ -59,6 +59,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { compressVideoForWhatsApp } from "@/lib/videoCompress";
+import { VideoCompressDialog } from "./VideoCompressDialog";
 
 // Custom Node Types
 const PixNode = ({ data }: any) => (
