@@ -6,6 +6,8 @@ import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BookOpen } from "lucide-react";
+import PurchaseDialog, { type PlanKey } from "@/components/sales/PurchaseDialog";
+import { useState } from "react";
  import whatsappGirlBgImg from "@/assets/whatsapp-meta-hero.png";
  const metaBgImg = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=2000";
 const professionalButtonsImg = "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&q=80&w=800";
@@ -14,6 +16,9 @@ const productCarouselImg = "https://images.unsplash.com/photo-1460925895917-afda
 const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94e495d?auto=format&fit=crop&q=80&w=800";
  
  const Sales = () => {
+   const [buyOpen, setBuyOpen] = useState(false);
+   const [buyPlan, setBuyPlan] = useState<PlanKey>("mensal");
+   const openBuy = (p: PlanKey) => { setBuyPlan(p); setBuyOpen(true); };
    const features = [
      {
        icon: <MessageCircle className="w-6 h-6 text-green-500" />,
