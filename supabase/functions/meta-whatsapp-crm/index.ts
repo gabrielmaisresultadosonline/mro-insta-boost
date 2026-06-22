@@ -1634,6 +1634,10 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   // forçamos o MIME para video/mp4 (o conteúdo precisa estar em H.264/AAC —
   // a compressão no cliente já gera nesse formato quando suportado).
   if (media.type === 'video') {
+    if (arrayBuffer.byteLength > 15_000_000) {
+      console.error(`[UPLOAD-VIDEO] Vídeo acima da margem segura da Meta: ${arrayBuffer.byteLength} bytes`);
+      throw new Error('Vídeo acima do limite seguro da Meta. Comprima ou corte mais um pouco antes de enviar.');
+    }
     const lower = (contentType || '').toLowerCase();
     if (!lower.includes('mp4') && !lower.includes('3gpp')) {
       console.log(`[UPLOAD-VIDEO] contentType "${contentType}" não aceito pela Meta. Forçando video/mp4.`);

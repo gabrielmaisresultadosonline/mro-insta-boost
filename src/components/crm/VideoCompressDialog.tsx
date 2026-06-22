@@ -23,6 +23,8 @@ function fmtTime(s: number) {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
+const SAFE_META_VIDEO_MB = 15_000_000 / (1024 * 1024);
+
 export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: VideoCompressDialogProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [url, setUrl] = useState<string | null>(null);
@@ -102,9 +104,9 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
   const trimmedDur = trim[1] - trim[0];
   const estimatedMb = useMemo(() => {
     if (!duration || !originalMb) return 0;
-    // estimativa proporcional pelo trim, mas limitada pela meta do compressor (~15.5MB)
+    // estimativa proporcional pelo trim, mas limitada pela margem segura da Meta
     const proportional = (trimmedDur / duration) * originalMb;
-    return Math.min(proportional, Math.min(limitMb, 15.5));
+    return Math.min(proportional, Math.min(limitMb, SAFE_META_VIDEO_MB));
   }, [trimmedDur, duration, originalMb, limitMb]);
 
   const runCompress = async () => {

@@ -1,5 +1,7 @@
-const TARGET_MB = 15.5;
-const TARGET_BYTES = TARGET_MB * 1024 * 1024;
+// A Meta/WhatsApp informa 16MB, mas o processamento interno rejeita vídeos
+// próximos desse teto. Mantemos margem real em bytes para evitar "Media upload error".
+const TARGET_BYTES = 15_000_000;
+const TARGET_MB = TARGET_BYTES / (1024 * 1024);
 
 export type CompressProgress = (pct: number) => void;
 
@@ -36,7 +38,7 @@ export async function compressVideoForWhatsApp(
   const startTime = Math.max(0, Math.min(options.startTime ?? 0, fullDur));
   const endTime = Math.max(startTime + 0.1, Math.min(options.endTime ?? fullDur, fullDur));
   const dur = endTime - startTime;
-  const targetBytes = (options.targetMb ?? TARGET_MB) * 1024 * 1024;
+  const targetBytes = options.targetMb ? options.targetMb * 1024 * 1024 : TARGET_BYTES;
 
   const audioBitrate = 64_000;
   const targetBitrate = Math.max(
@@ -59,15 +61,11 @@ export async function compressVideoForWhatsApp(
     'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
     'video/mp4;codecs=avc3.64003E,mp4a.40.2',
     'video/mp4',
-    // Fallbacks (webm) — só usados se o navegador não tiver suporte a mp4.
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm',
   ];
   const mimeType = candidates.find((c) => MediaRecorder.isTypeSupported(c)) || '';
   if (!mimeType) {
     URL.revokeObjectURL(srcUrl);
-    throw new Error('Seu navegador não suporta compressão de vídeo. Use Chrome ou Edge.');
+    throw new Error('Seu navegador não suporta compressão em MP4. Use Chrome ou Edge atualizado.');
   }
 
   const recorder = new MediaRecorder(stream, {
