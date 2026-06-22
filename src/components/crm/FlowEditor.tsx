@@ -604,7 +604,9 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       ...flow,
       name: flowName,
       trigger_type: triggerType,
-      trigger_keywords: triggerType === 'exact_phrase' ? [triggerKeywords.trim()] : triggerKeywords.split(',').map(k => k.trim()).filter(k => k !== ''),
+      trigger_keywords: triggerType === 'exact_phrase'
+        ? triggerKeywords.split('\n').map(k => k.trim()).filter(k => k !== '')
+        : triggerKeywords.split(',').map(k => k.trim()).filter(k => k !== ''),
       trigger_tag: triggerTag,
       is_active: isActive,
       nodes,
