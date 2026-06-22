@@ -504,7 +504,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
         }
         toast({
           title: `Arquivo muito grande (${sizeMb.toFixed(1)}MB)`,
-          description: `O WhatsApp aceita no máximo ${limitMb}MB para ${type === 'video' ? 'vídeo' : type === 'audio' ? 'áudio' : 'imagem'}. Comprima o arquivo e envie novamente.`,
+          description: `O WhatsApp aceita no máximo ${limitMb}MB para ${type === 'audio' ? 'áudio' : 'imagem'}. Comprima o arquivo e envie novamente.`,
           variant: "destructive",
         });
         return;
