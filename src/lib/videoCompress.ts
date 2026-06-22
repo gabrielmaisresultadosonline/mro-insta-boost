@@ -92,7 +92,7 @@ async function transcodeToMetaMp4(
       '-map', '0:a?',
       '-c:v', 'libx264',
       '-profile:v', 'baseline',
-      '-level', '3.1',
+      '-level', '4.0',
       '-preset', 'veryfast',
       '-b:v', String(videoBitrate),
       '-maxrate', String(Math.floor(videoBitrate * 1.25)),
