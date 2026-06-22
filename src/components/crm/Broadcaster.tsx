@@ -727,8 +727,19 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                       <Button type="button" variant="outline" size="sm" className="h-7 text-[10px]" onClick={handleSaveListForLater}>
                         <Bookmark className="w-3 h-3 mr-1" /> Salvar lista
                       </Button>
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setShowRecipients(s => !s)}>
+                        {showRecipients ? 'Ocultar lista' : 'Ver / editar lista'}
+                      </Button>
                     </div>
                   </div>
+                  {targetType !== 'conversation' && (
+                    <label className="flex items-center gap-2 text-[10px] md:text-xs text-[#8696a0] cursor-pointer select-none">
+                      <Switch checked={only24h} onCheckedChange={setOnly24h} />
+                      Apenas conversas dentro da janela de 24h
+                    </label>
+                  )}
+                  {showRecipients && (
+                    <>
                   <div className="relative">
                     <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8696a0]" />
                     <Input
@@ -769,6 +780,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                       })}
                     </div>
                   </ScrollArea>
+                    </>
+                  )}
                 </div>
               )}
 
