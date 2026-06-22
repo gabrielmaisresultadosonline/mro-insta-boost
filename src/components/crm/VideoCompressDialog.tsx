@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { Loader2, Scissors, Play, Pause, Wand2, X, Upload } from "lucide-react";
-import { compressVideoForWhatsApp } from "@/lib/videoCompress";
+import { compressVideoForWhatsApp, WHATSAPP_VIDEO_MAX_BYTES } from "@/lib/videoCompress";
 import { cn } from "@/lib/utils";
 
 interface VideoCompressDialogProps {
@@ -23,7 +23,8 @@ function fmtTime(s: number) {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
-const SAFE_META_VIDEO_MB = 15_000_000 / (1024 * 1024);
+const WHATSAPP_VIDEO_MAX_MB = WHATSAPP_VIDEO_MAX_BYTES / 1_000_000;
+const WHATSAPP_VIDEO_TARGET_BYTES = Math.floor(WHATSAPP_VIDEO_MAX_BYTES * 0.97);
 
 export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: VideoCompressDialogProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -106,7 +107,7 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
     if (!duration || !originalMb) return 0;
     // estimativa proporcional pelo trim, mas limitada pela margem segura da Meta
     const proportional = (trimmedDur / duration) * originalMb;
-    return Math.min(proportional, Math.min(limitMb, SAFE_META_VIDEO_MB));
+    return Math.min(proportional, WHATSAPP_VIDEO_TARGET_BYTES / (1024 * 1024));
   }, [trimmedDur, duration, originalMb, limitMb]);
 
   const runCompress = async () => {
@@ -122,11 +123,11 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
       const compressed = await compressVideoForWhatsApp(
         file,
         (p) => setProgress(p),
-        { startTime: trim[0], endTime: trim[1] }
+        { startTime: trim[0], endTime: trim[1], targetBytes: WHATSAPP_VIDEO_TARGET_BYTES, maxBytes: WHATSAPP_VIDEO_MAX_BYTES }
       );
       const mb = compressed.size / (1024 * 1024);
       setResultMb(mb);
-      if (mb <= limitMb) {
+      if (compressed.size <= WHATSAPP_VIDEO_MAX_BYTES) {
         setPhase("uploading");
         await onReady(compressed);
         setPhase("done");
@@ -155,7 +156,7 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
             Comprimir vídeo
           </DialogTitle>
           <DialogDescription>
-            {originalMb.toFixed(1)}MB · WhatsApp aceita até {limitMb}MB. Visualize, corte e comprima sem sair daqui.
+            {originalMb.toFixed(1)}MB · WhatsApp aceita até {WHATSAPP_VIDEO_MAX_MB.toFixed(0)}MB. Visualize, corte e comprima sem sair daqui.
           </DialogDescription>
         </DialogHeader>
 
@@ -246,7 +247,7 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
             </div>
             <div className="rounded-md border bg-card p-2">
               <div className="text-[10px] uppercase text-muted-foreground">Resultado</div>
-              <div className={cn("font-semibold text-sm", resultMb && resultMb > limitMb ? "text-destructive" : resultMb ? "text-green-600" : "text-muted-foreground")}>
+              <div className={cn("font-semibold text-sm", resultMb && resultMb * 1024 * 1024 > WHATSAPP_VIDEO_MAX_BYTES ? "text-destructive" : resultMb ? "text-green-600" : "text-muted-foreground")}>
                 {resultMb ? `${resultMb.toFixed(1)}MB` : "—"}
               </div>
             </div>
@@ -269,9 +270,9 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
             </div>
           )}
 
-          {phase === "done" && resultMb && resultMb > limitMb && (
+          {phase === "done" && resultMb && resultMb * 1024 * 1024 > WHATSAPP_VIDEO_MAX_BYTES && (
             <div className="text-sm text-destructive">
-              Ainda acima de {limitMb}MB. Corte mais um pedaço e tente novamente.
+              Ainda acima de {WHATSAPP_VIDEO_MAX_MB.toFixed(0)}MB. Corte mais um pedaço e tente novamente.
             </div>
           )}
           {phase === "error" && (
@@ -285,7 +286,7 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
             <Button onClick={runCompress} disabled={phase === "compressing" || phase === "uploading" || !duration}>
               {phase === "compressing" || phase === "uploading" ? (
                 <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Processando</>
-              ) : phase === "done" && resultMb && resultMb > limitMb ? (
+              ) : phase === "done" && resultMb && resultMb * 1024 * 1024 > WHATSAPP_VIDEO_MAX_BYTES ? (
                 <><Wand2 className="w-4 h-4 mr-1.5" /> Tentar novamente</>
               ) : phase === "done" ? (
                 <><Upload className="w-4 h-4 mr-1.5" /> Concluído</>
