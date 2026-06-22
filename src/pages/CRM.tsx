@@ -5366,6 +5366,21 @@ const CRM = () => {
                                                   ))}
                                                 </div>
                                               )}
+
+                                              {/* Botão CTA com link (cta_url) */}
+                                              {m.metadata?.interactive?.type === 'cta_url' && m.metadata?.interactive?.action?.parameters?.url && (
+                                                <div className="mt-2 border-t border-border/10 pt-2">
+                                                  <a
+                                                    href={m.metadata.interactive.action.parameters.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-background/50 border border-border/20 text-[12px] font-semibold text-primary shadow-sm hover:bg-background/80 transition-colors"
+                                                  >
+                                                    <LinkIcon className="w-3.5 h-3.5" />
+                                                    {m.metadata.interactive.action.parameters.display_text || 'Acessar'}
+                                                  </a>
+                                                </div>
+                                              )}
                                             </div>
                                           )}
                                           {m.message_type === 'unsupported' && hasReadableUnsupportedContent(m) && (
