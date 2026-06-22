@@ -377,3 +377,88 @@
 
 /* Scrollbar tweak for light */
 .crm-theme-light ::-webkit-scrollbar-thumb { background: rgba(7, 94, 84, 0.2); }
+
+/* ============================================================
+   Light theme — coberturas adicionais (fundos/textos faltantes)
+   ============================================================ */
+
+/* Mais hex de fundos escuros usados em listas, tabelas e headers */
+.crm-theme-light .bg-\[\#232d36\],
+.crm-theme-light .bg-\[\#050508\],
+.crm-theme-light .bg-\[\#6a7175\],
+.crm-theme-light .bg-\[\#6b7b8d\] { background-color: var(--crm-surface) !important; }
+
+/* Variantes dark: comuns em rows de tabela / listas */
+.crm-theme-light .dark\:bg-\[\#1a2730\],
+.crm-theme-light .dark\:bg-\[\#0b141a\],
+.crm-theme-light .dark\:bg-\[\#232d36\],
+.crm-theme-light .dark\:bg-\[\#050508\],
+.crm-theme-light .dark\:bg-\[\#0a0a0a\],
+.crm-theme-light .dark\:bg-\[\#0a0f12\],
+.crm-theme-light .dark\:bg-\[\#0f1a1f\],
+.crm-theme-light .dark\:bg-\[\#1a1d21\],
+.crm-theme-light .dark\:bg-\[\#161c20\] { background-color: var(--crm-surface) !important; }
+
+/* Balões/cards que usam bg-white com texto branco por engano: força texto escuro
+   sobre qualquer superfície clara (white / surfaces) */
+.crm-theme-light .bg-white,
+.crm-theme-light .bg-white\/90,
+.crm-theme-light .bg-white\/95,
+.crm-theme-light .bg-\[\#ffffff\],
+.crm-theme-light .bg-\[\#fff\] { color: var(--crm-text) !important; }
+.crm-theme-light .bg-white .text-white,
+.crm-theme-light .bg-white\/90 .text-white,
+.crm-theme-light .bg-white\/95 .text-white,
+.crm-theme-light .bg-\[\#ffffff\] .text-white,
+.crm-theme-light .bg-\[\#F0FDF4\] .text-white,
+.crm-theme-light .bg-\[\#E8F5F1\] .text-white,
+.crm-theme-light .bg-\[\#f0f2f5\] .text-white,
+.crm-theme-light .bg-\[\#f5f6f6\] .text-white,
+.crm-theme-light .bg-\[\#dcf8c6\] .text-white,
+.crm-theme-light .bg-\[\#efeae2\] .text-white,
+.crm-theme-light .bg-\[\#dfe5e7\] .text-white,
+.crm-theme-light .bg-\[\#e5ddd5\] .text-white { color: var(--crm-text) !important; }
+
+/* Linhas de tabela / itens de lista de conversas: força texto legível mesmo
+   quando o componente seta text-white inline ou via class composta */
+.crm-theme-light table,
+.crm-theme-light table th,
+.crm-theme-light table td,
+.crm-theme-light tbody tr,
+.crm-theme-light thead tr { color: var(--crm-text) !important; }
+.crm-theme-light table tr { background-color: transparent !important; }
+.crm-theme-light table thead { background-color: var(--crm-surface-2) !important; }
+
+/* Labels e textos com cinza claro que somem em fundo claro */
+.crm-theme-light label,
+.crm-theme-light .text-muted-foreground,
+.crm-theme-light .text-gray-300,
+.crm-theme-light .text-gray-400,
+.crm-theme-light .text-slate-300,
+.crm-theme-light .text-slate-400,
+.crm-theme-light .text-zinc-300,
+.crm-theme-light .text-zinc-400,
+.crm-theme-light .text-neutral-300,
+.crm-theme-light .text-neutral-400 { color: var(--crm-text-soft) !important; }
+
+/* Mantém o texto branco nos botões/badges com fundo escuro adicionais */
+.crm-theme-light .bg-\[\#075E54\] .text-white,
+.crm-theme-light .bg-\[\#075e54\] .text-white,
+.crm-theme-light .bg-\[\#00875A\] .text-white,
+.crm-theme-light .bg-\[\#16A34A\] .text-white,
+.crm-theme-light .bg-\[\#22C55E\] .text-white,
+.crm-theme-light .bg-\[\#1465c8\] .text-white,
+.crm-theme-light .bg-\[\#1668d8\] .text-white,
+.crm-theme-light .bg-\[\#1877F2\] .text-white,
+.crm-theme-light .bg-\[\#4285F4\] .text-white,
+.crm-theme-light .bg-\[\#7c5cfc\] .text-white,
+.crm-theme-light .bg-\[\#EAB308\] .text-white { color: #ffffff !important; }
+
+/* Item ativo no sidebar e breadcrumb "Dashboard": preserva contraste branco
+   quando o fundo é primário/verde */
+.crm-theme-light [data-active="true"],
+.crm-theme-light [aria-current="page"],
+.crm-theme-light .bg-primary,
+.crm-theme-light .bg-primary * { color: #ffffff !important; }
+.crm-theme-light [data-active="true"] *,
+.crm-theme-light [aria-current="page"] * { color: inherit !important; }
