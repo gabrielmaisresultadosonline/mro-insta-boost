@@ -111,6 +111,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
+import AnnouncementPopup from "@/components/AnnouncementPopup";
 
 const encodeAudioBufferToWav = (audioBuffer: AudioBuffer) => {
   const channels = Math.min(audioBuffer.numberOfChannels, 2);
