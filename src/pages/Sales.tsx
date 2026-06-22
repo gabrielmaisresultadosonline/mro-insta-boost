@@ -731,6 +731,7 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
            </div>
          </div>
        </footer>
+        <PurchaseDialog open={buyOpen} onOpenChange={setBuyOpen} plan={buyPlan} />
      </div>
    );
  };
