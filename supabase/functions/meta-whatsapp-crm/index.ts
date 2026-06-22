@@ -3079,7 +3079,7 @@ async function fetchAndStoreIncomingMedia(
         allow_category_change_sent_to_meta: createTemplatePayload.allow_category_change,
       });
 
-      const response = await fetch(
+      let response = await fetch(
         `https://graph.facebook.com/v20.0/${meta_waba_id}/message_templates`,
         {
           method: 'POST',
@@ -3090,15 +3090,45 @@ async function fetchAndStoreIncomingMedia(
           body: JSON.stringify(createTemplatePayload),
         }
       )
-      
-      const result = await response.json()
-      
+
+      let result = await response.json()
+
+      // Fallback: nome em janela de exclusão (4 semanas). Tenta novamente com sufixo único.
+      // error_subcode 2388023 = "Message template language is being deleted"
+      if (!response.ok && result?.error?.error_subcode === 2388023) {
+        const suffix = `_v${Date.now().toString(36).slice(-5)}`;
+        const retryName = `${String(name).slice(0, 512 - suffix.length)}${suffix}`;
+        console.warn('[TEMPLATE-RETRY-LANG-DELETING]', { original: name, retryName });
+        const retryPayload = { ...createTemplatePayload, name: retryName };
+        response = await fetch(
+          `https://graph.facebook.com/v20.0/${meta_waba_id}/message_templates`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${meta_access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(retryPayload),
+          }
+        );
+        result = await response.json();
+        if (response.ok) {
+          result.__renamed_from = name;
+          result.__renamed_to = retryName;
+          console.log('[TEMPLATE-RETRY-OK]', { original: name, retryName });
+        }
+      }
+
       if (!response.ok) {
         console.error('Meta API Error:', JSON.stringify(result, null, 2));
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: result.error?.message || 'Meta API returned an error',
-          details: result 
+        let friendly = result.error?.message || 'Meta API returned an error';
+        if (result?.error?.error_subcode === 2388023) {
+          friendly = 'A Meta está bloqueando este nome de template porque o anterior (mesmo nome em pt_BR) ainda está em janela de exclusão (~4 semanas). Tente um nome diferente, ex.: adicione "_v2" ao final.';
+        }
+        return new Response(JSON.stringify({
+          success: false,
+          error: friendly,
+          details: result,
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
