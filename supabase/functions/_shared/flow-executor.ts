@@ -146,15 +146,20 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       const hasButtons = node.data?.buttons && node.data.buttons.length > 0;
       
       if (node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse' || hasButtons) {
-        // Find timeout edge
-        const timeoutEdge = flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout');
-        // Sempre respeita o tempo configurado no nó (para exibir contagem regressiva correta).
-        // O auto-avanço para o próximo nó só ocorre se houver uma edge de timeout conectada.
+        // Só aplicamos contagem regressiva / timeout quando o usuário EXPLICITAMENTE
+        // configurou o nó como "Aguardar resposta" (question/wait_response/waitResponse).
+        // Para nós de mensagem com botões, apenas pausamos o fluxo aguardando o clique,
+        // sem timeout visível e sem queda automática do fluxo.
+        const isExplicitWait = node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse';
+        const timeoutEdge = isExplicitWait
+          ? flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout')
+          : null;
         const configuredTimeout = parseInt(node.data?.timeout || '20');
-        const timeoutMinutes = Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 20;
-        const hasTimeout = !!timeoutEdge;
+        const timeoutMinutes = isExplicitWait
+          ? (Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 20)
+          : null;
 
-        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}). Timeout: ${hasTimeout ? timeoutMinutes + 'min' : 'INDEFINIDO'}. Target timeout: ${timeoutEdge?.target}`);
+        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}, explicitWait=${isExplicitWait}). Timeout: ${timeoutMinutes ? timeoutMinutes + 'min' : 'INDEFINIDO (sem contagem)'}. Target timeout: ${timeoutEdge?.target}`);
 
         const { error: updateError } = await supabase.from('crm_contacts').update({
           flow_state: 'waiting_response',
