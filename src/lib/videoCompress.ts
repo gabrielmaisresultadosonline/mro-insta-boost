@@ -18,7 +18,8 @@ export async function compressVideoForWhatsApp(
   const srcUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.src = srcUrl;
-  video.muted = false;
+  video.muted = true;
+  video.volume = 0;
   video.playsInline = true;
 
   await new Promise<void>((res, rej) => {
