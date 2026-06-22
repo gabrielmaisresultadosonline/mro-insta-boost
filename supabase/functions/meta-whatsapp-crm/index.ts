@@ -2967,13 +2967,18 @@ async function fetchAndStoreIncomingMedia(
               local_category_before_sync: existingTemplate.category,
               meta_category_returned: template.category,
               source: 'meta_getTemplates',
+              action: 'PRESERVING_LOCAL_CATEGORY',
             });
           }
+
+          // Preserve local category when it exists to avoid Meta auto-reclassification
+          // overwriting the user's chosen category (e.g. UTILITY -> MARKETING)
+          const categoryToStore = existingTemplate?.category || template.category;
 
           await supabase.from('crm_templates').upsert({
             id: template.id,
             name: template.name,
-            category: template.category,
+            category: categoryToStore,
             language: template.language,
             status: template.status,
             components: processedComponents,
