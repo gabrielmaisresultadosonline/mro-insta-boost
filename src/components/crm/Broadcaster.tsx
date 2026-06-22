@@ -96,6 +96,14 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     } catch {}
   }, []);
 
+  // Poll while any campaign is running so progress + Stop stay live
+  useEffect(() => {
+    const hasRunning = broadcasts.some((b: any) => b.status === 'running' || b.status === 'pending');
+    if (!hasRunning) return;
+    const id = setInterval(fetchBroadcasts, 3000);
+    return () => clearInterval(id);
+  }, [broadcasts]);
+
   const persistSavedLists = (lists: typeof savedLists) => {
     setSavedLists(lists);
     try { localStorage.setItem(SAVED_LISTS_KEY, JSON.stringify(lists)); } catch {}
@@ -361,6 +369,18 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     for (let i = 0; i < numbers.length; i++) {
       const number = numbers[i];
       
+      // Check for manual cancellation between sends
+      const { data: cur } = await supabase
+        .from('crm_broadcasts')
+        .select('status')
+        .eq('id', broadcastId)
+        .maybeSingle();
+      if (cur?.status === 'cancelled') {
+        toast({ title: 'Disparo interrompido', description: `Parado em ${i}/${numbers.length}.` });
+        fetchBroadcasts();
+        return;
+      }
+
       // Wait random delay
       const delay = Math.floor(Math.random() * (delayMax - delayMin + 1) + delayMin) * 1000;
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -375,8 +395,20 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           payload.templateName = t?.name;
           payload.language = t?.language || 'pt_BR';
         } else if (type === 'flow') {
-          // Find contact or create one
-          const { data: contact } = await supabase.from('crm_contacts').select('id').eq('wa_id', number).maybeSingle();
+          // Find contact or create one (flows require a contactId)
+          let { data: contact } = await supabase
+            .from('crm_contacts')
+            .select('id')
+            .eq('wa_id', number)
+            .maybeSingle();
+          if (!contact) {
+            const { data: created } = await supabase
+              .from('crm_contacts')
+              .insert([{ wa_id: number, name: number, source_type: 'broadcast' }])
+              .select('id')
+              .single();
+            contact = created;
+          }
           payload.action = 'startFlow';
           payload.flowId = selectedFlow;
           payload.waId = number;
@@ -432,6 +464,13 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const deleteBroadcast = async (id: string) => {
     if (!confirm('Deseja excluir este histórico?')) return;
     await supabase.from('crm_broadcasts').delete().eq('id', id);
+    fetchBroadcasts();
+  };
+
+  const cancelBroadcast = async (id: string) => {
+    if (!confirm('Parar este disparo? Os contatos restantes não receberão a mensagem.')) return;
+    await supabase.from('crm_broadcasts').update({ status: 'cancelled' }).eq('id', id);
+    toast({ title: 'Solicitação de parada enviada', description: 'O disparo será interrompido no próximo intervalo.' });
     fetchBroadcasts();
   };
 
@@ -1028,14 +1067,26 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                               <span className="text-red-400">{b.failed_count || 0} erro</span>
                               <span className="text-[#8696a0]">/ {b.total_contacts} total</span>
                             </div>
-                            <Badge className={cn(
-                              "text-[8px] h-4 px-1 capitalize",
-                              b.status === 'completed' ? "bg-blue-500/20 text-blue-400" :
-                              b.status === 'running' ? "bg-green-500/20 text-green-400 animate-pulse" :
-                              "bg-yellow-500/20 text-yellow-400"
-                            )}>
-                              {b.status === 'completed' ? 'Finalizado' : b.status === 'running' ? 'Em curso' : 'Pendente'}
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              {b.status === 'running' && (
+                                <button
+                                  onClick={() => cancelBroadcast(b.id)}
+                                  className="text-[9px] px-2 h-5 rounded bg-red-500/20 text-red-300 hover:bg-red-500/40 flex items-center gap-1"
+                                  title="Parar disparo"
+                                >
+                                  <Pause className="w-2.5 h-2.5" /> Parar
+                                </button>
+                              )}
+                              <Badge className={cn(
+                                "text-[8px] h-4 px-1 capitalize",
+                                b.status === 'completed' ? "bg-blue-500/20 text-blue-400" :
+                                b.status === 'running' ? "bg-green-500/20 text-green-400 animate-pulse" :
+                                b.status === 'cancelled' ? "bg-red-500/20 text-red-400" :
+                                "bg-yellow-500/20 text-yellow-400"
+                              )}>
+                                {b.status === 'completed' ? 'Finalizado' : b.status === 'running' ? 'Em curso' : b.status === 'cancelled' ? 'Parado' : 'Pendente'}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
                       </div>
