@@ -23,6 +23,51 @@ function describeMessageForHistory(message: any) {
   return content || `[Mensagem: ${message.message_type || 'desconhecida'}]`;
 }
 
+function firstNonEmptyString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
+function getReferralFromWebhookMessage(message: any) {
+  const referral = message?.referral || message?.context?.referral || message?.unsupported?.referral || null;
+  return referral && typeof referral === 'object' ? referral : null;
+}
+
+function extractInboundTextFromWebhookMessage(message: any) {
+  const node = message?.[message?.type] || {};
+  const directText = firstNonEmptyString(
+    message?.text?.body,
+    message?.button?.text,
+    message?.interactive?.button_reply?.title,
+    message?.interactive?.list_reply?.title,
+    node?.caption,
+    node?.text,
+    message?.body,
+    message?.caption,
+    message?.message?.text,
+    message?.message?.body,
+    message?.unsupported?.text?.body,
+    message?.unsupported?.body,
+    message?.unsupported?.caption,
+  );
+
+  if (directText) return directText;
+
+  const referral = getReferralFromWebhookMessage(message);
+  if (referral) {
+    const parts = [
+      firstNonEmptyString(referral.headline, referral.title),
+      firstNonEmptyString(referral.body, referral.description),
+      firstNonEmptyString(referral.source_url, referral.url),
+    ].filter(Boolean);
+    if (parts.length > 0) return parts.join('\n');
+  }
+
+  return '';
+}
+
 async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   try {
     console.log(`[AI-AGENT] Downloading audio for transcription: ${audioUrl.slice(0, 100)}...`);
@@ -702,6 +747,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   let buttonId = '';
   let mediaUrlForSave: string | null = null;
   let mediaCaption = '';
+  const extractedInboundText = extractInboundTextFromWebhookMessage(message);
 
   if (message.type === 'image' || message.type === 'video') {
     console.log(`[FLOW-LOG] Received ${message.type} from ${waId}. Resolving media ID...`);
@@ -722,11 +768,11 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   }
 
   if (message.type === 'text') {
-    text = message.text.body;
+    text = extractedInboundText || message.text.body;
   } else if (message.type === 'interactive') {
     if (message.interactive.type === 'button_reply') {
       buttonId = message.interactive.button_reply.id;
-      text = message.interactive.button_reply.title;
+      text = extractedInboundText || message.interactive.button_reply.title;
     }
   } else if (['image', 'video', 'audio', 'voice', 'sticker', 'document'].includes(message.type)) {
     const node = message[message.type] || {};
@@ -756,11 +802,11 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         console.error('[WEBHOOK] Error resolving inbound media', err);
       }
     }
-    text = mediaCaption || '';
+    text = extractedInboundText || mediaCaption || '';
   }
 else if (message.type === "unsupported") {
     const error = message.errors?.[0];
-    text = `[Formato não suportado pela Meta] ${error?.title || ""}: ${error?.message || ""}`.trim();
+    text = extractedInboundText || `[Formato não suportado pela Meta] ${error?.title || ""}: ${error?.message || ""}`.trim();
   } else if (message.type === "location") {
     text = `[Localização] Lat: ${message.location?.latitude}, Long: ${message.location?.longitude}`;
   } else if (message.type === "contacts") {
@@ -811,12 +857,12 @@ else if (message.type === "unsupported") {
      const { error: insertMessageError } = await supabase.from('crm_messages').insert({
        contact_id: contactForSave.id,
        direction: 'inbound',
-       message_type: message.type,
-       content: text || `[${message.type}]`,
+      message_type: message.type,
+      content: text || extractedInboundText || `[${message.type}]`,
        status: 'received',
        meta_message_id: message.id,
        media_url: mediaUrlForSave,
-       metadata: { raw: message },
+      metadata: { raw: message, referral: getReferralFromWebhookMessage(message) },
        user_id: userId
      });
     if (insertMessageError) {
