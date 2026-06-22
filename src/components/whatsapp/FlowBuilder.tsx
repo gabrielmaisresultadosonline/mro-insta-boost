@@ -560,6 +560,18 @@ export default function FlowBuilder({ callProxy, onFlowsChange }: FlowBuilderPro
                                 {step.step_type === 'audio' ? 'Subir áudio (.mp3, .ogg)' : step.step_type === 'video' ? 'Subir vídeo (.mp4)' : 'Subir imagem (.jpg, .png)'}
                               </Button>
 
+                              {step.step_type === 'video' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open('/converter-video', '_blank')}
+                                  className="text-[#00a884] hover:text-[#00a884] bg-[#00a884]/10 text-xs h-8"
+                                  title="Converter vídeo grande para até 16MB (100% no navegador, sem nuvem)"
+                                >
+                                  <Video className="w-3 h-3 mr-1" /> Converter vídeo
+                                </Button>
+                              )}
+
                               {step.step_type === 'audio' && (
                                 <>
                                   {recordingStep === index ? (
