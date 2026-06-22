@@ -83,6 +83,47 @@ function flowMatchesIncomingTrigger(flow: any, allCandidateTexts: string[]) {
   return false;
 }
 
+function isUnavailableUnsupportedMessage(message: any) {
+  if (message?.type !== 'unsupported') return false;
+  const error = Array.isArray(message?.errors) ? message.errors[0] : null;
+  const details = firstNonEmptyString(error?.error_data?.details, error?.message, error?.title);
+  return Number(error?.code) === 131060 || /unavailable/i.test(details);
+}
+
+const COMMON_CTWA_TRIGGER_TEXTS = [
+  'Olá! Posso ter mais informações sobre isso?',
+  'Gostaria de saber sobre o sistema inovador !',
+  'Gostaria de saber sobre o sistema inovador!',
+];
+
+async function getConfiguredCtwaFallbackText(supabase: any, userId?: string) {
+  if (!userId) return '';
+
+  const { data: flows, error } = await supabase
+    .from('crm_flows')
+    .select('trigger_keyword, trigger_keywords')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .in('trigger_type', ['exact_phrase', 'keyword']);
+
+  if (error) {
+    console.error('[WEBHOOK] Failed to load CTWA fallback triggers', { userId, error: error.message });
+    return '';
+  }
+
+  const configuredKeywords = (flows || []).flatMap((flow: any) => {
+    const multi = Array.isArray(flow?.trigger_keywords) ? flow.trigger_keywords : [];
+    return [...multi, flow?.trigger_keyword].filter((keyword) => typeof keyword === 'string' && keyword.trim());
+  });
+
+  for (const defaultText of COMMON_CTWA_TRIGGER_TEXTS) {
+    const match = configuredKeywords.find((keyword: string) => normalizeTriggerText(keyword) === normalizeTriggerText(defaultText));
+    if (match) return match.trim();
+  }
+
+  return '';
+}
+
 function extractInboundTextFromWebhookMessage(message: any) {
   const node = message?.[message?.type] || {};
   const directText = firstNonEmptyString(
