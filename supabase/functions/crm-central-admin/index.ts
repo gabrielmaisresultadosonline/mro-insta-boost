@@ -297,6 +297,31 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "list_sales_orders") {
+      // Auto-expire stale pendings
+      await supabase
+        .from("crm_sales_orders")
+        .update({ status: "expired" })
+        .eq("status", "pending")
+        .lt("expires_at", new Date().toISOString());
+
+      const { data, error } = await supabase
+        .from("crm_sales_orders")
+        .select("id, full_name, email, whatsapp, plan, plan_label, amount, nsu_order, infinitepay_link, status, expires_at, paid_at, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return json({ success: true, orders: data || [] });
+    }
+
+    if (action === "delete_sales_order") {
+      const { id } = body as any;
+      if (!id) return json({ success: false, error: "id obrigatório" }, 400);
+      const { error } = await supabase.from("crm_sales_orders").delete().eq("id", id);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
     return json({ success: false, error: `Ação inválida: ${action}` }, 400);
   } catch (e: any) {
     console.error("[crm-central-admin] error:", e);
