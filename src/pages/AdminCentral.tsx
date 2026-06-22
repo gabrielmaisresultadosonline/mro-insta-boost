@@ -236,34 +236,36 @@ export default function AdminCentral() {
   // ============ LOGIN ============
   if (!creds) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-6 space-y-4">
+      <div className="min-h-screen bg-[#F0FDF4] text-[#075E54] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-6 space-y-4 bg-white border-[#E8F5F1] text-[#075E54] shadow-lg shadow-green-900/5">
           <div>
-            <h1 className="text-2xl font-bold">Admin Central</h1>
-            <p className="text-sm text-muted-foreground">Acesso restrito ao administrador principal</p>
+            <h1 className="text-2xl font-bold text-[#075E54]">Admin Central</h1>
+            <p className="text-sm text-[#128C7E]/70">Acesso restrito ao administrador principal</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-3">
             <div className="space-y-1.5">
-              <Label>E-mail</Label>
+              <Label className="text-[#075E54]">E-mail</Label>
               <Input
                 type="email"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 autoComplete="username"
                 required
+                className="bg-[#F0FDF4] border-[#E8F5F1] focus-visible:ring-[#25D366]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Senha</Label>
+              <Label className="text-[#075E54]">Senha</Label>
               <Input
                 type="password"
                 value={loginPwd}
                 onChange={(e) => setLoginPwd(e.target.value)}
                 autoComplete="current-password"
                 required
+                className="bg-[#F0FDF4] border-[#E8F5F1] focus-visible:ring-[#25D366]"
               />
             </div>
-            <Button type="submit" disabled={loggingIn} className="w-full">
+            <Button type="submit" disabled={loggingIn} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white">
               {loggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
             </Button>
           </form>
@@ -292,28 +294,28 @@ export default function AdminCentral() {
   const newThisWeek = users.filter((u) => new Date(u.created_at) >= last7).length;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="min-h-screen bg-[#F0FDF4] text-[#075E54] p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Admin Central</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#075E54]">Admin Central</h1>
+            <p className="text-sm text-[#128C7E]/70">
               {users.length} cadastros · {connectedCount} conectados
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Recarregar
             </Button>
-            <Button variant="outline" size="sm" onClick={logout}>
+            <Button variant="outline" size="sm" onClick={logout} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
               Sair
             </Button>
           </div>
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="bg-white border border-[#E8F5F1]">
+          <TabsList className="bg-white border border-[#E8F5F1] shadow-sm">
             <TabsTrigger value="users" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Cadastros & Números</TabsTrigger>
             <TabsTrigger value="announcements" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Avisos (Popup)</TabsTrigger>
           </TabsList>
@@ -383,11 +385,11 @@ export default function AdminCentral() {
           </div>
         )}
 
-        <Card className="p-3">
+        <Card className="p-3 bg-white border-[#E8F5F1] shadow-sm">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#128C7E]/60" />
             <Input
-              className="pl-9"
+              className="pl-9 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54] placeholder:text-[#128C7E]/50 focus-visible:ring-[#25D366]"
               placeholder="Buscar por e-mail, nome ou número..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -397,34 +399,34 @@ export default function AdminCentral() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#128C7E]/60" />
           </div>
         ) : (
           <div className="grid gap-3">
             {filtered.map((u) => (
-              <Card key={u.id} className="p-4">
+              <Card key={u.id} className="p-4 bg-white border-[#E8F5F1] text-[#075E54] shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold truncate">{u.full_name || u.email}</span>
                       {u.connected ? (
-                        <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 hover:bg-green-500/15 gap-1">
+                        <Badge className="bg-[#25D366]/15 text-[#128C7E] hover:bg-[#25D366]/15 border border-[#25D366]/30 gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           Conectado
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="gap-1 text-muted-foreground">
+                        <Badge variant="outline" className="gap-1 text-slate-500 border-slate-200 bg-slate-50">
                           <XCircle className="h-3 w-3" />
                           Não conectado
                         </Badge>
                       )}
-                      {u.role === "super_admin" && <Badge variant="secondary">super_admin</Badge>}
+                      {u.role === "super_admin" && <Badge className="bg-[#075E54] text-white hover:bg-[#075E54]">super_admin</Badge>}
                     </div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <div className="text-sm text-[#128C7E]/80 flex items-center gap-1">
                       <Mail className="h-3.5 w-3.5" />
                       <span className="select-all">{u.email}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground space-x-3">
+                    <div className="text-xs text-slate-500 space-x-3">
                       {u.meta_display_phone_number && (
                         <span>📱 WA: {u.meta_display_phone_number}</span>
                       )}
@@ -438,17 +440,17 @@ export default function AdminCentral() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openInsights(u)}>
+                    <Button size="sm" variant="outline" onClick={() => openInsights(u)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
                       <BarChart3 className="h-4 w-4 mr-1" /> Insights
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => openPwdDialog(u)}>
+                    <Button size="sm" variant="outline" onClick={() => openPwdDialog(u)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
                       <KeyRound className="h-4 w-4 mr-1" /> Nova senha
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleSendReset(u)}>
+                    <Button size="sm" variant="outline" onClick={() => handleSendReset(u)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
                       <Mail className="h-4 w-4 mr-1" /> Reset e-mail
                     </Button>
                     {u.connected && (
-                      <Button size="sm" variant="outline" onClick={() => handleDisconnect(u)}>
+                      <Button size="sm" variant="outline" onClick={() => handleDisconnect(u)} className="bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
                         <Power className="h-4 w-4 mr-1" /> Desconectar
                       </Button>
                     )}
@@ -460,7 +462,7 @@ export default function AdminCentral() {
               </Card>
             ))}
             {filtered.length === 0 && (
-              <Card className="p-8 text-center text-muted-foreground">Nenhum cadastro encontrado</Card>
+              <Card className="p-8 text-center text-[#128C7E]/70 bg-white border-[#E8F5F1]">Nenhum cadastro encontrado</Card>
             )}
           </div>
         )}
@@ -474,37 +476,37 @@ export default function AdminCentral() {
 
       {/* Insights dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white border-[#E8F5F1] text-[#075E54]">
           <DialogHeader>
-            <DialogTitle>Insights do usuário</DialogTitle>
+            <DialogTitle className="text-[#075E54]">Insights do usuário</DialogTitle>
           </DialogHeader>
           {selected && (
             <div className="space-y-3">
               <div className="text-sm">
                 <div className="font-medium">{selected.full_name || selected.email}</div>
-                <div className="text-muted-foreground">{selected.email}</div>
+                <div className="text-[#128C7E]/70">{selected.email}</div>
               </div>
               {loadingInsights || !insights ? (
                 <div className="flex justify-center py-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-6 w-6 animate-spin text-[#128C7E]/60" />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  <Card className="p-3">
-                    <div className="text-xs text-muted-foreground">Mensagens recebidas</div>
-                    <div className="text-2xl font-bold">{insights.totalReceived}</div>
+                  <Card className="p-3 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]">
+                    <div className="text-xs text-[#128C7E]/70">Mensagens recebidas</div>
+                    <div className="text-2xl font-bold text-[#075E54]">{insights.totalReceived}</div>
                   </Card>
-                  <Card className="p-3">
-                    <div className="text-xs text-muted-foreground">Mensagens enviadas</div>
-                    <div className="text-2xl font-bold">{insights.totalSent}</div>
+                  <Card className="p-3 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]">
+                    <div className="text-xs text-[#128C7E]/70">Mensagens enviadas</div>
+                    <div className="text-2xl font-bold text-[#075E54]">{insights.totalSent}</div>
                   </Card>
-                  <Card className="p-3">
-                    <div className="text-xs text-muted-foreground">Contatos</div>
-                    <div className="text-2xl font-bold">{insights.totalContacts}</div>
+                  <Card className="p-3 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]">
+                    <div className="text-xs text-[#128C7E]/70">Contatos</div>
+                    <div className="text-2xl font-bold text-[#075E54]">{insights.totalContacts}</div>
                   </Card>
-                  <Card className="p-3">
-                    <div className="text-xs text-muted-foreground">Conversas cobradas</div>
-                    <div className="text-2xl font-bold">{insights.paidConversations}</div>
+                  <Card className="p-3 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]">
+                    <div className="text-xs text-[#128C7E]/70">Conversas cobradas</div>
+                    <div className="text-2xl font-bold text-[#075E54]">{insights.paidConversations}</div>
                   </Card>
                 </div>
               )}
@@ -515,21 +517,22 @@ export default function AdminCentral() {
 
       {/* Password dialog */}
       <Dialog open={pwdDialogOpen} onOpenChange={setPwdDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white border-[#E8F5F1] text-[#075E54]">
           <DialogHeader>
-            <DialogTitle>Definir nova senha</DialogTitle>
+            <DialogTitle className="text-[#075E54]">Definir nova senha</DialogTitle>
           </DialogHeader>
           {pwdTarget && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#128C7E]/80">
                 Defina uma nova senha para <strong>{pwdTarget.email}</strong>. Copie e envie ao usuário — senhas atuais
                 não podem ser recuperadas pois ficam criptografadas.
               </p>
               <div className="flex gap-2">
-                <Input value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
+                <Input value={newPwd} onChange={(e) => setNewPwd(e.target.value)} className="bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]" />
                 <Button
                   type="button"
                   variant="outline"
+                  className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]"
                   onClick={() => {
                     navigator.clipboard.writeText(newPwd);
                     toast.success("Copiado");
@@ -538,16 +541,16 @@ export default function AdminCentral() {
                   Copiar
                 </Button>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setNewPwd(generatePwd())}>
+              <Button variant="ghost" size="sm" onClick={() => setNewPwd(generatePwd())} className="text-[#128C7E] hover:bg-[#F0FDF4]">
                 Gerar outra
               </Button>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPwdDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setPwdDialogOpen(false)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
               Cancelar
             </Button>
-            <Button onClick={savePassword} disabled={savingPwd}>
+            <Button onClick={savePassword} disabled={savingPwd} className="bg-[#25D366] hover:bg-[#128C7E] text-white">
               {savingPwd ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar senha"}
             </Button>
           </DialogFooter>
