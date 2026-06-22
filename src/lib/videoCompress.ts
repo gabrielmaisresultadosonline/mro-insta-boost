@@ -62,7 +62,9 @@ async function remuxToProgressiveMp4(file: File, onProgress?: CompressProgress):
   await ffmpeg.deleteFile(outputName).catch(() => undefined);
 
   const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data);
-  const blob = new Blob([bytes], { type: 'video/mp4' });
+  const arrayBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(arrayBuffer).set(bytes);
+  const blob = new Blob([arrayBuffer], { type: 'video/mp4' });
   const base = file.name.replace(/\.[^.]+$/, '');
   return new File([blob], `${base}-meta.mp4`, { type: 'video/mp4' });
 }
