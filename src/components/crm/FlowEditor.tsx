@@ -53,7 +53,8 @@ import {
   GitBranch,
   BrainCircuit,
   UserCog,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Plus
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
