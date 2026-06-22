@@ -1289,6 +1289,69 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_sales_orders: {
+        Row: {
+          amount: number
+          created_at: string
+          email: string
+          expires_at: string
+          full_name: string
+          id: string
+          infinitepay_link: string | null
+          invoice_slug: string | null
+          nsu_order: string
+          paid_at: string | null
+          password_hash: string
+          plan: string
+          plan_label: string
+          raw_webhook: Json | null
+          status: string
+          transaction_nsu: string | null
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          email: string
+          expires_at: string
+          full_name: string
+          id?: string
+          infinitepay_link?: string | null
+          invoice_slug?: string | null
+          nsu_order: string
+          paid_at?: string | null
+          password_hash: string
+          plan: string
+          plan_label: string
+          raw_webhook?: Json | null
+          status?: string
+          transaction_nsu?: string | null
+          updated_at?: string
+          whatsapp: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          email?: string
+          expires_at?: string
+          full_name?: string
+          id?: string
+          infinitepay_link?: string | null
+          invoice_slug?: string | null
+          nsu_order?: string
+          paid_at?: string | null
+          password_hash?: string
+          plan?: string
+          plan_label?: string
+          raw_webhook?: Json | null
+          status?: string
+          transaction_nsu?: string | null
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       crm_scheduled_messages: {
         Row: {
           contact_id: string | null
