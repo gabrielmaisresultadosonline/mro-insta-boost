@@ -8481,6 +8481,51 @@ const CRM = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Janela de 24h Expirada - aviso profissional */}
+      <Dialog open={expiredWindowDialog} onOpenChange={setExpiredWindowDialog}>
+        <DialogContent className="max-w-lg rounded-2xl border border-amber-500/30 bg-card">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Clock className="w-5 h-5 text-amber-500" />
+              Janela de 24h Expirada
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-1">
+              Esta conversa está fora da janela de 24h. Por isso o ZAPMRO não pode enviar uma mensagem comum agora.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 text-sm leading-relaxed">
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+              <p className="font-semibold text-amber-400 mb-1">Opção 1 — Enviar um Template Aprovado</p>
+              <p className="text-muted-foreground">
+                Para iniciar uma nova conversa por aqui, use um <strong className="text-foreground">Template aprovado pela Meta</strong>.
+                A Meta cobra em torno de <strong className="text-foreground">R$ 0,33</strong> por mensagem iniciada por você fora da janela.
+                É necessário ter saldo na Meta e o template aprovado.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <p className="font-semibold text-emerald-400 mb-1">Opção 2 — Iniciar pelo seu WhatsApp Business</p>
+              <p className="text-muted-foreground">
+                Você pode mandar a primeira mensagem direto pelo app <strong className="text-foreground">WhatsApp Business</strong> no seu celular.
+                Quando o cliente responder, abre uma <strong className="text-foreground">janela de 24h gratuita</strong> e você volta a usar o ZAPMRO sem pagar nada por mensagem dentro desse período.
+              </p>
+            </div>
+
+            <p className="text-xs text-muted-foreground/80 border-t border-border/40 pt-3">
+              <strong className="text-foreground">Observação:</strong> esse custo de R$ 0,33 é cobrado pela Meta e não tem relação com a sua mensalidade/anuidade do ZAPMRO.
+              Cobranças por envio frio (fora da janela de 24h) são regra da Meta para iniciar novas conversas.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setExpiredWindowDialog(false)} className="rounded-xl h-11 px-8 bg-primary">
+              Entendi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
