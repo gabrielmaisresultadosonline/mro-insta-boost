@@ -1917,6 +1917,48 @@ const CRM = () => {
     return Number.isFinite(parsed) ? parsed : 0;
   };
 
+  const handleClearConversation = async (contactId: string) => {
+    try {
+      const { error } = await supabase.from('crm_messages').delete().eq('contact_id', contactId);
+      if (error) throw error;
+      if (selectedContactRef.current?.id === contactId) {
+        setChatMessages([]);
+      }
+      setInboundTimestampsByContact(prev => {
+        const next = { ...prev };
+        delete next[contactId];
+        return next;
+      });
+      toast({ title: "Conversa limpa", description: "Todas as mensagens foram apagadas." });
+    } catch (e: any) {
+      console.error('[CRM] clearConversation error', e);
+      toast({ title: "Erro ao limpar", description: e?.message || "Tente novamente.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteConversation = async (contactId: string) => {
+    try {
+      const { error: msgErr } = await supabase.from('crm_messages').delete().eq('contact_id', contactId);
+      if (msgErr) throw msgErr;
+      const { error: contactErr } = await supabase.from('crm_contacts').delete().eq('id', contactId);
+      if (contactErr) throw contactErr;
+      setContacts(prev => prev.filter(c => c.id !== contactId));
+      if (selectedContactRef.current?.id === contactId) {
+        setSelectedContact(null);
+        setChatMessages([]);
+      }
+      setInboundTimestampsByContact(prev => {
+        const next = { ...prev };
+        delete next[contactId];
+        return next;
+      });
+      toast({ title: "Conversa apagada", description: "O contato e suas mensagens foram removidos." });
+    } catch (e: any) {
+      console.error('[CRM] deleteConversation error', e);
+      toast({ title: "Erro ao apagar", description: e?.message || "Tente novamente.", variant: "destructive" });
+    }
+  };
+
   const isConversationExpired = (contact: any) => {
     const lastInbound = getLastInboundTime(contact);
     if (!lastInbound) return false;
