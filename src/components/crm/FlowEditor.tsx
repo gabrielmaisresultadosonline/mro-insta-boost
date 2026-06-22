@@ -489,6 +489,19 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       const limitMb = LIMITS[type] ?? 16;
       const sizeMb = file.size / (1024 * 1024);
       if (sizeMb > limitMb) {
+        if (type === 'video') {
+          // Oferece compressão inline no navegador
+          setCompressState({
+            file,
+            nodeId,
+            type,
+            originalMb: sizeMb,
+            limitMb,
+            status: 'ask',
+            progress: 0,
+          });
+          return;
+        }
         toast({
           title: `Arquivo muito grande (${sizeMb.toFixed(1)}MB)`,
           description: `O WhatsApp aceita no máximo ${limitMb}MB para ${type === 'video' ? 'vídeo' : type === 'audio' ? 'áudio' : 'imagem'}. Comprima o arquivo e envie novamente.`,
@@ -496,12 +509,26 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
         });
         return;
       }
-      setUploading(true);
+      await doUploadFile(file, nodeId, type);
+    } catch (error: any) {
+      toast({ 
+        title: "Erro no upload", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const doUploadFile = async (file: File, nodeId: string, type: 'audio' | 'video' | 'image') => {
+    setUploading(true);
+    try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `flow-media/${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('crm-media')
         .upload(filePath, file);
 
@@ -518,14 +545,27 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
 
       updateNodeData(nodeId, updateData);
       toast({ title: "Arquivo enviado com sucesso!" });
-    } catch (error: any) {
-      toast({ 
-        title: "Erro no upload", 
-        description: error.message, 
-        variant: "destructive" 
-      });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const runCompression = async () => {
+    if (!compressState) return;
+    setCompressState((s) => s ? { ...s, status: 'compressing', progress: 0 } : s);
+    try {
+      const compressed = await compressVideoForWhatsApp(compressState.file, (pct) => {
+        setCompressState((s) => s ? { ...s, progress: pct } : s);
+      });
+      const resultMb = compressed.size / (1024 * 1024);
+      setCompressState((s) => s ? { ...s, status: 'done', progress: 100, resultMb } : s);
+      // Se ainda acima do limite, deixa o usuário decidir; senão pode subir
+      if (resultMb <= compressState.limitMb) {
+        await doUploadFile(compressed, compressState.nodeId, compressState.type);
+        setCompressState(null);
+      }
+    } catch (e: any) {
+      setCompressState((s) => s ? { ...s, status: 'error', errorMsg: e?.message || 'Erro ao comprimir' } : s);
     }
   };
 
