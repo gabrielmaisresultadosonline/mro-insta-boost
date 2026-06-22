@@ -119,6 +119,17 @@ export default function FlowBuilder({ callProxy, onFlowsChange }: FlowBuilderPro
   const [activeFileStep, setActiveFileStep] = useState<number | null>(null);
 
   const uploadMediaFile = async (file: File, stepIndex: number, field: 'media_url' | 'followup_media_url' = 'media_url') => {
+    // Validação de tamanho para vídeo (limite do WhatsApp: 16MB)
+    if (file.type.startsWith('video/') && file.size > 16 * 1024 * 1024) {
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      toast({
+        title: 'Vídeo muito grande',
+        description: `Seu vídeo tem ${sizeMB}MB. O WhatsApp aceita no máximo 16MB. Use o botão "Converter vídeo" para comprimir antes de subir.`,
+        variant: 'destructive',
+      });
+      setUploadingStep(null);
+      return;
+    }
     setUploadingStep(stepIndex);
     try {
       const ext = file.name.split('.').pop() || 'bin';
@@ -548,6 +559,18 @@ export default function FlowBuilder({ callProxy, onFlowsChange }: FlowBuilderPro
                                 {uploadingStep === index ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
                                 {step.step_type === 'audio' ? 'Subir áudio (.mp3, .ogg)' : step.step_type === 'video' ? 'Subir vídeo (.mp4)' : 'Subir imagem (.jpg, .png)'}
                               </Button>
+
+                              {step.step_type === 'video' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open('/converter-video', '_blank')}
+                                  className="text-[#00a884] hover:text-[#00a884] bg-[#00a884]/10 text-xs h-8"
+                                  title="Converter vídeo grande para até 16MB (100% no navegador, sem nuvem)"
+                                >
+                                  <Video className="w-3 h-3 mr-1" /> Converter vídeo
+                                </Button>
+                              )}
 
                               {step.step_type === 'audio' && (
                                 <>

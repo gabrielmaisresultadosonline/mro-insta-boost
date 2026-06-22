@@ -10,6 +10,7 @@ import AdminCentral from "./pages/AdminCentral";
  import Sales from "./pages/Sales";
  import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import ConverterVideo from "./pages/ConverterVideo";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/google-callback2" element={<GoogleContactsCallback />} />
             <Route path="/br/politicadeprivacidade" element={<PrivacyPolicy />} />
             <Route path="/br/termosdoservico" element={<TermsOfService />} />
+          <Route path="/converter-video" element={<ConverterVideo />} />
            <Route path="*" element={<Sales />} />
         </Routes>
       </BrowserRouter>
