@@ -54,11 +54,33 @@ function getReferralTextParts(referral: any) {
     referral.body,
     referral.description,
     referral.text,
+    referral.text?.body,
     referral.caption,
     referral.cta_text,
+    referral.welcome_message?.text,
+    referral.welcome_message?.button?.text,
     referral.source_url,
     referral.url,
   ].filter((value) => typeof value === 'string' && value.trim());
+}
+
+function flowMatchesIncomingTrigger(flow: any, allCandidateTexts: string[]) {
+  const triggerType = flow?.trigger_type;
+  const keywords: string[] = Array.isArray(flow?.trigger_keywords)
+    ? flow.trigger_keywords.map((keyword: string) => normalizeTriggerText(keyword)).filter(Boolean)
+    : (flow?.trigger_keyword ? [normalizeTriggerText(flow.trigger_keyword)] : []);
+
+  if (keywords.length === 0 || allCandidateTexts.length === 0) return false;
+
+  if (triggerType === 'exact_phrase') {
+    return keywords.some((keyword) => allCandidateTexts.some((candidate) => candidate === keyword || candidate.includes(keyword)));
+  }
+
+  if (triggerType === 'keyword') {
+    return keywords.some((keyword) => allCandidateTexts.some((candidate) => candidate.includes(keyword)));
+  }
+
+  return false;
 }
 
 function extractInboundTextFromWebhookMessage(message: any) {
@@ -947,6 +969,61 @@ else if (message.type === "unsupported") {
   const isAiActive = contact?.ai_active === true;
   const isWaitingResponse = contact?.flow_state === 'waiting_response';
   const hasActiveFlow = !!contact?.current_flow_id;
+
+  // Mensagens vindas de anúncio podem chegar como texto + referral enquanto o contato
+  // ainda está preso em um fluxo anterior aguardando resposta. Se existir um gatilho
+  // exato/palavra-chave configurado para esse texto, ele deve iniciar o novo fluxo.
+  if (contact && hasActiveFlow && isWaitingResponse && !isAiHandling && !isAiActive) {
+    try {
+      const allCandidateTexts = collectInboundTriggerTexts(message, text);
+      const { data: triggeredFlows, error: triggeredFlowsError } = await supabase
+        .from('crm_flows')
+        .select('id, name, trigger_type, trigger_keywords, trigger_keyword, nodes, edges, user_id')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .in('trigger_type', ['exact_phrase', 'keyword'])
+        .neq('id', contact.current_flow_id);
+
+      if (triggeredFlowsError) throw triggeredFlowsError;
+
+      const priority = ['exact_phrase', 'keyword'];
+      let matchingTriggeredFlow = null;
+      for (const triggerType of priority) {
+        matchingTriggeredFlow = (triggeredFlows || []).find((flow: any) => flow.trigger_type === triggerType && flowMatchesIncomingTrigger(flow, allCandidateTexts));
+        if (matchingTriggeredFlow) break;
+      }
+
+      if (matchingTriggeredFlow) {
+        console.log(`[TRIGGER] Restarting from waiting flow ${contact.current_flow_id} to ${matchingTriggeredFlow.id} for ${waId}`);
+        await supabase.from('crm_scheduled_messages').delete().eq('contact_id', contact.id);
+        let startNode = matchingTriggeredFlow.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
+        if (!startNode && matchingTriggeredFlow.nodes?.length > 0) startNode = matchingTriggeredFlow.nodes[0];
+
+        if (startNode) {
+          await supabase.from('crm_contacts').update({
+            current_flow_id: matchingTriggeredFlow.id,
+            current_node_id: startNode.id,
+            flow_state: 'running',
+            last_flow_interaction: new Date().toISOString(),
+            next_execution_time: null
+          }).eq('id', contact.id);
+
+          let currentRes: any = await executeVisualNode(supabase, matchingTriggeredFlow, startNode, contact.id, waId);
+          let iterations = 0;
+          while (currentRes?.nextNodeId && iterations < 10) {
+            iterations++;
+            const nextInChain = matchingTriggeredFlow.nodes.find((n: any) => n.id === currentRes.nextNodeId);
+            if (!nextInChain) break;
+            currentRes = await executeVisualNode(supabase, matchingTriggeredFlow, nextInChain, contact.id, waId);
+          }
+
+          return jsonResponse({ success: true, triggered_flow: matchingTriggeredFlow.id, execution: currentRes });
+        }
+      }
+    } catch (waitingTriggerErr) {
+      console.error('[TRIGGER] Error evaluating waiting-flow incoming trigger:', waitingTriggerErr);
+    }
+  }
 
   // PRIORIDADE: Se houver um clique em botão de INTERACTIVE, SEMPRE tenta continuar o fluxo primeiro
   if (contact && hasActiveFlow && message.type === 'interactive' && isWaitingResponse) {
