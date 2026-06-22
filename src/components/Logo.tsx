@@ -1,5 +1,5 @@
 import logoMro from '@/assets/logo-mro.png';
-import logoMroLight from '@/assets/logo-mro-light.png.asset.json';
+import logoMroLight from '@/assets/logo-mro-light.png';
 
 interface LogoProps {
   className?: string;
@@ -22,7 +22,7 @@ export const Logo = ({ className = '', size = 'md' }: LogoProps) => {
         className={`${sizeClasses[size]} w-auto object-contain crm-logo-dark ${className}`}
       />
       <img
-        src={logoMroLight.url}
+        src={logoMroLight}
         alt="I.A MRO"
         className={`${sizeClasses[size]} w-auto object-contain crm-logo-light hidden ${className}`}
       />
