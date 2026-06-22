@@ -109,31 +109,42 @@ export default function AnnouncementsAdminPanel({ creds }: { creds: { email: str
 
   return (
     <div className="space-y-4">
-      <Card className="p-4 md:p-5 border-[#E8F5F1]">
+      <Card className="p-4 md:p-5 border-[#E8F5F1] bg-white shadow-sm">
         <div className="flex items-center gap-2 mb-3">
           <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center text-white">
             <Megaphone className="h-4 w-4" />
           </div>
           <div>
             <h2 className="font-bold text-[#075E54]">Novo aviso (popup)</h2>
-            <p className="text-xs text-muted-foreground">Aparece para todos os logados conforme a frequência escolhida.</p>
+            <p className="text-xs text-[#128C7E]/70">Aparece para todos os logados conforme a frequência escolhida.</p>
           </div>
         </div>
         <div className="grid gap-3">
           <div>
-            <Label>Título</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Manutenção programada" />
+            <Label className="text-[#075E54]">Título</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ex: Manutenção programada"
+              className="bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54] placeholder:text-[#128C7E]/50 focus-visible:ring-[#25D366]"
+            />
           </div>
           <div>
-            <Label>Mensagem</Label>
-            <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Escreva o conteúdo do aviso..." />
+            <Label className="text-[#075E54]">Mensagem</Label>
+            <Textarea
+              rows={4}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Escreva o conteúdo do aviso..."
+              className="bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54] placeholder:text-[#128C7E]/50 focus-visible:ring-[#25D366]"
+            />
           </div>
           <div className="grid md:grid-cols-3 gap-3">
             <div>
-              <Label>Frequência</Label>
+              <Label className="text-[#075E54]">Frequência</Label>
               <Select value={frequency} onValueChange={(v) => setFrequency(v as Ann["frequency"])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-white border-[#E8F5F1] text-[#075E54]">
                   <SelectItem value="once">1 vez por usuário</SelectItem>
                   <SelectItem value="twice">2 vezes por usuário</SelectItem>
                   <SelectItem value="always">Sempre (até dispensar)</SelectItem>
@@ -144,12 +155,12 @@ export default function AnnouncementsAdminPanel({ creds }: { creds: { email: str
             {frequency === "date_range" && (
               <>
                 <div>
-                  <Label>Início</Label>
-                  <Input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <Label className="text-[#075E54]">Início</Label>
+                  <Input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]" />
                 </div>
                 <div>
-                  <Label>Fim</Label>
-                  <Input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                  <Label className="text-[#075E54]">Fim</Label>
+                  <Input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]" />
                 </div>
               </>
             )}
@@ -164,30 +175,30 @@ export default function AnnouncementsAdminPanel({ creds }: { creds: { email: str
 
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-[#075E54]">Avisos publicados ({items.length})</h3>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={load} disabled={loading} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
           <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Recarregar
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-[#128C7E]/60" /></div>
       ) : items.length === 0 ? (
-        <Card className="p-8 text-center text-muted-foreground">Nenhum aviso publicado ainda</Card>
+        <Card className="p-8 text-center text-[#128C7E]/70 bg-white border-[#E8F5F1] shadow-sm">Nenhum aviso publicado ainda</Card>
       ) : (
         <div className="grid gap-3">
           {items.map((a) => (
-            <Card key={a.id} className="p-4">
+            <Card key={a.id} className="p-4 bg-white border-[#E8F5F1] text-[#075E54] shadow-sm">
               <div className="flex justify-between items-start gap-3 flex-wrap">
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold">{a.title}</span>
-                    <Badge className={a.active ? "bg-[#25D366] text-white" : "bg-muted text-muted-foreground"}>
+                    <Badge className={a.active ? "bg-[#25D366] text-white hover:bg-[#25D366]" : "bg-slate-100 text-slate-500 hover:bg-slate-100"}>
                       {a.active ? "Ativo" : "Inativo"}
                     </Badge>
-                    <Badge variant="outline">{freqLabel[a.frequency]}</Badge>
+                    <Badge variant="outline" className="border-[#E8F5F1] text-[#128C7E]">{freqLabel[a.frequency]}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{a.message}</p>
-                  <div className="text-xs text-muted-foreground">
+                  <p className="text-sm text-[#128C7E]/80 whitespace-pre-wrap">{a.message}</p>
+                  <div className="text-xs text-slate-500">
                     Criado em {new Date(a.created_at).toLocaleString("pt-BR")}
                     {a.frequency === "date_range" && a.start_date && (
                       <> · {new Date(a.start_date).toLocaleString("pt-BR")} → {a.end_date ? new Date(a.end_date).toLocaleString("pt-BR") : "—"}</>
@@ -197,7 +208,7 @@ export default function AnnouncementsAdminPanel({ creds }: { creds: { email: str
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Switch checked={a.active} onCheckedChange={() => toggleActive(a)} />
-                    <span className="text-xs text-muted-foreground">Ativo</span>
+                    <span className="text-xs text-[#128C7E]/80">Ativo</span>
                   </div>
                   <Button size="sm" variant="destructive" onClick={() => remove(a)}>
                     <Trash2 className="h-4 w-4" />
