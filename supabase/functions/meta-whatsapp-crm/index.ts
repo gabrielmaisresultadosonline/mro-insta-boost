@@ -2955,10 +2955,16 @@ async function fetchAndStoreIncomingMedia(
 
           const { data: existingTemplate } = await supabase
             .from('crm_templates')
-            .select('category')
+            .select('category, status')
             .eq('id', template.id)
             .eq('user_id', userId)
             .maybeSingle();
+
+          const metaStatus = String(template.status || '').toUpperCase();
+          const shouldTrustMetaCategory = metaStatus === 'APPROVED';
+          const categoryToStore = shouldTrustMetaCategory || !existingTemplate?.category
+            ? template.category
+            : existingTemplate.category;
 
           if (existingTemplate?.category && existingTemplate.category !== template.category) {
             console.warn('[TEMPLATE-CATEGORY-SYNC]', {
@@ -2966,15 +2972,16 @@ async function fetchAndStoreIncomingMedia(
               template_name: template.name,
               local_category_before_sync: existingTemplate.category,
               meta_category_returned: template.category,
+              local_status_before_sync: existingTemplate.status || null,
+              meta_status_returned: template.status || null,
               source: 'meta_getTemplates',
-              action: 'UPDATING_TO_META_CATEGORY',
+              action: shouldTrustMetaCategory ? 'APPROVED_UPDATING_TO_META_CATEGORY' : 'PENDING_KEEPING_LOCAL_CATEGORY',
             });
           }
 
-          // Meta is the source of truth for category. If Meta reclassifies
-          // (e.g. UTILITY -> MARKETING during approval), we mirror it locally
-          // so the user sees the real status shown on Meta's dashboard.
-          const categoryToStore = template.category;
+          // Enquanto a Meta ainda está revisando, mantemos a categoria escolhida
+          // pelo usuário (ex.: UTILITY). Só após APPROVED a Meta vira fonte de
+          // verdade, pois aí a reclassificação final já foi concluída.
 
           await supabase.from('crm_templates').upsert({
             id: template.id,
