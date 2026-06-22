@@ -774,7 +774,7 @@ export type Database = {
           failed_count: number | null
           flow_id: string | null
           id: string
-          message_text: string
+          message_text: string | null
           name: string
           random_delay_max: number | null
           random_delay_min: number | null
@@ -793,7 +793,7 @@ export type Database = {
           failed_count?: number | null
           flow_id?: string | null
           id?: string
-          message_text: string
+          message_text?: string | null
           name: string
           random_delay_max?: number | null
           random_delay_min?: number | null
@@ -812,7 +812,7 @@ export type Database = {
           failed_count?: number | null
           flow_id?: string | null
           id?: string
-          message_text?: string
+          message_text?: string | null
           name?: string
           random_delay_max?: number | null
           random_delay_min?: number | null
