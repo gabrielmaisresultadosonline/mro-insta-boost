@@ -215,6 +215,30 @@ const getUnsupportedMetaDetails = (message: unknown) => {
   return String(error?.error_data?.details || error?.message || raw.unsupported?.type || raw.type || '').trim();
 };
 
+type AdReferral = {
+  source_url?: string;
+  source_type?: string;
+  source_id?: string;
+  headline?: string;
+  body?: string;
+  media_type?: string;
+  image_url?: string;
+  video_url?: string;
+  thumbnail_url?: string;
+  ctwa_clid?: string;
+};
+
+const getAdReferral = (message: unknown): AdReferral | null => {
+  if (!message || typeof message !== 'object') return null;
+  const meta = (message as { metadata?: any }).metadata;
+  const ref =
+    meta?.referral ||
+    meta?.raw?.referral ||
+    meta?.context?.referred_product ||
+    null;
+  return ref && typeof ref === 'object' ? ref as AdReferral : null;
+};
+
 type ConnectionLogEntry = {
   id: string;
   at: string;
