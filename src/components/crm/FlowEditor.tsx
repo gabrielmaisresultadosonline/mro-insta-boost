@@ -58,7 +58,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { compressVideoForWhatsApp } from "@/lib/videoCompress";
+import { compressVideoForWhatsApp, WHATSAPP_VIDEO_MAX_BYTES } from "@/lib/videoCompress";
 import { VideoCompressDialog } from "./VideoCompressDialog";
 
 // Custom Node Types
@@ -484,10 +484,8 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
 
   const handleFileUpload = async (file: File, nodeId: string, type: 'audio' | 'video' | 'image') => {
     try {
-      // Meta WhatsApp Cloud API limits (uploaded media):
-      // image=5MB, audio=16MB, video=16MB. Para vídeo usamos margem segura
-      // porque a Meta pode aceitar o upload e recusar depois quando fica no teto.
-      const LIMITS: Record<string, number> = { image: 5, audio: 16, video: 15_000_000 / (1024 * 1024) };
+      // Meta WhatsApp Cloud API limits (uploaded media): image=5MB, audio=16MB, video=16MB decimal.
+      const LIMITS: Record<string, number> = { image: 5, audio: 16, video: WHATSAPP_VIDEO_MAX_BYTES / 1_000_000 };
       const limitMb = LIMITS[type] ?? 16;
       const sizeMb = file.size / (1024 * 1024);
       if (sizeMb > limitMb) {
@@ -526,8 +524,8 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const doUploadFile = async (file: File, nodeId: string, type: 'audio' | 'video' | 'image') => {
     setUploading(true);
     try {
-      if (type === 'video' && file.size > 15_000_000) {
-        throw new Error('Vídeo ainda acima do limite seguro da Meta. Corte ou comprima mais um pouco.');
+      if (type === 'video' && file.size > WHATSAPP_VIDEO_MAX_BYTES) {
+        throw new Error('Vídeo ainda acima do limite de 16MB da Meta. Corte ou comprima mais um pouco.');
       }
       const fileExt = type === 'video' ? 'mp4' : file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
