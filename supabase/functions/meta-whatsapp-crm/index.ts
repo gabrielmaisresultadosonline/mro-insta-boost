@@ -1775,6 +1775,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       }
     }
 
+    if (!payload.type) {
     console.log(`[MEDIA] Iniciando upload de ${media.type} para Meta. URL: ${media.url}`);
     let mediaId;
     try {
@@ -1801,6 +1802,7 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
       payload.document = { id: mediaId, filename: media.fileName };
     } else {
       payload[media.type] = { id: mediaId };
+    }
     }
   } else {
     payload.type = 'text'
