@@ -30,9 +30,35 @@ function firstNonEmptyString(...values: unknown[]) {
   return '';
 }
 
+function normalizeTriggerText(value: unknown) {
+  if (typeof value !== 'string') return '';
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 function getReferralFromWebhookMessage(message: any) {
   const referral = message?.referral || message?.context?.referral || message?.unsupported?.referral || null;
   return referral && typeof referral === 'object' ? referral : null;
+}
+
+function getReferralTextParts(referral: any) {
+  if (!referral || typeof referral !== 'object') return [];
+  return [
+    referral.headline,
+    referral.title,
+    referral.body,
+    referral.description,
+    referral.text,
+    referral.caption,
+    referral.cta_text,
+    referral.source_url,
+    referral.url,
+  ].filter((value) => typeof value === 'string' && value.trim());
 }
 
 function extractInboundTextFromWebhookMessage(message: any) {
@@ -44,6 +70,7 @@ function extractInboundTextFromWebhookMessage(message: any) {
     message?.interactive?.list_reply?.title,
     node?.caption,
     node?.text,
+    node?.body,
     message?.body,
     message?.caption,
     message?.message?.text,
@@ -57,15 +84,42 @@ function extractInboundTextFromWebhookMessage(message: any) {
 
   const referral = getReferralFromWebhookMessage(message);
   if (referral) {
-    const parts = [
-      firstNonEmptyString(referral.headline, referral.title),
-      firstNonEmptyString(referral.body, referral.description),
-      firstNonEmptyString(referral.source_url, referral.url),
-    ].filter(Boolean);
+    const parts = getReferralTextParts(referral);
     if (parts.length > 0) return parts.join('\n');
   }
 
   return '';
+}
+
+function collectInboundTriggerTexts(message: any, resolvedText?: string) {
+  const node = message?.[message?.type] || {};
+  const referral = getReferralFromWebhookMessage(message);
+  const rawCandidates = [
+    resolvedText,
+    extractInboundTextFromWebhookMessage(message),
+    message?.text?.body,
+    message?.button?.text,
+    message?.interactive?.button_reply?.title,
+    message?.interactive?.list_reply?.title,
+    node?.caption,
+    node?.text,
+    node?.body,
+    message?.body,
+    message?.caption,
+    message?.message?.text,
+    message?.message?.body,
+    message?.unsupported?.text?.body,
+    message?.unsupported?.body,
+    message?.unsupported?.caption,
+    ...getReferralTextParts(referral),
+  ];
+
+  const normalized = rawCandidates
+    .flatMap((value) => typeof value === 'string' ? [value, ...value.split(/\r?\n/)] : [])
+    .map(normalizeTriggerText)
+    .filter(Boolean);
+
+  return [...new Set(normalized)];
 }
 
 async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
@@ -965,18 +1019,7 @@ else if (message.type === "unsupported") {
         .eq('is_active', true);
 
       if (activeFlows && activeFlows.length > 0) {
-        const normalizedText = (text || '').trim().toLowerCase();
-        // Inclui textos vindos do anúncio (referral) — headline/body do clique no anúncio
-        // para que o gatilho de palavra-chave / frase exata também reconheça mensagens de anúncios.
-        const referralForTrigger = getReferralFromWebhookMessage(message);
-        const adCandidateTexts: string[] = [];
-        if (referralForTrigger) {
-          const adHeadline = firstNonEmptyString(referralForTrigger.headline, referralForTrigger.title);
-          const adBody = firstNonEmptyString(referralForTrigger.body, referralForTrigger.description);
-          if (adHeadline) adCandidateTexts.push(adHeadline.toLowerCase());
-          if (adBody) adCandidateTexts.push(adBody.toLowerCase());
-        }
-        const allCandidateTexts = [normalizedText, ...adCandidateTexts].filter(Boolean);
+        const allCandidateTexts = collectInboundTriggerTexts(message, text);
         const prevTotal = __previousTotalReceived;
         const prevLast = __previousLastReceivedAt;
 
@@ -1023,8 +1066,8 @@ else if (message.type === "unsupported") {
         const flowMatches = (flow: any): boolean => {
           const t = flow.trigger_type;
           const kws: string[] = Array.isArray(flow.trigger_keywords)
-            ? flow.trigger_keywords.map((k: string) => String(k || '').trim().toLowerCase()).filter(Boolean)
-            : (flow.trigger_keyword ? [String(flow.trigger_keyword).trim().toLowerCase()] : []);
+            ? flow.trigger_keywords.map((k: string) => normalizeTriggerText(k)).filter(Boolean)
+            : (flow.trigger_keyword ? [normalizeTriggerText(flow.trigger_keyword)] : []);
 
           if (t === 'exact_phrase') {
             return kws.length > 0 && kws.some(k => allCandidateTexts.some(c => c === k));
@@ -1091,7 +1134,7 @@ else if (message.type === "unsupported") {
             return jsonResponse({ success: true, triggered_flow: chosen.id, execution: currentRes });
           }
         } else {
-          console.log(`[TRIGGER] No matching flow for ${waId}. text="${normalizedText}" firstEver=${isFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
+          console.log(`[TRIGGER] No matching flow for ${waId}. candidates=${JSON.stringify(allCandidateTexts)} firstEver=${isFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
         }
       }
     } catch (trigErr) {
