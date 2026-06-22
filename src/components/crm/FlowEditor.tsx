@@ -466,8 +466,21 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   }, []);
 
   const handleFileUpload = async (file: File, nodeId: string, type: 'audio' | 'video' | 'image') => {
-    setUploading(true);
     try {
+      // Meta WhatsApp Cloud API limits (uploaded media):
+      // image=5MB, audio=16MB, video=16MB
+      const LIMITS: Record<string, number> = { image: 5, audio: 16, video: 16 };
+      const limitMb = LIMITS[type] ?? 16;
+      const sizeMb = file.size / (1024 * 1024);
+      if (sizeMb > limitMb) {
+        toast({
+          title: `Arquivo muito grande (${sizeMb.toFixed(1)}MB)`,
+          description: `O WhatsApp aceita no máximo ${limitMb}MB para ${type === 'video' ? 'vídeo' : type === 'audio' ? 'áudio' : 'imagem'}. Comprima o arquivo e envie novamente.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      setUploading(true);
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `flow-media/${fileName}`;
