@@ -459,6 +459,13 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     fetchBroadcasts();
   };
 
+  const cancelBroadcast = async (id: string) => {
+    if (!confirm('Parar este disparo? Os contatos restantes não receberão a mensagem.')) return;
+    await supabase.from('crm_broadcasts').update({ status: 'cancelled' }).eq('id', id);
+    toast({ title: 'Solicitação de parada enviada', description: 'O disparo será interrompido no próximo intervalo.' });
+    fetchBroadcasts();
+  };
+
   const handleFileUpload = (type: 'vcard' | 'csv') => {
     setParsingType(type);
     fileInputRef.current?.click();
