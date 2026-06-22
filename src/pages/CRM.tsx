@@ -278,6 +278,11 @@ const CRM = () => {
   const [saving, setSaving] = useState(false);
   const [bizWarnExpanded, setBizWarnExpanded] = useState(false);
   const [expiredWindowDialog, setExpiredWindowDialog] = useState(false);
+  const [confirmConvAction, setConfirmConvAction] = useState<{
+    type: 'clear' | 'delete';
+    contactId: string;
+    contactName: string;
+  } | null>(null);
    const [activeTab, setActiveTab] = useState('dashboard');
    const [userRole, setUserRole] = useState<string | null>(null);
   const [isMyDataOpen, setIsMyDataOpen] = useState(false);
