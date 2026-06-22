@@ -8579,6 +8579,46 @@ const CRM = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação - Limpar / Apagar conversa via swipe */}
+      <Dialog open={!!confirmConvAction} onOpenChange={(open) => !open && setConfirmConvAction(null)}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {confirmConvAction?.type === 'clear' ? (
+                <><Eraser className="w-5 h-5 text-amber-500" /> Limpar conversa</>
+              ) : (
+                <><Trash2 className="w-5 h-5 text-red-500" /> Apagar conversa</>
+              )}
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {confirmConvAction?.type === 'clear' ? (
+                <>Tem certeza que deseja <strong>limpar todas as mensagens</strong> da conversa com <strong>{confirmConvAction?.contactName}</strong>? O contato permanece, apenas o histórico será apagado. Esta ação não pode ser desfeita.</>
+              ) : (
+                <>Tem certeza que deseja <strong>apagar a conversa completa</strong> com <strong>{confirmConvAction?.contactName}</strong>? O contato e todas as mensagens serão removidos. Esta ação não pode ser desfeita.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setConfirmConvAction(null)} className="rounded-xl">Cancelar</Button>
+            <Button
+              onClick={async () => {
+                if (!confirmConvAction) return;
+                const action = confirmConvAction;
+                setConfirmConvAction(null);
+                if (action.type === 'clear') await handleClearConversation(action.contactId);
+                else await handleDeleteConversation(action.contactId);
+              }}
+              className={cn(
+                "rounded-xl text-white",
+                confirmConvAction?.type === 'clear' ? "bg-amber-500 hover:bg-amber-600" : "bg-red-600 hover:bg-red-700"
+              )}
+            >
+              {confirmConvAction?.type === 'clear' ? 'Limpar mensagens' : 'Apagar conversa'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
