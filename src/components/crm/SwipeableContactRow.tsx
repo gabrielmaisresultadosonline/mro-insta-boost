@@ -104,12 +104,19 @@ export const SwipeableContactRow = ({ children, onClear, onDelete }: SwipeableCo
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onClickCapture={(e) => {
-          // If user dragged, suppress the underlying click
-          if (draggedRef.current || isOpen) {
+          // After a swipe, the browser still fires a click on the row.
+          // Suppress that synthetic click, but keep the action buttons visible
+          // until the user swipes the row back or opens another conversation.
+          if (draggedRef.current) {
             e.stopPropagation();
             e.preventDefault();
             draggedRef.current = false;
-            if (isOpen) close();
+            return;
+          }
+
+          if (isOpen) {
+            e.stopPropagation();
+            e.preventDefault();
           }
         }}
         style={{ transform: `translateX(${translateX}px)` }}
