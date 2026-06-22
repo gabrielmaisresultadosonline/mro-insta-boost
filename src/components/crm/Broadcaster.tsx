@@ -299,6 +299,34 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     }
     
     await supabase.from('crm_broadcasts').update({ status: 'completed' }).eq('id', broadcastId);
+
+    // Apply etiqueta (tag) to all contacts in this broadcast, if selected
+    if (applyTag) {
+      try {
+        for (const number of numbers) {
+          const { data: existing } = await supabase
+            .from('crm_contacts')
+            .select('id')
+            .eq('wa_id', number)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase
+              .from('crm_contacts')
+              .update({ status: applyTag })
+              .eq('id', existing.id);
+          } else {
+            await supabase
+              .from('crm_contacts')
+              .insert([{ wa_id: number, name: number, status: applyTag, source_type: 'broadcast' }]);
+          }
+        }
+        toast({ title: `Etiqueta aplicada a ${numbers.length} contatos!` });
+      } catch (err) {
+        console.error('Error applying tag to broadcast contacts:', err);
+      }
+    }
+
     fetchBroadcasts();
     toast({ title: "Campanha finalizada!" });
   };
