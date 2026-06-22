@@ -35,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import MetaPricingCalculator from "@/components/whatsapp/MetaPricingCalculator";
 
 
 
@@ -364,6 +365,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8">
         <div className="lg:col-span-8 space-y-4 md:space-y-6">
+          <MetaPricingCalculator defaultCategory="MARKETING" defaultQuantity={contacts?.length || 100} />
           <Accordion type="single" collapsible className="w-full space-y-4">
             {/* Automação de 24h Trigger */}
             <AccordionItem value="ai-brain" className="border-none">

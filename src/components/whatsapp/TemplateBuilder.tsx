@@ -30,6 +30,7 @@ import {
   Layers
 } from "lucide-react";
 import TemplatePreview from './TemplatePreview';
+import MetaPricingCalculator from './MetaPricingCalculator';
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -490,6 +491,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
           carouselCards={cards}
           isPix={isPix}
           pixCode={pixCode}
+        />
+        <MetaPricingCalculator
+          defaultCategory={category as any}
+          defaultQuantity={100}
         />
       </div>
     </div>
