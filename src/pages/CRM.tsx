@@ -276,6 +276,7 @@ const CRM = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [bizWarnExpanded, setBizWarnExpanded] = useState(false);
+  const [expiredWindowDialog, setExpiredWindowDialog] = useState(false);
    const [activeTab, setActiveTab] = useState('dashboard');
    const [userRole, setUserRole] = useState<string | null>(null);
   const [isMyDataOpen, setIsMyDataOpen] = useState(false);
@@ -1924,11 +1925,7 @@ const CRM = () => {
     const isColdList = isConversationExpired(selectedContact);
 
     if (isColdList) {
-      toast({ 
-        title: "Janela de 24h Expirada", 
-        description: "Esta conversa passou de 24h. Inicie um novo chat usando um Template Aprovado (Custo médio: R$ 0,33).", 
-        variant: "destructive" 
-      });
+      setExpiredWindowDialog(true);
       return;
     }
 
@@ -2474,11 +2471,7 @@ const CRM = () => {
     const isColdList = isConversationExpired(selectedContact);
 
     if (isColdList) {
-      toast({ 
-        title: "Janela de 24h Expirada", 
-        description: "Para reabrir o chat (Custo médio: R$ 0,33), envie primeiro um Template Aprovado.", 
-        variant: "destructive" 
-      });
+      setExpiredWindowDialog(true);
       return;
     }
 
