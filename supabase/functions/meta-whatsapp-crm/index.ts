@@ -2409,32 +2409,33 @@ async function fetchAndStoreIncomingMedia(
         for (const contact of contactsToProcess) {
           // 1. Process Timeout (se aplicável)
           if (contact.flow_state === 'waiting_response') {
+            // Se o fluxo não tem um nó de timeout configurado, aguarda indefinidamente
+            // pela resposta do cliente (sem expirar/cair sozinho).
+            if (!contact.flow_timeout_node_id) {
+              continue;
+            }
             const timeoutMinutes = contact.flow_timeout_minutes || 20;
             const lastInteraction = new Date(contact.last_flow_interaction || new Date().toISOString());
             const timeoutThreshold = new Date(lastInteraction.getTime() + timeoutMinutes * 60000);
             
             if (new Date() >= timeoutThreshold) {
               console.log(`[TIMEOUT-EXPIRED] Contact ${contact.wa_id} timed out.`);
-              if (contact.flow_timeout_node_id) {
-                // Tenta atualizar de forma atômica para evitar duplicidade
-                const { data: updated } = await supabase.from('crm_contacts').update({ 
-                  flow_state: 'running',
-                  current_node_id: contact.flow_timeout_node_id,
-                  next_execution_time: null,
-                  flow_timeout_node_id: null
-                }).eq('id', contact.id).eq('flow_state', 'waiting_response').select();
+              // Tenta atualizar de forma atômica para evitar duplicidade
+              const { data: updated } = await supabase.from('crm_contacts').update({ 
+                flow_state: 'running',
+                current_node_id: contact.flow_timeout_node_id,
+                next_execution_time: null,
+                flow_timeout_node_id: null
+              }).eq('id', contact.id).eq('flow_state', 'waiting_response').select();
 
-                 if (updated && updated.length > 0) {
-                   const { data: flow } = await supabase.from('crm_flows').select('*').eq('id', contact.current_flow_id).eq('user_id', contact.user_id).single();
-                   const nextNode = flow?.nodes?.find((n: any) => n.id === contact.flow_timeout_node_id);
-                   if (nextNode) {
-                     const res = await executeVisualNode(supabase, flow, nextNode, contact.id, contact.wa_id);
-                     results.push({ contactId: contact.id, result: res });
-                   }
+               if (updated && updated.length > 0) {
+                 const { data: flow } = await supabase.from('crm_flows').select('*').eq('id', contact.current_flow_id).eq('user_id', contact.user_id).single();
+                 const nextNode = flow?.nodes?.find((n: any) => n.id === contact.flow_timeout_node_id);
+                 if (nextNode) {
+                   const res = await executeVisualNode(supabase, flow, nextNode, contact.id, contact.wa_id);
+                   results.push({ contactId: contact.id, result: res });
                  }
-              } else {
-                await supabase.from('crm_contacts').update({ flow_state: 'idle', current_flow_id: null, current_node_id: null }).eq('id', contact.id);
-              }
+               }
             }
             continue; // Importante: se era waiting_response, já processamos (ou ignoramos se ainda estiver esperando)
           }

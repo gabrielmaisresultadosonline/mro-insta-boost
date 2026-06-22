@@ -148,10 +148,13 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       if (node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse' || hasButtons) {
         // Find timeout edge
         const timeoutEdge = flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout');
-        const timeoutMinutes = parseInt(node.data?.timeout || '20');
-        
-        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}). Timeout: ${timeoutMinutes}min. Target timeout: ${timeoutEdge?.target}`);
-        
+        // Só aplica timeout quando o usuário conectou explicitamente um nó de timeout.
+        // Caso contrário, aguarda indefinidamente pela resposta do cliente.
+        const hasTimeout = !!timeoutEdge;
+        const timeoutMinutes = hasTimeout ? parseInt(node.data?.timeout || '20') : null;
+
+        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}). Timeout: ${hasTimeout ? timeoutMinutes + 'min' : 'INDEFINIDO'}. Target timeout: ${timeoutEdge?.target}`);
+
         const { error: updateError } = await supabase.from('crm_contacts').update({
           flow_state: 'waiting_response',
           next_execution_time: null,
