@@ -96,6 +96,14 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     } catch {}
   }, []);
 
+  // Poll while any campaign is running so progress + Stop stay live
+  useEffect(() => {
+    const hasRunning = broadcasts.some((b: any) => b.status === 'running' || b.status === 'pending');
+    if (!hasRunning) return;
+    const id = setInterval(fetchBroadcasts, 3000);
+    return () => clearInterval(id);
+  }, [broadcasts]);
+
   const persistSavedLists = (lists: typeof savedLists) => {
     setSavedLists(lists);
     try { localStorage.setItem(SAVED_LISTS_KEY, JSON.stringify(lists)); } catch {}
