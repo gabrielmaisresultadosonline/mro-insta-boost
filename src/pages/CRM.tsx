@@ -203,7 +203,7 @@ const getUnsupportedMetaMessage = (message: unknown) => {
   const details = String(error?.error_data?.details || error?.message || '').trim();
 
   if (Number(error?.code) === 131060 || /unavailable/i.test(details)) {
-    return 'Mensagem indisponível: o WhatsApp não liberou o conteúdo dessa mensagem para o CRM.';
+    return 'Mensagem de anúncio (Click-to-WhatsApp) recebida. Em modo coexistência (QR Code), a Meta não libera o conteúdo, imagem nem link do anúncio para o CRM — apenas o app do WhatsApp mostra. Para receber tudo aqui, migre o número 100% para a Cloud API.';
   }
 
   return 'Mensagem recebida em um formato que o WhatsApp ainda não disponibilizou para leitura no CRM.';
