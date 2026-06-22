@@ -1059,14 +1059,26 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                               <span className="text-red-400">{b.failed_count || 0} erro</span>
                               <span className="text-[#8696a0]">/ {b.total_contacts} total</span>
                             </div>
-                            <Badge className={cn(
-                              "text-[8px] h-4 px-1 capitalize",
-                              b.status === 'completed' ? "bg-blue-500/20 text-blue-400" :
-                              b.status === 'running' ? "bg-green-500/20 text-green-400 animate-pulse" :
-                              "bg-yellow-500/20 text-yellow-400"
-                            )}>
-                              {b.status === 'completed' ? 'Finalizado' : b.status === 'running' ? 'Em curso' : 'Pendente'}
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              {b.status === 'running' && (
+                                <button
+                                  onClick={() => cancelBroadcast(b.id)}
+                                  className="text-[9px] px-2 h-5 rounded bg-red-500/20 text-red-300 hover:bg-red-500/40 flex items-center gap-1"
+                                  title="Parar disparo"
+                                >
+                                  <Pause className="w-2.5 h-2.5" /> Parar
+                                </button>
+                              )}
+                              <Badge className={cn(
+                                "text-[8px] h-4 px-1 capitalize",
+                                b.status === 'completed' ? "bg-blue-500/20 text-blue-400" :
+                                b.status === 'running' ? "bg-green-500/20 text-green-400 animate-pulse" :
+                                b.status === 'cancelled' ? "bg-red-500/20 text-red-400" :
+                                "bg-yellow-500/20 text-yellow-400"
+                              )}>
+                                {b.status === 'completed' ? 'Finalizado' : b.status === 'running' ? 'Em curso' : b.status === 'cancelled' ? 'Parado' : 'Pendente'}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
                       </div>
