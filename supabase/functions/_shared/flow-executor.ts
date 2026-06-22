@@ -6,6 +6,28 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
   console.log(`[EXECUTOR] Executing node ${node.id} (${node.type}) for contact ${contactId}`);
 
   try {
+    // GUARD: Se o fluxo foi cancelado/desativado para esta conversa (ex.: usuário clicou em "Parar fluxo"
+    // ou o contato foi colocado em 'idle' / mudou para outro fluxo), abortamos silenciosamente antes
+    // de enviar qualquer mensagem. Isso impede envios fantasmas após o cancelamento.
+    const { data: liveContact } = await supabase
+      .from('crm_contacts')
+      .select('current_flow_id, flow_state')
+      .eq('id', contactId)
+      .maybeSingle();
+
+    if (!liveContact) {
+      console.log(`[EXECUTOR] ABORT: contact ${contactId} not found.`);
+      return { success: false, aborted: true, message: 'Contact not found' };
+    }
+    if (liveContact.flow_state === 'idle' || !liveContact.current_flow_id) {
+      console.log(`[EXECUTOR] ABORT: flow was cancelled/deactivated for contact ${contactId} (state=${liveContact.flow_state}, flow_id=${liveContact.current_flow_id}). Skipping node ${node.id}.`);
+      return { success: false, aborted: true, message: 'Flow cancelled' };
+    }
+    if (liveContact.current_flow_id !== flow.id) {
+      console.log(`[EXECUTOR] ABORT: contact ${contactId} switched to another flow (${liveContact.current_flow_id} != ${flow.id}). Skipping node ${node.id}.`);
+      return { success: false, aborted: true, message: 'Flow changed' };
+    }
+
     if (node.type === 'message' || node.type === 'text' || node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse') {
       const text = node.data?.text || node.data?.content || node.data?.question || "";
       const buttons = node.data?.buttons || [];
