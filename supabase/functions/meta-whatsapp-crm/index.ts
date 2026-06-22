@@ -966,6 +966,17 @@ else if (message.type === "unsupported") {
 
       if (activeFlows && activeFlows.length > 0) {
         const normalizedText = (text || '').trim().toLowerCase();
+        // Inclui textos vindos do anúncio (referral) — headline/body do clique no anúncio
+        // para que o gatilho de palavra-chave / frase exata também reconheça mensagens de anúncios.
+        const referralForTrigger = getReferralFromWebhookMessage(message);
+        const adCandidateTexts: string[] = [];
+        if (referralForTrigger) {
+          const adHeadline = firstNonEmptyString(referralForTrigger.headline, referralForTrigger.title);
+          const adBody = firstNonEmptyString(referralForTrigger.body, referralForTrigger.description);
+          if (adHeadline) adCandidateTexts.push(adHeadline.toLowerCase());
+          if (adBody) adCandidateTexts.push(adBody.toLowerCase());
+        }
+        const allCandidateTexts = [normalizedText, ...adCandidateTexts].filter(Boolean);
         const prevTotal = __previousTotalReceived;
         const prevLast = __previousLastReceivedAt;
 
@@ -1016,10 +1027,10 @@ else if (message.type === "unsupported") {
             : (flow.trigger_keyword ? [String(flow.trigger_keyword).trim().toLowerCase()] : []);
 
           if (t === 'exact_phrase') {
-            return kws.length > 0 && kws.some(k => k === normalizedText);
+            return kws.length > 0 && kws.some(k => allCandidateTexts.some(c => c === k));
           }
           if (t === 'keyword') {
-            return kws.length > 0 && normalizedText.length > 0 && kws.some(k => k && normalizedText.includes(k));
+            return kws.length > 0 && allCandidateTexts.length > 0 && kws.some(k => k && allCandidateTexts.some(c => c.includes(k)));
           }
           if (t === 'first_message') return isFirstEver;
           if (t === 'first_message_day') return isFirstOfDay;
