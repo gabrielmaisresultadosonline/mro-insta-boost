@@ -148,10 +148,11 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       if (node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse' || hasButtons) {
         // Find timeout edge
         const timeoutEdge = flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout');
-        // Só aplica timeout quando o usuário conectou explicitamente um nó de timeout.
-        // Caso contrário, aguarda indefinidamente pela resposta do cliente.
+        // Sempre respeita o tempo configurado no nó (para exibir contagem regressiva correta).
+        // O auto-avanço para o próximo nó só ocorre se houver uma edge de timeout conectada.
+        const configuredTimeout = parseInt(node.data?.timeout || '20');
+        const timeoutMinutes = Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 20;
         const hasTimeout = !!timeoutEdge;
-        const timeoutMinutes = hasTimeout ? parseInt(node.data?.timeout || '20') : null;
 
         console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}). Timeout: ${hasTimeout ? timeoutMinutes + 'min' : 'INDEFINIDO'}. Target timeout: ${timeoutEdge?.target}`);
 
