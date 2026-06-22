@@ -297,7 +297,7 @@ serve(async (req) => {
       return json({ success: true });
     }
 
-    return json({ success: false, error: "Ação inválida" }, 400);
+    return json({ success: false, error: `Ação inválida: ${action}` }, 400);
   } catch (e: any) {
     console.error("[crm-central-admin] error:", e);
     return json({ success: false, error: e.message || "Erro interno" }, 500);
