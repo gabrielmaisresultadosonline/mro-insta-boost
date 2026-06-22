@@ -298,6 +298,10 @@
   color: var(--crm-text);
 }
 
+/* Logo swap for CRM light/dark themes */
+.crm-theme-light .crm-logo-dark { display: none !important; }
+.crm-theme-light .crm-logo-light { display: inline-block !important; }
+
 /* Backgrounds */
 .crm-theme-light .bg-\[\#0c1317\],
 .crm-theme-light .bg-\[\#111b21\],
