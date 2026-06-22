@@ -1017,18 +1017,7 @@ else if (message.type === "unsupported") {
         .eq('is_active', true);
 
       if (activeFlows && activeFlows.length > 0) {
-        const normalizedText = (text || '').trim().toLowerCase();
-        // Inclui textos vindos do anúncio (referral) — headline/body do clique no anúncio
-        // para que o gatilho de palavra-chave / frase exata também reconheça mensagens de anúncios.
-        const referralForTrigger = getReferralFromWebhookMessage(message);
-        const adCandidateTexts: string[] = [];
-        if (referralForTrigger) {
-          const adHeadline = firstNonEmptyString(referralForTrigger.headline, referralForTrigger.title);
-          const adBody = firstNonEmptyString(referralForTrigger.body, referralForTrigger.description);
-          if (adHeadline) adCandidateTexts.push(adHeadline.toLowerCase());
-          if (adBody) adCandidateTexts.push(adBody.toLowerCase());
-        }
-        const allCandidateTexts = [normalizedText, ...adCandidateTexts].filter(Boolean);
+        const allCandidateTexts = collectInboundTriggerTexts(message, text);
         const prevTotal = __previousTotalReceived;
         const prevLast = __previousLastReceivedAt;
 
@@ -1075,8 +1064,8 @@ else if (message.type === "unsupported") {
         const flowMatches = (flow: any): boolean => {
           const t = flow.trigger_type;
           const kws: string[] = Array.isArray(flow.trigger_keywords)
-            ? flow.trigger_keywords.map((k: string) => String(k || '').trim().toLowerCase()).filter(Boolean)
-            : (flow.trigger_keyword ? [String(flow.trigger_keyword).trim().toLowerCase()] : []);
+            ? flow.trigger_keywords.map((k: string) => normalizeTriggerText(k)).filter(Boolean)
+            : (flow.trigger_keyword ? [normalizeTriggerText(flow.trigger_keyword)] : []);
 
           if (t === 'exact_phrase') {
             return kws.length > 0 && kws.some(k => allCandidateTexts.some(c => c === k));
