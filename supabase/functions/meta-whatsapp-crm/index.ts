@@ -1021,6 +1021,8 @@ else if (message.type === "unsupported") {
   if (contact && hasActiveFlow && isWaitingResponse && !isAiHandling && !isAiActive) {
     try {
       const allCandidateTexts = collectInboundTriggerTexts(message, text);
+      const hasReferral = !!getReferralFromWebhookMessage(message);
+      console.log(`[TRIGGER-CTWA] (waiting-flow) waId=${waId} msgType=${message?.type} hasReferral=${hasReferral} candidates=${JSON.stringify(allCandidateTexts)}`);
       const { data: triggeredFlows, error: triggeredFlowsError } = await supabase
         .from('crm_flows')
         .select('id, name, trigger_type, trigger_keywords, trigger_keyword, nodes, edges, user_id')
@@ -1031,10 +1033,16 @@ else if (message.type === "unsupported") {
 
       if (triggeredFlowsError) throw triggeredFlowsError;
 
+      console.log(`[TRIGGER-CTWA] (waiting-flow) ${triggeredFlows?.length || 0} candidate flow(s) loaded for user ${userId}`);
       const priority = ['exact_phrase', 'keyword'];
       let matchingTriggeredFlow = null;
       for (const triggerType of priority) {
-        matchingTriggeredFlow = (triggeredFlows || []).find((flow: any) => flow.trigger_type === triggerType && flowMatchesIncomingTrigger(flow, allCandidateTexts));
+        matchingTriggeredFlow = (triggeredFlows || []).find((flow: any) => {
+          if (flow.trigger_type !== triggerType) return false;
+          const matched = flowMatchesIncomingTrigger(flow, allCandidateTexts);
+          console.log(`[TRIGGER-CTWA] (waiting-flow) eval flow="${flow.name}" type=${flow.trigger_type} kws=${JSON.stringify(flow.trigger_keywords || [flow.trigger_keyword])} => matched=${matched}`);
+          return matched;
+        });
         if (matchingTriggeredFlow) break;
       }
 
@@ -1142,6 +1150,8 @@ else if (message.type === "unsupported") {
 
       if (activeFlows && activeFlows.length > 0) {
         const allCandidateTexts = collectInboundTriggerTexts(message, text);
+        const hasReferral = !!getReferralFromWebhookMessage(message);
+        console.log(`[TRIGGER-AUTO] waId=${waId} msgType=${message?.type} hasReferral=${hasReferral} text="${(text || '').slice(0,80)}" candidates=${JSON.stringify(allCandidateTexts)} activeFlows=${activeFlows.length}`);
         const prevTotal = __previousTotalReceived;
         const prevLast = __previousLastReceivedAt;
 
@@ -1192,10 +1202,14 @@ else if (message.type === "unsupported") {
             : (flow.trigger_keyword ? [normalizeTriggerText(flow.trigger_keyword)] : []);
 
           if (t === 'exact_phrase') {
-            return kws.length > 0 && kws.some(k => allCandidateTexts.some(c => c === k));
+            const m = kws.length > 0 && kws.some(k => allCandidateTexts.some(c => c === k || c.includes(k)));
+            console.log(`[TRIGGER-AUTO] eval flow="${flow.name}" type=exact_phrase kws=${JSON.stringify(kws)} => matched=${m}`);
+            return m;
           }
           if (t === 'keyword') {
-            return kws.length > 0 && allCandidateTexts.length > 0 && kws.some(k => k && allCandidateTexts.some(c => c.includes(k)));
+            const m = kws.length > 0 && allCandidateTexts.length > 0 && kws.some(k => k && allCandidateTexts.some(c => c.includes(k)));
+            console.log(`[TRIGGER-AUTO] eval flow="${flow.name}" type=keyword kws=${JSON.stringify(kws)} => matched=${m}`);
+            return m;
           }
           if (t === 'first_message') return isFirstEver;
           if (t === 'first_message_day') return isFirstOfDay;
