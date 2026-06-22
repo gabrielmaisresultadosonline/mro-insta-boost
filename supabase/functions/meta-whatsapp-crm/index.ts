@@ -710,7 +710,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
       content = `[${type}]`;
     }
 
-    const { error: insertErr } = await supabase.from('crm_messages').insert({
+    const { error: insertErr } = await supabase.from('crm_messages').upsert({
       contact_id: contact!.id,
       direction: 'outbound',
       message_type: type,
@@ -720,7 +720,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
       media_url: echoMediaUrl,
       metadata: { raw: echo, source: 'echo_mobile_app' },
       user_id: userId
-    });
+    }, { onConflict: 'user_id,meta_message_id', ignoreDuplicates: true });
     if (insertErr) {
       console.error('[WEBHOOK-ECHO] Failed to insert outbound echo', { waId, error: insertErr.message });
       return { success: false, error: insertErr.message };
