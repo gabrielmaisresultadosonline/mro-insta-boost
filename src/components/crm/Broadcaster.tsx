@@ -74,6 +74,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [excludedNumbers, setExcludedNumbers] = useState<Set<string>>(new Set());
   const [recipientSearch, setRecipientSearch] = useState('');
   const [savedLists, setSavedLists] = useState<{ name: string; numbers: string[]; createdAt: string }[]>([]);
+  const [showRecipients, setShowRecipients] = useState(false);
+  const [only24h, setOnly24h] = useState(false);
   const SAVED_LISTS_KEY = 'crm_broadcast_saved_lists';
 
   // 24h Countdown trigger state
@@ -103,6 +105,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   useEffect(() => {
     setExcludedNumbers(new Set());
     setRecipientSearch('');
+    setShowRecipients(false);
+    setOnly24h(false);
   }, [targetType, selectedStatus]);
 
   // Compute candidate recipients (with contact info) based on current target
@@ -132,8 +136,20 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   }, [targetType, selectedStatus, contacts, uploadedNumbers]);
 
   const finalRecipients = useMemo(
-    () => candidateRecipients.filter(r => !excludedNumbers.has(r.wa_id)),
-    [candidateRecipients, excludedNumbers]
+    () => {
+      const DAY = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      return candidateRecipients.filter(r => {
+        if (excludedNumbers.has(r.wa_id)) return false;
+        if (only24h) {
+          const c = contacts.find((x: any) => x.wa_id === r.wa_id);
+          if (!c || !c.last_message_received_at) return false;
+          if (now - new Date(c.last_message_received_at).getTime() >= DAY) return false;
+        }
+        return true;
+      });
+    },
+    [candidateRecipients, excludedNumbers, only24h, contacts]
   );
 
   const visibleRecipients = useMemo(() => {
@@ -711,8 +727,19 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                       <Button type="button" variant="outline" size="sm" className="h-7 text-[10px]" onClick={handleSaveListForLater}>
                         <Bookmark className="w-3 h-3 mr-1" /> Salvar lista
                       </Button>
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setShowRecipients(s => !s)}>
+                        {showRecipients ? 'Ocultar lista' : 'Ver / editar lista'}
+                      </Button>
                     </div>
                   </div>
+                  {targetType !== 'conversation' && (
+                    <label className="flex items-center gap-2 text-[10px] md:text-xs text-[#8696a0] cursor-pointer select-none">
+                      <Switch checked={only24h} onCheckedChange={setOnly24h} />
+                      Apenas conversas dentro da janela de 24h
+                    </label>
+                  )}
+                  {showRecipients && (
+                    <>
                   <div className="relative">
                     <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8696a0]" />
                     <Input
@@ -753,6 +780,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                       })}
                     </div>
                   </ScrollArea>
+                    </>
+                  )}
                 </div>
               )}
 
