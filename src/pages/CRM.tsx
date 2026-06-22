@@ -5472,29 +5472,6 @@ const CRM = () => {
                                         <Button 
                                           variant="ghost" 
                                           size="icon" 
-                                          className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 border border-red-100 rounded-full"
-                                          title="Limpar Conversa"
-                                          onClick={async () => {
-                                            if (confirm('Tem certeza que deseja apagar todo o histórico desta conversa?')) {
-                                              try {
-                                                const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-                                                  body: { action: 'clearHistory', contactId: selectedContact.id }
-                                                });
-                                                if (error) throw error;
-                                                toast({ title: 'Histórico apagado com sucesso!' });
-                                                // Limpa o chat localmente
-                                                setChatMessages([]);
-                                              } catch (err: any) {
-                                                toast({ title: 'Erro ao apagar histórico', variant: 'destructive' });
-                                              }
-                                            }
-                                          }}
-                                        >
-                                          <Trash2 className="w-5 h-5" />
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
                                           onClick={() => { setUploadType('image'); fileInputRef.current?.click(); }} 
                                           className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full hidden sm:flex shrink-0"
                                         >
