@@ -1150,6 +1150,8 @@ else if (message.type === "unsupported") {
 
       if (activeFlows && activeFlows.length > 0) {
         const allCandidateTexts = collectInboundTriggerTexts(message, text);
+        const hasReferral = !!getReferralFromWebhookMessage(message);
+        console.log(`[TRIGGER-AUTO] waId=${waId} msgType=${message?.type} hasReferral=${hasReferral} text="${(text || '').slice(0,80)}" candidates=${JSON.stringify(allCandidateTexts)} activeFlows=${activeFlows.length}`);
         const prevTotal = __previousTotalReceived;
         const prevLast = __previousLastReceivedAt;
 
@@ -1200,10 +1202,14 @@ else if (message.type === "unsupported") {
             : (flow.trigger_keyword ? [normalizeTriggerText(flow.trigger_keyword)] : []);
 
           if (t === 'exact_phrase') {
-            return kws.length > 0 && kws.some(k => allCandidateTexts.some(c => c === k));
+            const m = kws.length > 0 && kws.some(k => allCandidateTexts.some(c => c === k || c.includes(k)));
+            console.log(`[TRIGGER-AUTO] eval flow="${flow.name}" type=exact_phrase kws=${JSON.stringify(kws)} => matched=${m}`);
+            return m;
           }
           if (t === 'keyword') {
-            return kws.length > 0 && allCandidateTexts.length > 0 && kws.some(k => k && allCandidateTexts.some(c => c.includes(k)));
+            const m = kws.length > 0 && allCandidateTexts.length > 0 && kws.some(k => k && allCandidateTexts.some(c => c.includes(k)));
+            console.log(`[TRIGGER-AUTO] eval flow="${flow.name}" type=keyword kws=${JSON.stringify(kws)} => matched=${m}`);
+            return m;
           }
           if (t === 'first_message') return isFirstEver;
           if (t === 'first_message_day') return isFirstOfDay;
