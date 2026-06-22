@@ -495,6 +495,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
         <MetaPricingCalculator
           defaultCategory={category as any}
           defaultQuantity={100}
+          collapsible
         />
       </div>
     </div>
