@@ -454,6 +454,17 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
   const [availableFlows, setAvailableFlows] = useState<any[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
+  const [compressState, setCompressState] = useState<{
+    file: File;
+    nodeId: string;
+    type: 'audio' | 'video' | 'image';
+    originalMb: number;
+    limitMb: number;
+    status: 'ask' | 'compressing' | 'done' | 'error';
+    progress: number;
+    resultMb?: number;
+    errorMsg?: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
