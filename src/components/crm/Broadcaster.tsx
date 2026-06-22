@@ -240,29 +240,20 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       const DAY = 24 * 60 * 60 * 1000;
       const now = Date.now();
       
+      // Use the curated final recipients (respects exclusions & uploaded normalization)
+      const curated = finalRecipients.map(r => r.wa_id);
+
       if (targetType === 'conversation') {
-        // Filtrar apenas contatos que responderam nas últimas 24 horas (Janela Ativa)
-        numbers = contacts
-          .filter(c => c.last_message_received_at && (now - new Date(c.last_message_received_at).getTime()) < DAY)
-          .map(c => c.wa_id);
+        numbers = curated;
       } else {
         // Lista Geral/Etiqueta/Upload
-        let potentialNumbers: string[] = [];
-        
-        if (targetType === 'contacts') {
-          potentialNumbers = contacts.map(c => c.wa_id);
-        } else if (targetType === 'tag') {
+        let potentialNumbers: string[] = curated;
+        if (targetType === 'tag') {
           if (!selectedStatus) {
             toast({ title: "Selecione uma etiqueta", variant: "destructive" });
             setLoading(false);
             return;
           }
-          potentialNumbers = contacts.filter(c => c.status === selectedStatus).map(c => c.wa_id);
-        } else if (targetType === 'uploaded') {
-          potentialNumbers = uploadedNumbers
-            .split('\n')
-            .map(n => n.trim().replace(/\D/g, ''))
-            .filter(n => n.length >= 10);
         }
 
         // REGRAS DE DISPARO (META API)
