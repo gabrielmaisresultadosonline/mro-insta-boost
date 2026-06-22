@@ -1654,7 +1654,7 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   const form = new FormData()
   form.append('messaging_product', 'whatsapp')
   form.append('file', blob, fileName)
-  form.append('type', media.type)
+  form.append('type', contentType)
 
   console.log(`[UPLOAD] Enviando mídia comum: type=${media.type}, contentType=${contentType}, fileName=${fileName}`);
   const uploadResponse = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/media`, {
