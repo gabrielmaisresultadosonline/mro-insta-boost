@@ -688,7 +688,9 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     value={uploadedNumbers}
                     onChange={e => setUploadedNumbers(e.target.value)}
                   />
-                  <p className="text-[9px] md:text-[10px] text-muted-foreground italic">Dica: Adicione o código do país (Ex: 55 para Brasil).</p>
+                  <p className="text-[9px] md:text-[10px] text-muted-foreground italic">
+                    Aceita com ou sem +55. Números brasileiros (10-11 dígitos) recebem o 55 automaticamente.
+                  </p>
                 </div>
               )}
 
