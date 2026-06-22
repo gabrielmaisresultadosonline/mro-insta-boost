@@ -492,6 +492,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
           isPix={isPix}
           pixCode={pixCode}
         />
+        <MetaPricingCalculator
+          defaultCategory={category as any}
+          defaultQuantity={100}
+        />
       </div>
     </div>
   );
