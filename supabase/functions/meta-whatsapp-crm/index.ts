@@ -23,6 +23,51 @@ function describeMessageForHistory(message: any) {
   return content || `[Mensagem: ${message.message_type || 'desconhecida'}]`;
 }
 
+function firstNonEmptyString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
+function getReferralFromWebhookMessage(message: any) {
+  const referral = message?.referral || message?.context?.referral || message?.unsupported?.referral || null;
+  return referral && typeof referral === 'object' ? referral : null;
+}
+
+function extractInboundTextFromWebhookMessage(message: any) {
+  const node = message?.[message?.type] || {};
+  const directText = firstNonEmptyString(
+    message?.text?.body,
+    message?.button?.text,
+    message?.interactive?.button_reply?.title,
+    message?.interactive?.list_reply?.title,
+    node?.caption,
+    node?.text,
+    message?.body,
+    message?.caption,
+    message?.message?.text,
+    message?.message?.body,
+    message?.unsupported?.text?.body,
+    message?.unsupported?.body,
+    message?.unsupported?.caption,
+  );
+
+  if (directText) return directText;
+
+  const referral = getReferralFromWebhookMessage(message);
+  if (referral) {
+    const parts = [
+      firstNonEmptyString(referral.headline, referral.title),
+      firstNonEmptyString(referral.body, referral.description),
+      firstNonEmptyString(referral.source_url, referral.url),
+    ].filter(Boolean);
+    if (parts.length > 0) return parts.join('\n');
+  }
+
+  return '';
+}
+
 async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   try {
     console.log(`[AI-AGENT] Downloading audio for transcription: ${audioUrl.slice(0, 100)}...`);
