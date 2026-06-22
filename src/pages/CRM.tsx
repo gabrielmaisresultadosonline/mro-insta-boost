@@ -5325,6 +5325,45 @@ const CRM = () => {
                                               </div>
                                             </div>
                                           )}
+                                          {(() => {
+                                            const ref = getAdReferral(m);
+                                            if (!ref) return null;
+                                            const thumb = ref.thumbnail_url || ref.image_url;
+                                            return (
+                                              <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-200 max-w-[300px] shadow-sm">
+                                                <div className="flex items-center gap-1.5 mb-1.5">
+                                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                                    📣 Veio de um anúncio
+                                                  </span>
+                                                  {ref.source_type && (
+                                                    <span className="text-[9px] uppercase text-muted-foreground">{ref.source_type}</span>
+                                                  )}
+                                                </div>
+                                                {thumb && (
+                                                  <img src={thumb} alt="Anúncio" className="w-full h-32 object-cover rounded-lg mb-2 border border-emerald-100" />
+                                                )}
+                                                {ref.headline && (
+                                                  <div className="text-[13px] font-bold text-foreground leading-snug">{ref.headline}</div>
+                                                )}
+                                                {ref.body && (
+                                                  <div className="text-[12px] text-foreground/80 leading-snug mt-0.5 whitespace-pre-wrap break-words">{ref.body}</div>
+                                                )}
+                                                {ref.source_url && (
+                                                  <a
+                                                    href={ref.source_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 break-all"
+                                                  >
+                                                    🔗 Ver anúncio
+                                                  </a>
+                                                )}
+                                                {ref.ctwa_clid && (
+                                                  <div className="mt-1 text-[9px] text-muted-foreground/70 truncate">CTWA: {ref.ctwa_clid}</div>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
                                         </>
                                       )}
                                       {m.direction === 'outbound' && m.status === 'failed' && (
