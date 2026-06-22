@@ -1630,6 +1630,22 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
     return result.id;
   }
 
+  // Vídeo: Meta só aceita video/mp4 ou video/3gpp. Se vier webm/octet-stream,
+  // forçamos o MIME para video/mp4 (o conteúdo precisa estar em H.264/AAC —
+  // a compressão no cliente já gera nesse formato quando suportado).
+  if (media.type === 'video') {
+    const lower = (contentType || '').toLowerCase();
+    if (!lower.includes('mp4') && !lower.includes('3gpp')) {
+      console.log(`[UPLOAD-VIDEO] contentType "${contentType}" não aceito pela Meta. Forçando video/mp4.`);
+      contentType = 'video/mp4';
+    } else {
+      contentType = 'video/mp4';
+    }
+    if (!/\.mp4$/i.test(fileName)) {
+      fileName = fileName.replace(/\.[^.]+$/, '') + '.mp4';
+    }
+  }
+
   const blob = new Blob([arrayBuffer], { type: contentType })
   const form = new FormData()
   form.append('messaging_product', 'whatsapp')
