@@ -488,20 +488,23 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       const LIMITS: Record<string, number> = { image: 5, audio: 16, video: WHATSAPP_VIDEO_MAX_BYTES / 1_000_000 };
       const limitMb = LIMITS[type] ?? 16;
       const sizeMb = file.size / (1024 * 1024);
+
+      if (type === 'video') {
+        // Todos os vídeos passam pelo FFmpeg antes do upload. Os logs da Meta mostraram
+        // "No video stream found", então não podemos mais enviar MP4 cru/MediaRecorder.
+        setCompressState({
+          file,
+          nodeId,
+          type,
+          originalMb: sizeMb,
+          limitMb,
+          status: 'ask',
+          progress: 0,
+        });
+        return;
+      }
+
       if (sizeMb > limitMb) {
-        if (type === 'video') {
-          // Oferece compressão inline no navegador
-          setCompressState({
-            file,
-            nodeId,
-            type,
-            originalMb: sizeMb,
-            limitMb,
-            status: 'ask',
-            progress: 0,
-          });
-          return;
-        }
         toast({
           title: `Arquivo muito grande (${sizeMb.toFixed(1)}MB)`,
           description: `O WhatsApp aceita no máximo ${limitMb}MB para ${type === 'audio' ? 'áudio' : 'imagem'}. Comprima o arquivo e envie novamente.`,

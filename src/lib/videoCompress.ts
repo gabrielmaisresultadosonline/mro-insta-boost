@@ -2,7 +2,8 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 // Limite oficial da Meta/WhatsApp para vídeo: 16 MB decimais.
-// A compressão mira um pouco abaixo porque MediaRecorder pode gerar overhead no contêiner MP4.
+// A compressão mira abaixo do limite porque a Meta reprova o arquivo de forma assíncrona
+// quando o MP4 fica sem trilha de vídeo ou com contêiner/codec fora do padrão esperado.
 export const WHATSAPP_VIDEO_MAX_BYTES = 16_000_000;
 const TARGET_BYTES = 15_500_000;
 let ffmpegInstance: FFmpeg | null = null;
@@ -33,40 +34,85 @@ async function getFfmpeg() {
   return ffmpegInstance;
 }
 
-async function remuxToProgressiveMp4(file: File, onProgress?: CompressProgress): Promise<File> {
-  const ffmpeg = await getFfmpeg();
-  const inputName = 'input.mp4';
-  const outputName = 'output.mp4';
+async function readFfmpegFileAsBytes(ffmpeg: FFmpeg, path: string) {
+  const data = await ffmpeg.readFile(path);
+  return data instanceof Uint8Array ? data : new TextEncoder().encode(data);
+}
 
-  onProgress?.(97);
-  await ffmpeg.writeFile(inputName, await fetchFile(file));
-  const exitCode = await ffmpeg.exec([
-    '-i', inputName,
-    '-map', '0:v:0',
-    '-map', '0:a?',
-    '-c', 'copy',
-    '-movflags', '+faststart',
-    '-brand', 'mp42',
-    '-f', 'mp4',
+async function assertMp4HasVideoStream(ffmpeg: FFmpeg, outputName: string) {
+  const probeName = `${outputName}.probe.json`;
+  const exitCode = await ffmpeg.ffprobe([
+    '-v', 'error',
+    '-select_streams', 'v:0',
+    '-show_entries', 'stream=codec_type,width,height',
+    '-of', 'json',
     outputName,
-  ], 120_000);
+    '-o', probeName,
+  ], 60_000);
 
   if (exitCode !== 0) {
-    await ffmpeg.deleteFile(inputName).catch(() => undefined);
-    await ffmpeg.deleteFile(outputName).catch(() => undefined);
-    throw new Error('Não foi possível finalizar o MP4 para envio na Meta. Tente cortar alguns segundos e comprimir novamente.');
+    await ffmpeg.deleteFile(probeName).catch(() => undefined);
+    throw new Error('A Meta recusaria este vídeo porque não foi possível validar a trilha de vídeo. Tente enviar o arquivo original novamente.');
   }
 
-  const data = await ffmpeg.readFile(outputName);
-  await ffmpeg.deleteFile(inputName).catch(() => undefined);
-  await ffmpeg.deleteFile(outputName).catch(() => undefined);
+  const probeBytes = await readFfmpegFileAsBytes(ffmpeg, probeName);
+  await ffmpeg.deleteFile(probeName).catch(() => undefined);
+  const probeText = new TextDecoder().decode(probeBytes);
+  const probe = JSON.parse(probeText || '{}');
+  const stream = Array.isArray(probe?.streams) ? probe.streams[0] : null;
 
-  const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data);
-  const arrayBuffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(arrayBuffer).set(bytes);
-  const blob = new Blob([arrayBuffer], { type: 'video/mp4' });
-  const base = file.name.replace(/\.[^.]+$/, '');
-  return new File([blob], `${base}-meta.mp4`, { type: 'video/mp4' });
+  if (stream?.codec_type !== 'video' || !stream?.width || !stream?.height) {
+    throw new Error('A Meta recusaria este arquivo: o MP4 gerado ficou sem trilha de vídeo. Comprima novamente a partir do vídeo original.');
+  }
+}
+
+async function transcodeToMetaMp4(
+  ffmpeg: FFmpeg,
+  inputName: string,
+  outputName: string,
+  startTime: number,
+  duration: number,
+  videoBitrate: number,
+  audioBitrate: number,
+  onProgress?: CompressProgress,
+) {
+  const progressHandler = ({ progress }: { progress: number }) => {
+    if (Number.isFinite(progress)) {
+      onProgress?.(Math.max(1, Math.min(95, Math.round(progress * 95))));
+    }
+  };
+
+  ffmpeg.on('progress', progressHandler);
+  try {
+    const exitCode = await ffmpeg.exec([
+      '-ss', startTime.toFixed(3),
+      '-i', inputName,
+      '-t', duration.toFixed(3),
+      '-map', '0:v:0',
+      '-map', '0:a?',
+      '-c:v', 'libx264',
+      '-profile:v', 'baseline',
+      '-level', '3.1',
+      '-preset', 'veryfast',
+      '-b:v', String(videoBitrate),
+      '-maxrate', String(Math.floor(videoBitrate * 1.25)),
+      '-bufsize', String(Math.floor(videoBitrate * 2)),
+      '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac',
+      '-b:a', String(audioBitrate),
+      '-ac', '1',
+      '-movflags', '+faststart',
+      '-brand', 'mp42',
+      '-f', 'mp4',
+      outputName,
+    ], 180_000);
+
+    if (exitCode !== 0) {
+      throw new Error('Não foi possível converter o vídeo para MP4 compatível com a Meta. Tente cortar alguns segundos e comprimir novamente.');
+    }
+  } finally {
+    ffmpeg.off('progress', progressHandler);
+  }
 }
 
 export async function compressVideoForWhatsApp(
@@ -74,7 +120,8 @@ export async function compressVideoForWhatsApp(
   onProgress?: CompressProgress,
   options: CompressOptions = {}
 ): Promise<File> {
-  // Carrega metadados (duração)
+  // Carrega metadados apenas para calcular duração/corte. A conversão real é feita
+  // com FFmpeg, não com MediaRecorder, para evitar MP4 sem stream de vídeo.
   const srcUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.src = srcUrl;
@@ -102,108 +149,42 @@ export async function compressVideoForWhatsApp(
 
   const audioBitrate = 64_000;
   let targetBitrate = Math.max(180_000, Math.floor((targetBytes * 8) / dur) - audioBitrate);
-
-  // captureStream
-  // @ts-expect-error captureStream nem sempre está nos types
-  const stream: MediaStream = video.captureStream
-    // @ts-expect-error
-    ? video.captureStream()
-    // @ts-expect-error
-    : video.mozCaptureStream();
-
-  const candidates = [
-    // WhatsApp / Meta só aceita MP4 (H.264 + AAC). Priorizamos Baseline/Main,
-    // pois a própria Meta rejeita vídeos H.264 High Profile com B-frames.
-    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-    'video/mp4;codecs=avc1.4D401E,mp4a.40.2',
-    'video/mp4',
-  ];
-  const mimeType = candidates.find((c) => MediaRecorder.isTypeSupported(c)) || '';
-  if (!mimeType) {
-    URL.revokeObjectURL(srcUrl);
-    throw new Error('Seu navegador não suporta compressão em MP4. Use Chrome ou Edge atualizado.');
-  }
-
-  const seekTo = (time: number) => new Promise<void>((res) => {
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      video.removeEventListener('seeked', finish);
-      res();
-    };
-    video.addEventListener('seeked', finish);
-    video.currentTime = time;
-    setTimeout(finish, 500);
-  });
-
-  const encodeOnce = async (videoBitrate: number, attempt: number): Promise<Blob> => {
-    const chunks: Blob[] = [];
-    const recorder = new MediaRecorder(stream, {
-      mimeType,
-      videoBitsPerSecond: videoBitrate,
-      audioBitsPerSecond: audioBitrate,
-    });
-    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-    const stopPromise = new Promise<Blob>((res) => {
-      recorder.onstop = () => res(new Blob(chunks, { type: mimeType }));
-    });
-
-    await seekTo(startTime);
-    // Não use timeslice aqui: chunks parciais geram MP4 fragmentado (vários mdat),
-    // que a Meta aceita no upload, mas costuma reprovar depois com "Media upload error".
-    recorder.start();
-    await video.play();
-
-    let raf = 0;
-    let finished = false;
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      try { video.pause(); } catch {}
-    };
-    const tick = () => {
-      if (finished || recorder.state === 'inactive') return;
-      const cur = Math.max(0, video.currentTime - startTime);
-      const pct = Math.min(99, Math.round((cur / dur) * 100));
-      onProgress?.(Math.min(99, attempt === 0 ? pct : Math.max(1, pct)));
-      if (video.currentTime >= endTime || video.ended) {
-        finish();
-        return;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    tick();
-
-    await new Promise<void>((res) => {
-      const check = () => {
-        if (finished) { res(); return; }
-        if (video.ended || video.currentTime >= endTime) { finish(); res(); return; }
-        setTimeout(check, 100);
-      };
-      video.onended = () => { finish(); res(); };
-      check();
-    });
-    cancelAnimationFrame(raf);
-
-    if (recorder.state !== 'inactive') recorder.stop();
-    return stopPromise;
-  };
-
-  let blob = await encodeOnce(targetBitrate, 0);
-  for (let attempt = 1; attempt <= 2 && blob.size > maxBytes; attempt += 1) {
-    targetBitrate = Math.max(140_000, Math.floor(targetBitrate * (maxBytes / blob.size) * 0.86));
-    blob = await encodeOnce(targetBitrate, attempt);
-  }
   URL.revokeObjectURL(srcUrl);
 
-  onProgress?.(96);
-
-  const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
+  const ffmpeg = await getFfmpeg();
+  const sourceExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+  const inputName = `input-${Date.now()}.${sourceExt}`;
   const base = file.name.replace(/\.[^.]+$/, '');
-  const outName = `${base}-compactado.${ext}`;
-  const encodedFile = new File([blob], outName, { type: ext === 'mp4' ? 'video/mp4' : mimeType });
-  const finalFile = ext === 'mp4' ? await remuxToProgressiveMp4(encodedFile, onProgress) : encodedFile;
+  let finalBytes: Uint8Array | null = null;
+
+  await ffmpeg.writeFile(inputName, await fetchFile(file));
+  try {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const outputName = `output-${Date.now()}-${attempt}.mp4`;
+      onProgress?.(attempt === 0 ? 1 : 5);
+      await transcodeToMetaMp4(ffmpeg, inputName, outputName, startTime, dur, targetBitrate, audioBitrate, onProgress);
+      await assertMp4HasVideoStream(ffmpeg, outputName);
+      const bytes = await readFfmpegFileAsBytes(ffmpeg, outputName);
+      await ffmpeg.deleteFile(outputName).catch(() => undefined);
+
+      if (bytes.byteLength <= maxBytes) {
+        finalBytes = bytes;
+        break;
+      }
+
+      targetBitrate = Math.max(140_000, Math.floor(targetBitrate * (maxBytes / bytes.byteLength) * 0.86));
+    }
+  } finally {
+    await ffmpeg.deleteFile(inputName).catch(() => undefined);
+  }
+
+  if (!finalBytes) {
+    throw new Error('Ainda acima de 16MB. Corte mais um pedaço e tente novamente.');
+  }
+
+  const arrayBuffer = new ArrayBuffer(finalBytes.byteLength);
+  new Uint8Array(arrayBuffer).set(finalBytes);
+  const blob = new Blob([arrayBuffer], { type: 'video/mp4' });
   onProgress?.(100);
-  return finalFile;
+  return new File([blob], `${base}-meta.mp4`, { type: 'video/mp4' });
 }
