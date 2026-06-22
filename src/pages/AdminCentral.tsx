@@ -476,37 +476,37 @@ export default function AdminCentral() {
 
       {/* Insights dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white border-[#E8F5F1] text-[#075E54]">
           <DialogHeader>
-            <DialogTitle>Insights do usuário</DialogTitle>
+            <DialogTitle className="text-[#075E54]">Insights do usuário</DialogTitle>
           </DialogHeader>
           {selected && (
             <div className="space-y-3">
               <div className="text-sm">
                 <div className="font-medium">{selected.full_name || selected.email}</div>
-                <div className="text-muted-foreground">{selected.email}</div>
+                <div className="text-[#128C7E]/70">{selected.email}</div>
               </div>
               {loadingInsights || !insights ? (
                 <div className="flex justify-center py-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-6 w-6 animate-spin text-[#128C7E]/60" />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  <Card className="p-3">
-                    <div className="text-xs text-muted-foreground">Mensagens recebidas</div>
-                    <div className="text-2xl font-bold">{insights.totalReceived}</div>
+                  <Card className="p-3 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]">
+                    <div className="text-xs text-[#128C7E]/70">Mensagens recebidas</div>
+                    <div className="text-2xl font-bold text-[#075E54]">{insights.totalReceived}</div>
                   </Card>
-                  <Card className="p-3">
-                    <div className="text-xs text-muted-foreground">Mensagens enviadas</div>
-                    <div className="text-2xl font-bold">{insights.totalSent}</div>
+                  <Card className="p-3 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]">
+                    <div className="text-xs text-[#128C7E]/70">Mensagens enviadas</div>
+                    <div className="text-2xl font-bold text-[#075E54]">{insights.totalSent}</div>
                   </Card>
-                  <Card className="p-3">
-                    <div className="text-xs text-muted-foreground">Contatos</div>
-                    <div className="text-2xl font-bold">{insights.totalContacts}</div>
+                  <Card className="p-3 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]">
+                    <div className="text-xs text-[#128C7E]/70">Contatos</div>
+                    <div className="text-2xl font-bold text-[#075E54]">{insights.totalContacts}</div>
                   </Card>
-                  <Card className="p-3">
-                    <div className="text-xs text-muted-foreground">Conversas cobradas</div>
-                    <div className="text-2xl font-bold">{insights.paidConversations}</div>
+                  <Card className="p-3 bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]">
+                    <div className="text-xs text-[#128C7E]/70">Conversas cobradas</div>
+                    <div className="text-2xl font-bold text-[#075E54]">{insights.paidConversations}</div>
                   </Card>
                 </div>
               )}
@@ -517,21 +517,22 @@ export default function AdminCentral() {
 
       {/* Password dialog */}
       <Dialog open={pwdDialogOpen} onOpenChange={setPwdDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white border-[#E8F5F1] text-[#075E54]">
           <DialogHeader>
-            <DialogTitle>Definir nova senha</DialogTitle>
+            <DialogTitle className="text-[#075E54]">Definir nova senha</DialogTitle>
           </DialogHeader>
           {pwdTarget && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#128C7E]/80">
                 Defina uma nova senha para <strong>{pwdTarget.email}</strong>. Copie e envie ao usuário — senhas atuais
                 não podem ser recuperadas pois ficam criptografadas.
               </p>
               <div className="flex gap-2">
-                <Input value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
+                <Input value={newPwd} onChange={(e) => setNewPwd(e.target.value)} className="bg-[#F0FDF4] border-[#E8F5F1] text-[#075E54]" />
                 <Button
                   type="button"
                   variant="outline"
+                  className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]"
                   onClick={() => {
                     navigator.clipboard.writeText(newPwd);
                     toast.success("Copiado");
@@ -540,16 +541,16 @@ export default function AdminCentral() {
                   Copiar
                 </Button>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setNewPwd(generatePwd())}>
+              <Button variant="ghost" size="sm" onClick={() => setNewPwd(generatePwd())} className="text-[#128C7E] hover:bg-[#F0FDF4]">
                 Gerar outra
               </Button>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPwdDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setPwdDialogOpen(false)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
               Cancelar
             </Button>
-            <Button onClick={savePassword} disabled={savingPwd}>
+            <Button onClick={savePassword} disabled={savingPwd} className="bg-[#25D366] hover:bg-[#128C7E] text-white">
               {savingPwd ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar senha"}
             </Button>
           </DialogFooter>
