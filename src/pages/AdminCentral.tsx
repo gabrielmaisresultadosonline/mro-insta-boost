@@ -236,34 +236,36 @@ export default function AdminCentral() {
   // ============ LOGIN ============
   if (!creds) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-6 space-y-4">
+      <div className="min-h-screen bg-[#F0FDF4] text-[#075E54] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-6 space-y-4 bg-white border-[#E8F5F1] text-[#075E54] shadow-lg shadow-green-900/5">
           <div>
-            <h1 className="text-2xl font-bold">Admin Central</h1>
-            <p className="text-sm text-muted-foreground">Acesso restrito ao administrador principal</p>
+            <h1 className="text-2xl font-bold text-[#075E54]">Admin Central</h1>
+            <p className="text-sm text-[#128C7E]/70">Acesso restrito ao administrador principal</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-3">
             <div className="space-y-1.5">
-              <Label>E-mail</Label>
+              <Label className="text-[#075E54]">E-mail</Label>
               <Input
                 type="email"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 autoComplete="username"
                 required
+                className="bg-[#F0FDF4] border-[#E8F5F1] focus-visible:ring-[#25D366]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Senha</Label>
+              <Label className="text-[#075E54]">Senha</Label>
               <Input
                 type="password"
                 value={loginPwd}
                 onChange={(e) => setLoginPwd(e.target.value)}
                 autoComplete="current-password"
                 required
+                className="bg-[#F0FDF4] border-[#E8F5F1] focus-visible:ring-[#25D366]"
               />
             </div>
-            <Button type="submit" disabled={loggingIn} className="w-full">
+            <Button type="submit" disabled={loggingIn} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white">
               {loggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
             </Button>
           </form>
