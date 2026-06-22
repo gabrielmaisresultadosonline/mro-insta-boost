@@ -442,7 +442,10 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [flowName, setFlowName] = useState(flow?.name || 'Novo Fluxo');
   const [triggerType, setTriggerType] = useState(flow?.trigger_type || 'manual');
-  const [triggerKeywords, setTriggerKeywords] = useState(flow?.trigger_keywords?.join(', ') || flow?.trigger_keyword || '');
+  const [triggerKeywords, setTriggerKeywords] = useState(
+    flow?.trigger_keywords?.join(flow?.trigger_type === 'exact_phrase' ? '\n' : ', ')
+      || flow?.trigger_keyword || ''
+  );
   const [triggerTag, setTriggerTag] = useState(flow?.trigger_tag || '');
   const [isActive, setIsActive] = useState(flow?.is_active !== false);
   const [uploading, setUploading] = useState(false);
