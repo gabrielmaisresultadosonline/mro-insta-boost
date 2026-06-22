@@ -118,8 +118,9 @@ serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
 
-      // Paid conversations: count distinct contacts that have an outbound message
-      // that wasn't a mobile-app echo (only API-sent are billed by Meta).
+      // Paid conversations: somente as mensagens onde a própria Meta marcou
+      // pricing.billable = true no status retornado. Conversas dentro da janela
+      // de 24h (free_customer_service) NÃO são cobradas e devem ficar fora.
       const { data: outboundMsgs } = await supabase
         .from("crm_messages")
         .select("contact_id, created_at, metadata")
@@ -129,14 +130,26 @@ serve(async (req) => {
         .limit(50000);
 
       let paidConversations = 0;
-      const seenDayContact = new Set<string>();
+      const seenConvKey = new Set<string>();
       for (const m of outboundMsgs || []) {
-        const src = (m as any).metadata?.source;
+        const meta: any = (m as any).metadata || {};
+        const src = meta.source;
         if (src === "echo_mobile_app" || src === "meta_webhook_echo") continue;
+
+        const pricing = meta.last_meta_status?.pricing || meta.pricing;
+        // Sem pricing confirmado pela Meta, não contamos como cobrada.
+        if (!pricing) continue;
+        // Meta envia billable=false para free_customer_service / free_entry_point.
+        const isBillable =
+          pricing.billable === true ||
+          (pricing.category && pricing.category !== "service" && pricing.category !== "free_customer_service" && pricing.category !== "referral_conversion");
+        if (!isBillable) continue;
+
+        // Deduplica por contato + categoria + dia (1 conversa cobrada por janela)
         const day = new Date((m as any).created_at).toISOString().slice(0, 10);
-        const key = `${(m as any).contact_id}-${day}`;
-        if (seenDayContact.has(key)) continue;
-        seenDayContact.add(key);
+        const key = `${(m as any).contact_id}-${pricing.category || "x"}-${day}`;
+        if (seenConvKey.has(key)) continue;
+        seenConvKey.add(key);
         paidConversations++;
       }
 
