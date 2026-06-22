@@ -1389,7 +1389,17 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
   
   if (!uploadResponse.ok) {
     console.error(`[UPLOAD] Erro Meta detalhado:`, JSON.stringify(uploadResult));
-    throw new Error(uploadResult?.error?.message || `Erro ${uploadResponse.status} ao subir mídia na Meta`);
+    const details = uploadResult?.error?.error_data?.details || '';
+    const baseMsg = uploadResult?.error?.message || `Erro ${uploadResponse.status} ao subir mídia na Meta`;
+    let friendly = baseMsg;
+    if (/file too large/i.test(details) || /file too large/i.test(baseMsg)) {
+      const limits: Record<string, string> = { video: '16MB', image: '5MB', audio: '16MB', document: '100MB' };
+      const lim = limits[media.type] || '16MB';
+      friendly = `Arquivo de ${media.type === 'video' ? 'vídeo' : media.type} muito grande. O WhatsApp aceita no máximo ${lim}. Comprima o arquivo e envie novamente.`;
+    } else if (details) {
+      friendly = `${baseMsg}: ${details}`;
+    }
+    throw new Error(friendly);
   }
   return uploadResult.id
 }
