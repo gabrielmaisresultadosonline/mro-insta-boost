@@ -272,6 +272,29 @@
   --crm-text-soft: #3b6a5e;
   --crm-border: rgba(7, 94, 84, 0.12);
   --crm-accent: #25D366;
+
+  /* Tokens shadcn/Tailwind locais: impedem text-foreground, bg-card,
+     bg-muted e waveform bg-foreground/25 de herdarem o tema escuro. */
+  --background: 0 0% 100%;
+  --foreground: 164 48% 8%;
+  --card: 136 70% 97%;
+  --card-foreground: 164 48% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 164 48% 8%;
+  --primary: 164 100% 26%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 156 35% 93%;
+  --secondary-foreground: 164 48% 8%;
+  --muted: 156 35% 93%;
+  --muted-foreground: 164 28% 32%;
+  --accent: 142 76% 36%;
+  --accent-foreground: 164 48% 8%;
+  --border: 164 25% 84%;
+  --input: 164 25% 84%;
+  --sidebar-background: 136 70% 97%;
+  --sidebar-foreground: 164 48% 8%;
+  --sidebar-accent: 156 35% 93%;
+  --sidebar-accent-foreground: 164 48% 8%;
   color: var(--crm-text);
 }
 
@@ -454,11 +477,14 @@
 .crm-theme-light .bg-\[\#7c5cfc\] .text-white,
 .crm-theme-light .bg-\[\#EAB308\] .text-white { color: #ffffff !important; }
 
-/* Item ativo no sidebar e breadcrumb "Dashboard": preserva contraste branco
-   quando o fundo é primário/verde */
-.crm-theme-light [data-active="true"],
-.crm-theme-light [aria-current="page"],
+/* Item ativo do menu no tema claro: fundo fica claro, então o texto não pode
+   ser branco. Mantém branco apenas em botões/superfícies realmente primárias. */
+.crm-theme-light [data-sidebar="menu-button"][data-active="true"],
+.crm-theme-light [data-sidebar="menu-button"][data-active="true"] * {
+  color: var(--crm-text-strong) !important;
+}
+.crm-theme-light [data-sidebar="menu-button"][data-active="true"] svg {
+  color: var(--crm-accent) !important;
+}
 .crm-theme-light .bg-primary,
 .crm-theme-light .bg-primary * { color: #ffffff !important; }
-.crm-theme-light [data-active="true"] *,
-.crm-theme-light [aria-current="page"] * { color: inherit !important; }
