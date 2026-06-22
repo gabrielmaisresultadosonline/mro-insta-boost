@@ -28,6 +28,7 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
   const [url, setUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [trim, setTrim] = useState<[number, number]>([0, 0]);
+  const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [phase, setPhase] = useState<Phase>("ready");
   const [progress, setProgress] = useState(0);
@@ -56,6 +57,7 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
       setTrim([0, d]);
     };
     const onTime = () => {
+      setCurrentTime(v.currentTime);
       if (v.currentTime >= trim[1]) {
         v.pause();
         setPlaying(false);
@@ -89,6 +91,14 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
     if (v && (v.currentTime < a || v.currentTime > b)) v.currentTime = a;
   };
 
+  const handleSeek = (vals: number[]) => {
+    const v = videoRef.current;
+    if (!v) return;
+    const t = Math.min(Math.max(vals[0], trim[0]), trim[1]);
+    v.currentTime = t;
+    setCurrentTime(t);
+  };
+
   const trimmedDur = trim[1] - trim[0];
   const estimatedMb = useMemo(() => {
     if (!duration || !originalMb) return 0;
@@ -102,6 +112,10 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
     setPhase("compressing");
     setProgress(0);
     setError(null);
+    const v = videoRef.current;
+    const prevMuted = v?.muted;
+    const prevVolume = v?.volume;
+    if (v) { v.muted = true; v.volume = 0; }
     try {
       const compressed = await compressVideoForWhatsApp(
         file,
@@ -120,6 +134,11 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
     } catch (e: any) {
       setError(e?.message || "Erro ao comprimir");
       setPhase("error");
+    } finally {
+      if (v) {
+        v.muted = prevMuted ?? false;
+        v.volume = prevVolume ?? 1;
+      }
     }
   };
 
@@ -190,6 +209,27 @@ export const VideoCompressDialog = ({ file, limitMb, open, onCancel, onReady }: 
             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
               <span>Início</span>
               <span>Fim</span>
+            </div>
+
+            <div className="pt-2 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Posição atual</span>
+                <span className="tabular-nums">{fmtTime(currentTime)} / {fmtTime(duration)}</span>
+              </div>
+              <SliderPrimitive.Root
+                min={trim[0]}
+                max={Math.max(trim[1], trim[0] + 0.1)}
+                step={0.05}
+                value={[Math.min(Math.max(currentTime, trim[0]), trim[1])]}
+                onValueChange={handleSeek}
+                disabled={phase === "compressing" || phase === "uploading" || !duration}
+                className="relative flex w-full touch-none select-none items-center"
+              >
+                <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-secondary">
+                  <SliderPrimitive.Range className="absolute h-full bg-primary/70" />
+                </SliderPrimitive.Track>
+                <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-background shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+              </SliderPrimitive.Root>
             </div>
           </div>
 
