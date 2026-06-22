@@ -1015,6 +1015,68 @@ else if (message.type === "unsupported") {
   const isWaitingResponse = contact?.flow_state === 'waiting_response';
   const hasActiveFlow = !!contact?.current_flow_id;
 
+  // Mensagem vinda de anúncio (CTWA/referral) deve ter prioridade sobre IA ativa.
+  // Sem isso, contatos com ai_active=true eram enviados para o agente antes do gatilho automático.
+  if (contact && !hasActiveFlow && !isAiHandling && getReferralFromWebhookMessage(message)) {
+    try {
+      const allCandidateTexts = collectInboundTriggerTexts(message, text);
+      console.log(`[TRIGGER-CTWA] (ad-priority) waId=${waId} msgType=${message?.type} aiActive=${isAiActive} candidates=${JSON.stringify(allCandidateTexts)}`);
+      const { data: triggeredFlows, error: triggeredFlowsError } = await supabase
+        .from('crm_flows')
+        .select('id, name, trigger_type, trigger_keywords, trigger_keyword, nodes, edges, user_id')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .in('trigger_type', ['exact_phrase', 'keyword']);
+
+      if (triggeredFlowsError) throw triggeredFlowsError;
+
+      const priority = ['exact_phrase', 'keyword'];
+      let matchingTriggeredFlow = null;
+      for (const triggerType of priority) {
+        matchingTriggeredFlow = (triggeredFlows || []).find((flow: any) => {
+          if (flow.trigger_type !== triggerType) return false;
+          const matched = flowMatchesIncomingTrigger(flow, allCandidateTexts);
+          console.log(`[TRIGGER-CTWA] (ad-priority) eval flow="${flow.name}" type=${flow.trigger_type} kws=${JSON.stringify(flow.trigger_keywords || [flow.trigger_keyword])} => matched=${matched}`);
+          return matched;
+        });
+        if (matchingTriggeredFlow) break;
+      }
+
+      if (matchingTriggeredFlow) {
+        console.log(`[TRIGGER] Starting ad flow ${matchingTriggeredFlow.id} (${matchingTriggeredFlow.name}) for ${waId} before AI handling`);
+        await supabase.from('crm_scheduled_messages').delete().eq('contact_id', contact.id);
+        let startNode = matchingTriggeredFlow.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
+        if (!startNode && matchingTriggeredFlow.nodes?.length > 0) startNode = matchingTriggeredFlow.nodes[0];
+
+        if (startNode) {
+          await supabase.from('crm_contacts').update({
+            current_flow_id: matchingTriggeredFlow.id,
+            current_node_id: startNode.id,
+            flow_state: 'running',
+            ai_active: false,
+            last_flow_interaction: new Date().toISOString(),
+            next_execution_time: null
+          }).eq('id', contact.id);
+
+          let currentRes: any = await executeVisualNode(supabase, matchingTriggeredFlow, startNode, contact.id, waId);
+          let iterations = 0;
+          while (currentRes?.nextNodeId && iterations < 10) {
+            iterations++;
+            const nextInChain = matchingTriggeredFlow.nodes.find((n: any) => n.id === currentRes.nextNodeId);
+            if (!nextInChain) break;
+            currentRes = await executeVisualNode(supabase, matchingTriggeredFlow, nextInChain, contact.id, waId);
+          }
+
+          return jsonResponse({ success: true, triggered_flow: matchingTriggeredFlow.id, execution: currentRes });
+        }
+      } else {
+        console.log(`[TRIGGER-CTWA] (ad-priority) no matching flow for ${waId}. candidates=${JSON.stringify(allCandidateTexts)}`);
+      }
+    } catch (adTriggerErr) {
+      console.error('[TRIGGER-CTWA] Error evaluating ad-priority trigger:', adTriggerErr);
+    }
+  }
+
   // Mensagens vindas de anúncio podem chegar como texto + referral enquanto o contato
   // ainda está preso em um fluxo anterior aguardando resposta. Se existir um gatilho
   // exato/palavra-chave configurado para esse texto, ele deve iniciar o novo fluxo.
