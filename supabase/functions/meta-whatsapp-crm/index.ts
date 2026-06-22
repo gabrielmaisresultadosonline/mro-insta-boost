@@ -2891,6 +2891,23 @@ async function fetchAndStoreIncomingMedia(
             }
           }
 
+          const { data: existingTemplate } = await supabase
+            .from('crm_templates')
+            .select('category')
+            .eq('id', template.id)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          if (existingTemplate?.category && existingTemplate.category !== template.category) {
+            console.warn('[TEMPLATE-CATEGORY-SYNC]', {
+              template_id: template.id,
+              template_name: template.name,
+              local_category_before_sync: existingTemplate.category,
+              meta_category_returned: template.category,
+              source: 'meta_getTemplates',
+            });
+          }
+
           await supabase.from('crm_templates').upsert({
             id: template.id,
             name: template.name,
@@ -2922,6 +2939,14 @@ async function fetchAndStoreIncomingMedia(
       if (action === 'sendMessage' || action === 'sendTemplate') {
         // Logic to sync back would go here, but focusing on the requested parts first
       }
+
+      const requestedCategory = firstNonEmptyString(category).toUpperCase();
+      console.log('[TEMPLATE-CATEGORY-CREATE-REQUEST]', {
+        template_name: name,
+        requested_category: requestedCategory,
+        original_category_value: category,
+        allow_category_change: false,
+      });
 
       console.log(`Creating template ${name}...`);
 
@@ -2975,6 +3000,23 @@ async function fetchAndStoreIncomingMedia(
         }
       }
       
+      const createTemplatePayload = {
+        name,
+        category: requestedCategory,
+        language,
+        components: processedComponents,
+        // Impede a Meta de reclassificar automaticamente (ex.: UTILITY -> MARKETING).
+        // Se a Meta julgar que a categoria está incorreta, a aprovação será negada
+        // em vez de mudar a categoria sem avisar.
+        allow_category_change: false,
+      };
+
+      console.log('[TEMPLATE-CATEGORY-META-PAYLOAD]', {
+        template_name: name,
+        category_sent_to_meta: createTemplatePayload.category,
+        allow_category_change_sent_to_meta: createTemplatePayload.allow_category_change,
+      });
+
       const response = await fetch(
         `https://graph.facebook.com/v20.0/${meta_waba_id}/message_templates`,
         {
@@ -2983,16 +3025,7 @@ async function fetchAndStoreIncomingMedia(
             'Authorization': `Bearer ${meta_access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            name,
-            category,
-            language,
-            components: processedComponents,
-            // Impede a Meta de reclassificar automaticamente (ex.: UTILITY -> MARKETING).
-            // Se a Meta julgar que a categoria está incorreta, a aprovação será negada
-            // em vez de mudar a categoria sem avisar.
-            allow_category_change: false,
-          }),
+          body: JSON.stringify(createTemplatePayload),
         }
       )
       
@@ -3010,12 +3043,20 @@ async function fetchAndStoreIncomingMedia(
         })
       }
       
+      console.log('[TEMPLATE-CATEGORY-META-RESPONSE]', {
+        template_name: name,
+        requested_category: requestedCategory,
+        meta_response_category: result?.category || null,
+        meta_response_status: result?.status || null,
+        meta_template_id: result?.id || null,
+      });
+
       if (result.id) {
         const { is_pix, pix_code, is_carousel } = params;
         await supabase.from('crm_templates').upsert({
           id: result.id,
           name,
-          category,
+          category: requestedCategory,
           language,
           status: 'PENDING',
           components: processedComponents,
