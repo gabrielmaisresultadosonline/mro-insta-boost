@@ -914,7 +914,7 @@ else if (message.type === "unsupported") {
     try {
       const { data: activeFlows } = await supabase
         .from('crm_flows')
-        .select('id, name, trigger_type, trigger_keywords, trigger_keyword, nodes')
+        .select('id, name, trigger_type, trigger_keywords, trigger_keyword, nodes, edges, user_id')
         .eq('user_id', userId)
         .eq('is_active', true);
 
