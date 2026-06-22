@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,10 @@ import {
   Upload,
   ArrowRight,
   Save,
-  BrainCircuit
+  BrainCircuit,
+  X,
+  Search,
+  Bookmark
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -67,6 +70,12 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [parsingType, setParsingType] = useState<'vcard' | 'csv' | null>(null);
 
+  // Recipient preview / management
+  const [excludedNumbers, setExcludedNumbers] = useState<Set<string>>(new Set());
+  const [recipientSearch, setRecipientSearch] = useState('');
+  const [savedLists, setSavedLists] = useState<{ name: string; numbers: string[]; createdAt: string }[]>([]);
+  const SAVED_LISTS_KEY = 'crm_broadcast_saved_lists';
+
   // 24h Countdown trigger state
   const [countdownEnabled, setCountdownEnabled] = useState(false);
   const [countdownThreshold, setCountdownThreshold] = useState(60);
@@ -79,7 +88,96 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   useEffect(() => {
     fetchBroadcasts();
     fetchCountdownSettings();
+    try {
+      const raw = localStorage.getItem(SAVED_LISTS_KEY);
+      if (raw) setSavedLists(JSON.parse(raw));
+    } catch {}
   }, []);
+
+  const persistSavedLists = (lists: typeof savedLists) => {
+    setSavedLists(lists);
+    try { localStorage.setItem(SAVED_LISTS_KEY, JSON.stringify(lists)); } catch {}
+  };
+
+  // Reset exclusions when changing target
+  useEffect(() => {
+    setExcludedNumbers(new Set());
+    setRecipientSearch('');
+  }, [targetType, selectedStatus]);
+
+  // Compute candidate recipients (with contact info) based on current target
+  const candidateRecipients = useMemo(() => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    if (targetType === 'conversation') {
+      return contacts.filter(c => c.last_message_received_at && (now - new Date(c.last_message_received_at).getTime()) < DAY)
+        .map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
+    }
+    if (targetType === 'contacts') {
+      return contacts.map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
+    }
+    if (targetType === 'tag' && selectedStatus) {
+      return contacts.filter(c => c.status === selectedStatus).map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
+    }
+    if (targetType === 'uploaded') {
+      return uploadedNumbers.split('\n').map(n => {
+        const digits = n.trim().replace(/\D/g, '');
+        if (digits.length < 10) return null;
+        // Auto add 55 if it's a Brazilian local number without country code
+        const wa = (digits.length === 10 || digits.length === 11) ? `55${digits}` : digits;
+        return { wa_id: wa, name: wa };
+      }).filter(Boolean) as { wa_id: string; name: string }[];
+    }
+    return [];
+  }, [targetType, selectedStatus, contacts, uploadedNumbers]);
+
+  const finalRecipients = useMemo(
+    () => candidateRecipients.filter(r => !excludedNumbers.has(r.wa_id)),
+    [candidateRecipients, excludedNumbers]
+  );
+
+  const visibleRecipients = useMemo(() => {
+    const q = recipientSearch.trim().toLowerCase();
+    if (!q) return candidateRecipients;
+    return candidateRecipients.filter(r =>
+      r.name.toLowerCase().includes(q) || r.wa_id.includes(q)
+    );
+  }, [candidateRecipients, recipientSearch]);
+
+  const toggleExclude = (wa: string) => {
+    setExcludedNumbers(prev => {
+      const next = new Set(prev);
+      if (next.has(wa)) next.delete(wa); else next.add(wa);
+      return next;
+    });
+  };
+
+  const handleSaveListForLater = () => {
+    if (finalRecipients.length === 0) {
+      toast({ title: "Lista vazia", description: "Selecione destinatários antes de salvar.", variant: "destructive" });
+      return;
+    }
+    const listName = window.prompt('Nome da lista (para reutilizar em outro disparo):', name || `Lista ${new Date().toLocaleDateString('pt-BR')}`);
+    if (!listName) return;
+    const numbers = finalRecipients.map(r => r.wa_id);
+    const updated = [...savedLists.filter(l => l.name !== listName), { name: listName, numbers, createdAt: new Date().toISOString() }];
+    persistSavedLists(updated);
+    toast({ title: "Lista salva!", description: `${numbers.length} contatos em "${listName}".` });
+  };
+
+  const handleLoadSavedList = (listName: string) => {
+    const list = savedLists.find(l => l.name === listName);
+    if (!list) return;
+    setTargetType('uploaded');
+    setUploadedNumbers(list.numbers.join('\n'));
+    setExcludedNumbers(new Set());
+    toast({ title: `Lista "${listName}" carregada`, description: `${list.numbers.length} contatos.` });
+  };
+
+  const handleDeleteSavedList = (listName: string) => {
+    if (!confirm(`Excluir a lista "${listName}"?`)) return;
+    persistSavedLists(savedLists.filter(l => l.name !== listName));
+  };
 
   const fetchCountdownSettings = async () => {
     const { data: settings } = await supabase
