@@ -4547,8 +4547,12 @@ const CRM = () => {
                         {filteredContacts.length > 0 ? (
 
                           filteredContacts.map(contact => (
+                            <SwipeableContactRow
+                              key={contact.id}
+                              onClear={() => setConfirmConvAction({ type: 'clear', contactId: contact.id, contactName: getGoogleResolvedContact(contact).displayName })}
+                              onDelete={() => setConfirmConvAction({ type: 'delete', contactId: contact.id, contactName: getGoogleResolvedContact(contact).displayName })}
+                            >
                             <button 
-                              key={contact.id} 
                               onClick={() => openChat(contact)} 
                               className={cn(
                                 "w-full p-4 text-left border-b transition-all flex flex-col gap-1 relative",
@@ -4700,6 +4704,7 @@ const CRM = () => {
                                 </div>
                               </div>
                             </button>
+                            </SwipeableContactRow>
                           ))
                         ) : (
                           <div className="p-8 text-center text-muted-foreground text-sm italic">
