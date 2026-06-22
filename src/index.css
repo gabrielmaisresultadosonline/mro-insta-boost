@@ -267,10 +267,12 @@
   --crm-surface-2: #E8F5F1;
   --crm-surface-3: #ffffff;
   --crm-input: #ffffff;
-  --crm-text: #075E54;
-  --crm-text-soft: #128C7E;
+  --crm-text: #0b1f1a;      /* near-black com toque verde para contraste alto */
+  --crm-text-strong: #052b22;
+  --crm-text-soft: #3b6a5e;
   --crm-border: rgba(7, 94, 84, 0.12);
   --crm-accent: #25D366;
+  color: var(--crm-text);
 }
 
 /* Backgrounds */
@@ -293,20 +295,66 @@
 /* Text */
 .crm-theme-light .text-white,
 .crm-theme-light .dark\:text-white { color: var(--crm-text) !important; }
-.crm-theme-light .text-white\/90 { color: rgba(7, 94, 84, 0.95) !important; }
-.crm-theme-light .text-white\/80 { color: rgba(7, 94, 84, 0.88) !important; }
-.crm-theme-light .text-white\/70 { color: rgba(7, 94, 84, 0.78) !important; }
-.crm-theme-light .text-white\/60 { color: rgba(7, 94, 84, 0.68) !important; }
-.crm-theme-light .text-white\/50 { color: rgba(7, 94, 84, 0.58) !important; }
-.crm-theme-light .text-white\/40 { color: rgba(7, 94, 84, 0.5) !important; }
-.crm-theme-light .text-white\/30 { color: rgba(7, 94, 84, 0.4) !important; }
+.crm-theme-light .text-white\/95,
+.crm-theme-light .text-white\/90 { color: rgba(11, 31, 26, 0.95) !important; }
+.crm-theme-light .text-white\/80 { color: rgba(11, 31, 26, 0.88) !important; }
+.crm-theme-light .text-white\/70 { color: rgba(11, 31, 26, 0.8) !important; }
+.crm-theme-light .text-white\/60 { color: rgba(11, 31, 26, 0.72) !important; }
+.crm-theme-light .text-white\/50 { color: rgba(11, 31, 26, 0.65) !important; }
+.crm-theme-light .text-white\/40 { color: rgba(11, 31, 26, 0.58) !important; }
+.crm-theme-light .text-white\/30 { color: rgba(11, 31, 26, 0.5) !important; }
 .crm-theme-light .placeholder\:text-white\/30::placeholder,
 .crm-theme-light .placeholder\:text-white\/40::placeholder,
-.crm-theme-light .placeholder\:text-white\/50::placeholder { color: rgba(7, 94, 84, 0.45) !important; }
+.crm-theme-light .placeholder\:text-white\/50::placeholder { color: rgba(11, 31, 26, 0.45) !important; }
 
 .crm-theme-light .text-\[\#aebac1\],
 .crm-theme-light .text-\[\#8696a0\],
 .crm-theme-light .dark\:text-\[\#aebac1\] { color: var(--crm-text-soft) !important; }
+
+/* Cobertura extra: títulos/labels que costumam vir em branco no header e tabs */
+.crm-theme-light .text-\[\#e9edef\],
+.crm-theme-light .text-\[\#d1d7db\],
+.crm-theme-light .text-\[\#aebac1\]\/80 { color: var(--crm-text) !important; }
+
+/* Backgrounds adicionais frequentemente usados como header/cartão escuro */
+.crm-theme-light .bg-\[\#0a0a0a\],
+.crm-theme-light .bg-\[\#0a0f12\],
+.crm-theme-light .bg-\[\#0f1a1f\],
+.crm-theme-light .bg-\[\#1a1d21\],
+.crm-theme-light .bg-\[\#161c20\] { background-color: var(--crm-bg) !important; }
+
+/* Botões/pílulas com bg transparente + borda branca: garantir texto legível */
+.crm-theme-light button.text-white,
+.crm-theme-light a.text-white,
+.crm-theme-light .text-white.border-white\/10,
+.crm-theme-light .text-white.border-white\/20 { color: var(--crm-text-strong) !important; }
+
+/* PRESERVA texto branco quando o fundo permanece escuro propositalmente
+   (balões verdes do WhatsApp, badges, etc.). Listamos as classes de fundo
+   verde/escuro mais comuns para reverter o texto para branco neles. */
+.crm-theme-light .bg-\[\#00a884\] .text-white,
+.crm-theme-light .bg-\[\#00a884\].text-white,
+.crm-theme-light .bg-\[\#008f6f\] .text-white,
+.crm-theme-light .bg-\[\#005c4b\] .text-white,
+.crm-theme-light .bg-\[\#005c4b\].text-white,
+.crm-theme-light .bg-\[\#06cf9c\] .text-white,
+.crm-theme-light .bg-\[\#25D366\] .text-white,
+.crm-theme-light .bg-\[\#25D366\].text-white,
+.crm-theme-light .bg-\[\#128C7E\] .text-white,
+.crm-theme-light .bg-\[\#075E54\] .text-white,
+.crm-theme-light .bg-green-500 .text-white,
+.crm-theme-light .bg-green-600 .text-white,
+.crm-theme-light .bg-emerald-500 .text-white,
+.crm-theme-light .bg-emerald-600 .text-white,
+.crm-theme-light .bg-red-500 .text-white,
+.crm-theme-light .bg-red-600 .text-white,
+.crm-theme-light .bg-amber-500 .text-white,
+.crm-theme-light .bg-orange-500 .text-white,
+.crm-theme-light .bg-blue-500 .text-white,
+.crm-theme-light .bg-blue-600 .text-white,
+.crm-theme-light .bg-primary .text-white,
+.crm-theme-light .bg-primary.text-white,
+.crm-theme-light .bg-destructive .text-white { color: #ffffff !important; }
 
 /* Borders */
 .crm-theme-light .border-white\/5,
