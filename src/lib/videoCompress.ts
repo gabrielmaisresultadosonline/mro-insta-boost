@@ -1,7 +1,11 @@
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
+
 // Limite oficial da Meta/WhatsApp para vídeo: 16 MB decimais.
 // A compressão mira um pouco abaixo porque MediaRecorder pode gerar overhead no contêiner MP4.
 export const WHATSAPP_VIDEO_MAX_BYTES = 16_000_000;
 const TARGET_BYTES = 15_500_000;
+let ffmpegInstance: FFmpeg | null = null;
 
 export type CompressProgress = (pct: number) => void;
 
@@ -11,6 +15,56 @@ export interface CompressOptions {
   targetMb?: number;
   targetBytes?: number;
   maxBytes?: number;
+}
+
+async function getFfmpeg() {
+  if (!ffmpegInstance) {
+    ffmpegInstance = new FFmpeg();
+  }
+
+  if (!ffmpegInstance.loaded) {
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd';
+    await ffmpegInstance.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+  }
+
+  return ffmpegInstance;
+}
+
+async function remuxToProgressiveMp4(file: File, onProgress?: CompressProgress): Promise<File> {
+  const ffmpeg = await getFfmpeg();
+  const inputName = 'input.mp4';
+  const outputName = 'output.mp4';
+
+  onProgress?.(97);
+  await ffmpeg.writeFile(inputName, await fetchFile(file));
+  const exitCode = await ffmpeg.exec([
+    '-i', inputName,
+    '-map', '0:v:0',
+    '-map', '0:a?',
+    '-c', 'copy',
+    '-movflags', '+faststart',
+    '-brand', 'mp42',
+    '-f', 'mp4',
+    outputName,
+  ], 120_000);
+
+  if (exitCode !== 0) {
+    await ffmpeg.deleteFile(inputName).catch(() => undefined);
+    await ffmpeg.deleteFile(outputName).catch(() => undefined);
+    throw new Error('Não foi possível finalizar o MP4 para envio na Meta. Tente cortar alguns segundos e comprimir novamente.');
+  }
+
+  const data = await ffmpeg.readFile(outputName);
+  await ffmpeg.deleteFile(inputName).catch(() => undefined);
+  await ffmpeg.deleteFile(outputName).catch(() => undefined);
+
+  const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data);
+  const blob = new Blob([bytes], { type: 'video/mp4' });
+  const base = file.name.replace(/\.[^.]+$/, '');
+  return new File([blob], `${base}-meta.mp4`, { type: 'video/mp4' });
 }
 
 export async function compressVideoForWhatsApp(
@@ -141,10 +195,13 @@ export async function compressVideoForWhatsApp(
   }
   URL.revokeObjectURL(srcUrl);
 
-  onProgress?.(100);
+  onProgress?.(96);
 
   const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
   const base = file.name.replace(/\.[^.]+$/, '');
   const outName = `${base}-compactado.${ext}`;
-  return new File([blob], outName, { type: ext === 'mp4' ? 'video/mp4' : mimeType });
+  const encodedFile = new File([blob], outName, { type: ext === 'mp4' ? 'video/mp4' : mimeType });
+  const finalFile = ext === 'mp4' ? await remuxToProgressiveMp4(encodedFile, onProgress) : encodedFile;
+  onProgress?.(100);
+  return finalFile;
 }
