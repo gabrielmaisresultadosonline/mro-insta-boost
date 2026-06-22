@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/Logo';
-import { Lock, Mail, AlertCircle, User, Phone } from 'lucide-react';
+import { Lock, Mail, AlertCircle, User, Phone, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
+import MetaApiTermsDialog from '@/components/MetaApiTermsDialog';
 
 const CRMLogin = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +19,9 @@ const CRMLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
    const [isRegistering, setIsRegistering] = useState(false);
    const [rememberMe, setRememberMe] = useState(true);
+   const [termsOpen, setTermsOpen] = useState(false);
+   const [infoOpen, setInfoOpen] = useState(false);
+   const [termsAccepted, setTermsAccepted] = useState(false);
    const location = useLocation();
    useEffect(() => {
      const params = new URLSearchParams(location.search);
@@ -39,6 +43,13 @@ const CRMLogin = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Block signup until user reads and accepts the Meta API terms
+    if (isRegistering && !termsAccepted) {
+      setTermsOpen(true);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -93,6 +104,7 @@ const CRMLogin = () => {
         
         // Auto-switch to login after registration success
         setIsRegistering(false);
+        setTermsAccepted(false);
       } else {
         const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -141,6 +153,16 @@ const CRMLogin = () => {
     }
   };
 
+  // Continues the signup automatically right after the user accepts the terms.
+  async function runSignupAfterConsent() {
+    setTermsAccepted(true);
+    // submit the form programmatically
+    setTimeout(() => {
+      const form = document.getElementById('crm-auth-form') as HTMLFormElement | null;
+      form?.requestSubmit();
+    }, 50);
+  }
+
   return (
      <div className="min-h-screen bg-[#F0FDF4] flex items-center justify-center p-4">
        <div className="bg-white rounded-3xl shadow-xl shadow-green-900/5 p-8 max-w-md w-full animate-slide-up border border-green-100">
@@ -152,7 +174,7 @@ const CRMLogin = () => {
            <p className="text-green-600/70 font-medium text-sm text-center">Gestão Profissional de WhatsApp</p>
          </div>
 
-         <form onSubmit={handleSubmit} className="space-y-5">
+         <form id="crm-auth-form" onSubmit={handleSubmit} className="space-y-5">
            {error && (
              <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-600 text-sm font-medium">
                <AlertCircle className="w-4 h-4 shrink-0" />
@@ -162,6 +184,14 @@ const CRMLogin = () => {
 
           {isRegistering && (
             <>
+               <button
+                 type="button"
+                 onClick={() => setInfoOpen(true)}
+                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600 text-white font-bold shadow-lg shadow-orange-200 transition-all active:scale-95"
+               >
+                 <BookOpen className="w-4 h-4" />
+                 Quer usar? Leia antes como funciona
+               </button>
               <div className="space-y-2">
                  <Label htmlFor="fullName" className="flex items-center gap-2 text-green-800 font-semibold text-xs uppercase tracking-wider">
                    <User className="w-3.5 h-3.5" />
@@ -235,6 +265,12 @@ const CRMLogin = () => {
             {isLoading ? 'Processando...' : isRegistering ? 'Criar Minha Conta' : 'Entrar no CRM'}
           </Button>
 
+           {isRegistering && (
+             <p className="text-[11px] text-center text-slate-500 leading-relaxed">
+               Ao prosseguir, será exibido o informativo sobre a Meta API do WhatsApp. Você precisa ler até o final e confirmar a leitura para concluir o cadastro.
+             </p>
+           )}
+
           {!isRegistering && (
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <Checkbox
@@ -263,6 +299,21 @@ const CRMLogin = () => {
            Plataforma Segura & Criptografada
         </p>
       </div>
+
+      {/* Mandatory terms gate before signup */}
+      <MetaApiTermsDialog
+        open={termsOpen}
+        onOpenChange={setTermsOpen}
+        requireConsent
+        onAccept={runSignupAfterConsent}
+        acceptLabel="Li, concordo e quero cadastrar"
+      />
+
+      {/* Informational popup (read-only) */}
+      <MetaApiTermsDialog
+        open={infoOpen}
+        onOpenChange={setInfoOpen}
+      />
     </div>
   );
 };
