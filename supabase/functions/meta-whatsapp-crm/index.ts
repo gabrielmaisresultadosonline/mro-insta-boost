@@ -2967,13 +2967,14 @@ async function fetchAndStoreIncomingMedia(
               local_category_before_sync: existingTemplate.category,
               meta_category_returned: template.category,
               source: 'meta_getTemplates',
-              action: 'PRESERVING_LOCAL_CATEGORY',
+              action: 'UPDATING_TO_META_CATEGORY',
             });
           }
 
-          // Preserve local category when it exists to avoid Meta auto-reclassification
-          // overwriting the user's chosen category (e.g. UTILITY -> MARKETING)
-          const categoryToStore = existingTemplate?.category || template.category;
+          // Meta is the source of truth for category. If Meta reclassifies
+          // (e.g. UTILITY -> MARKETING during approval), we mirror it locally
+          // so the user sees the real status shown on Meta's dashboard.
+          const categoryToStore = template.category;
 
           await supabase.from('crm_templates').upsert({
             id: template.id,
