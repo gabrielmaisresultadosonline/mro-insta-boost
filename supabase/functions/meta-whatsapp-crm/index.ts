@@ -747,6 +747,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   let buttonId = '';
   let mediaUrlForSave: string | null = null;
   let mediaCaption = '';
+  const extractedInboundText = extractInboundTextFromWebhookMessage(message);
 
   if (message.type === 'image' || message.type === 'video') {
     console.log(`[FLOW-LOG] Received ${message.type} from ${waId}. Resolving media ID...`);
@@ -767,11 +768,11 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   }
 
   if (message.type === 'text') {
-    text = message.text.body;
+    text = extractedInboundText || message.text.body;
   } else if (message.type === 'interactive') {
     if (message.interactive.type === 'button_reply') {
       buttonId = message.interactive.button_reply.id;
-      text = message.interactive.button_reply.title;
+      text = extractedInboundText || message.interactive.button_reply.title;
     }
   } else if (['image', 'video', 'audio', 'voice', 'sticker', 'document'].includes(message.type)) {
     const node = message[message.type] || {};
@@ -801,11 +802,11 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
         console.error('[WEBHOOK] Error resolving inbound media', err);
       }
     }
-    text = mediaCaption || '';
+    text = extractedInboundText || mediaCaption || '';
   }
 else if (message.type === "unsupported") {
     const error = message.errors?.[0];
-    text = `[Formato não suportado pela Meta] ${error?.title || ""}: ${error?.message || ""}`.trim();
+    text = extractedInboundText || `[Formato não suportado pela Meta] ${error?.title || ""}: ${error?.message || ""}`.trim();
   } else if (message.type === "location") {
     text = `[Localização] Lat: ${message.location?.latitude}, Long: ${message.location?.longitude}`;
   } else if (message.type === "contacts") {
