@@ -1371,27 +1371,75 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                   </Select>
                 </div>
 
-                {(triggerType === 'keyword' || triggerType === 'exact_phrase') && (
+                {triggerType === 'keyword' && (
                   <div className="space-y-2 animate-in slide-in-from-top-2">
-                    <Label className="text-xs">
-                      {triggerType === 'keyword' ? 'Palavras-chave (separado por vírgula)' : 'Frases Completas (uma por linha)'}
-                    </Label>
+                    <Label className="text-xs">Palavras-chave (separado por vírgula)</Label>
                     <Textarea 
-                      placeholder={triggerType === 'keyword' ? "Ex: olá, preço, ajuda" : "Ex:\nGostaria de saber sobre o sistema\nQuero mais informações\nComo funciona?"}
+                      placeholder="Ex: olá, preço, ajuda"
                       value={triggerKeywords}
-                      onChange={(e) => {
-                        console.log("Updating trigger keywords:", e.target.value);
-                        setTriggerKeywords(e.target.value);
-                      }}
+                      onChange={(e) => setTriggerKeywords(e.target.value)}
                       className="text-xs min-h-[80px]"
                     />
                     <p className="text-[9px] text-muted-foreground italic">
-                      {triggerType === 'exact_phrase' 
-                        ? "Adicione uma frase por linha. O fluxo iniciará se o cliente enviar exatamente qualquer uma dessas frases."
-                        : "O fluxo iniciará se a mensagem contiver qualquer uma dessas palavras."}
+                      O fluxo iniciará se a mensagem contiver qualquer uma dessas palavras.
                     </p>
                   </div>
                 )}
+
+                {triggerType === 'exact_phrase' && (() => {
+                  const phrases = triggerKeywords.split('\n');
+                  const list = phrases.length === 0 ? [''] : phrases;
+                  const updateAt = (idx: number, val: string) => {
+                    const next = [...list];
+                    next[idx] = val;
+                    setTriggerKeywords(next.join('\n'));
+                  };
+                  const addPhrase = () => setTriggerKeywords([...list, ''].join('\n'));
+                  const removePhrase = (idx: number) => {
+                    const next = list.filter((_, i) => i !== idx);
+                    setTriggerKeywords((next.length ? next : ['']).join('\n'));
+                  };
+                  return (
+                    <div className="space-y-2 animate-in slide-in-from-top-2">
+                      <Label className="text-xs">Frases Completas</Label>
+                      <div className="space-y-2">
+                        {list.map((phrase, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Input
+                              placeholder={`Frase ${idx + 1} (ex: Gostaria de saber sobre o sistema)`}
+                              value={phrase}
+                              onChange={(e) => updateAt(idx, e.target.value)}
+                              className="text-xs h-9 flex-1"
+                            />
+                            {list.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                                onClick={() => removePhrase(idx)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs gap-1"
+                        onClick={addPhrase}
+                      >
+                        <span className="text-base leading-none">+</span> Adicionar frase
+                      </Button>
+                      <p className="text-[9px] text-muted-foreground italic">
+                        O fluxo iniciará se o cliente enviar exatamente qualquer uma dessas frases.
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-slate-700">Etiqueta ao Iniciar</Label>
