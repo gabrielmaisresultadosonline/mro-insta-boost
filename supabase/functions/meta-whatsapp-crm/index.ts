@@ -976,23 +976,22 @@ else if (message.type === "unsupported") {
   if (contact && hasActiveFlow && isWaitingResponse && !isAiHandling && !isAiActive) {
     try {
       const allCandidateTexts = collectInboundTriggerTexts(message, text);
-      const { data: matchingTriggeredFlow } = await supabase
+      const { data: triggeredFlows, error: triggeredFlowsError } = await supabase
         .from('crm_flows')
         .select('id, name, trigger_type, trigger_keywords, trigger_keyword, nodes, edges, user_id')
         .eq('user_id', userId)
         .eq('is_active', true)
         .in('trigger_type', ['exact_phrase', 'keyword'])
-        .neq('id', contact.current_flow_id)
-        .then(({ data, error }: any) => {
-          if (error) throw error;
-          const priority = ['exact_phrase', 'keyword'];
-          let chosenFlow = null;
-          for (const triggerType of priority) {
-            chosenFlow = (data || []).find((flow: any) => flow.trigger_type === triggerType && flowMatchesIncomingTrigger(flow, allCandidateTexts));
-            if (chosenFlow) break;
-          }
-          return { data: chosenFlow };
-        });
+        .neq('id', contact.current_flow_id);
+
+      if (triggeredFlowsError) throw triggeredFlowsError;
+
+      const priority = ['exact_phrase', 'keyword'];
+      let matchingTriggeredFlow = null;
+      for (const triggerType of priority) {
+        matchingTriggeredFlow = (triggeredFlows || []).find((flow: any) => flow.trigger_type === triggerType && flowMatchesIncomingTrigger(flow, allCandidateTexts));
+        if (matchingTriggeredFlow) break;
+      }
 
       if (matchingTriggeredFlow) {
         console.log(`[TRIGGER] Restarting from waiting flow ${contact.current_flow_id} to ${matchingTriggeredFlow.id} for ${waId}`);
