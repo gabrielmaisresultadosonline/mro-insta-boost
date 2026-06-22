@@ -55,15 +55,24 @@ function ReportStat({
   value,
   hint,
   gradient,
+  onClick,
+  active,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
   hint?: string;
   gradient: string;
+  onClick?: () => void;
+  active?: boolean;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-[#E8F5F1] bg-white p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
+    <div
+      onClick={onClick}
+      className={`group relative overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 ${
+        onClick ? "cursor-pointer" : ""
+      } ${active ? "border-[#25D366] ring-2 ring-[#25D366]/30" : "border-[#E8F5F1]"}`}
+    >
       <div className={`absolute -right-4 -top-4 h-16 w-16 rounded-full bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition-opacity`} />
       <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} text-white shadow-sm mb-2`}>
         {icon}
@@ -71,6 +80,11 @@ function ReportStat({
       <div className="text-2xl font-bold text-[#075E54] tabular-nums">{value.toLocaleString("pt-BR")}</div>
       <div className="text-xs text-[#128C7E]/80 font-medium">{label}</div>
       {hint && <div className="text-[10px] text-[#25D366] mt-0.5 font-semibold">{hint}</div>}
+      {onClick && (
+        <div className="text-[10px] text-[#128C7E] mt-1 font-semibold">
+          {active ? "Ocultar lista ▲" : "Ver lista ▼"}
+        </div>
+      )}
     </div>
   );
 }
@@ -84,6 +98,8 @@ export default function AdminCentral() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [usersListOpen, setUsersListOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [insights, setInsights] = useState<Insights | null>(null);
@@ -347,6 +363,11 @@ export default function AdminCentral() {
                   label="Total de cadastros"
                   value={users.length}
                   gradient="from-[#075E54] to-[#128C7E]"
+                  onClick={() => {
+                    setUsersListOpen((v) => !v);
+                    setShowAll(false);
+                  }}
+                  active={usersListOpen}
                 />
                 <ReportStat
                   icon={<MessageCircle className="h-5 w-5" />}
@@ -385,6 +406,7 @@ export default function AdminCentral() {
           </div>
         )}
 
+        {usersListOpen && (
         <Card className="p-3 bg-white border-[#E8F5F1] shadow-sm">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#128C7E]/60" />
@@ -396,14 +418,15 @@ export default function AdminCentral() {
             />
           </div>
         </Card>
+        )}
 
-        {loading ? (
+        {usersListOpen && (loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-[#128C7E]/60" />
           </div>
         ) : (
           <div className="grid gap-3">
-            {filtered.map((u) => (
+            {(showAll ? filtered : filtered.slice(0, 10)).map((u) => (
               <Card key={u.id} className="p-4 bg-white border-[#E8F5F1] text-[#075E54] shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="space-y-1 min-w-0 flex-1">
@@ -464,8 +487,26 @@ export default function AdminCentral() {
             {filtered.length === 0 && (
               <Card className="p-8 text-center text-[#128C7E]/70 bg-white border-[#E8F5F1]">Nenhum cadastro encontrado</Card>
             )}
+            {!showAll && filtered.length > 10 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowAll(true)}
+                className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4] mx-auto"
+              >
+                Ver todos ({filtered.length})
+              </Button>
+            )}
+            {showAll && filtered.length > 10 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowAll(false)}
+                className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4] mx-auto"
+              >
+                Mostrar menos
+              </Button>
+            )}
           </div>
-        )}
+        ))}
           </TabsContent>
 
           <TabsContent value="announcements" className="mt-4">
