@@ -361,6 +361,18 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     for (let i = 0; i < numbers.length; i++) {
       const number = numbers[i];
       
+      // Check for manual cancellation between sends
+      const { data: cur } = await supabase
+        .from('crm_broadcasts')
+        .select('status')
+        .eq('id', broadcastId)
+        .maybeSingle();
+      if (cur?.status === 'cancelled') {
+        toast({ title: 'Disparo interrompido', description: `Parado em ${i}/${numbers.length}.` });
+        fetchBroadcasts();
+        return;
+      }
+
       // Wait random delay
       const delay = Math.floor(Math.random() * (delayMax - delayMin + 1) + delayMin) * 1000;
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -375,8 +387,20 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           payload.templateName = t?.name;
           payload.language = t?.language || 'pt_BR';
         } else if (type === 'flow') {
-          // Find contact or create one
-          const { data: contact } = await supabase.from('crm_contacts').select('id').eq('wa_id', number).maybeSingle();
+          // Find contact or create one (flows require a contactId)
+          let { data: contact } = await supabase
+            .from('crm_contacts')
+            .select('id')
+            .eq('wa_id', number)
+            .maybeSingle();
+          if (!contact) {
+            const { data: created } = await supabase
+              .from('crm_contacts')
+              .insert([{ wa_id: number, name: number, source_type: 'broadcast' }])
+              .select('id')
+              .single();
+            contact = created;
+          }
           payload.action = 'startFlow';
           payload.flowId = selectedFlow;
           payload.waId = number;
