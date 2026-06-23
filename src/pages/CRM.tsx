@@ -351,6 +351,13 @@ const CRM = () => {
   // Per-contact inbound message timestamps (last 7 days) used to compute
   // unread counts shown as a yellow badge on the conversation list.
   const [inboundTimestampsByContact, setInboundTimestampsByContact] = useState<Record<string, string[]>>({});
+  // Freeze conversation order toggle — when on, the conversation list keeps
+  // its current ordering (new contacts go on top, but existing ones don't
+  // jump when new messages arrive). Persisted in localStorage.
+  const [freezeConversationOrder, setFreezeConversationOrder] = useState<boolean>(() => {
+    try { return localStorage.getItem('crm_freeze_order') === '1'; } catch { return false; }
+  });
+  const frozenOrderRef = useRef<string[]>([]);
   // Pre-computed once whenever `contacts` changes — used by the Conversas
   // tab. Avoids re-scanning 14k+ rows on every tab switch / status change.
   const contactsCacheKeyRef = useRef<string | null>(null);
