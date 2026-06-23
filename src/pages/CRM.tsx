@@ -1515,15 +1515,32 @@ const CRM = () => {
     // where all contacts appeared before the conversation-only filter applied.
     const base = activeTab === 'contacts' ? conversationContacts : [];
 
-    if (statusFilter === 'all') return base;
+    const filtered = statusFilter === 'all'
+      ? base
+      : (() => {
+          const needle = statusFilter.toLowerCase();
+          return base.filter(c =>
+            c.status === statusFilter ||
+            c.name?.toLowerCase().includes(needle) ||
+            c.wa_id?.includes(statusFilter)
+          );
+        })();
 
-    const needle = statusFilter.toLowerCase();
-    return base.filter(c =>
-      c.status === statusFilter ||
-      c.name?.toLowerCase().includes(needle) ||
-      c.wa_id?.includes(statusFilter)
-    );
-  }, [statusFilter, conversationContacts, activeTab]);
+    if (!freezeConversationOrder) {
+      // Default behavior: most recent on top (already sorted upstream).
+      frozenOrderRef.current = filtered.map(c => c.id);
+      return filtered;
+    }
+
+    // Frozen order: preserve previously seen order, prepend new contacts on top.
+    const byId = new Map(filtered.map(c => [c.id, c]));
+    const previousOrder = frozenOrderRef.current.filter(id => byId.has(id));
+    const known = new Set(previousOrder);
+    const newcomers = filtered.filter(c => !known.has(c.id)).map(c => c.id);
+    const nextOrder = [...newcomers, ...previousOrder];
+    frozenOrderRef.current = nextOrder;
+    return nextOrder.map(id => byId.get(id)).filter(Boolean) as any[];
+  }, [statusFilter, conversationContacts, activeTab, freezeConversationOrder]);
 
   const fetchData = async (isInitialLoad = false) => {
      if (isInitialLoad) setLoading(true);
