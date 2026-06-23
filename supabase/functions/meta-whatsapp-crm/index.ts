@@ -1826,14 +1826,41 @@ async function handleInternalSendMessage(supabase: any, phoneNumberId: string, a
   }
 
   console.log(`[META-SEND] Enviar fetch para Meta. type=${payload.type}, to=${to}`);
-  const response = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  
-  const result = await response.json().catch(() => ({}));
-  console.log(`[META-SEND] Resposta Meta status=${response.status} ok=${response.ok} body=${JSON.stringify(result)}`);
+  let response: Response;
+  let result: any = {};
+  const maxAttempts = 4;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      response = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      result = await response.json().catch(() => ({}));
+    } catch (netErr) {
+      console.error(`[META-SEND] Network error attempt ${attempt}:`, netErr);
+      if (attempt < maxAttempts) {
+        await wait(500 * Math.pow(2, attempt - 1));
+        continue;
+      }
+      throw netErr;
+    }
+    const isTransient =
+      result?.error?.is_transient === true ||
+      result?.error?.code === 2 ||
+      result?.error?.code === 1 ||
+      (response.status >= 500 && response.status < 600);
+    if (response.ok || !isTransient || attempt === maxAttempts) {
+      if (!response.ok && isTransient) {
+        console.warn(`[META-SEND] Transient error persisted after ${attempt} attempts`);
+      }
+      break;
+    }
+    const backoff = 600 * Math.pow(2, attempt - 1);
+    console.warn(`[META-SEND] Transient Meta error (attempt ${attempt}/${maxAttempts}), retrying in ${backoff}ms. code=${result?.error?.code} msg=${result?.error?.message}`);
+    await wait(backoff);
+  }
+  console.log(`[META-SEND] Resposta Meta status=${response!.status} ok=${response!.ok} body=${JSON.stringify(result)}`);
   if (!response.ok) {
     console.error(`[META-SEND] ERRO Meta status=${response.status} phoneId=${phoneNumberId} to=${to} payloadType=${payload.type} error=${JSON.stringify(result?.error)}`);
     const normalizedError = normalizeMetaSendError(result, `Erro ${response.status} ao enviar mensagem pela Meta`);
