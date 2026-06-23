@@ -6939,17 +6939,21 @@ const CRM = () => {
                               </p>
                               <Switch
                                 checked={metaSettings.google_auto_sync}
-                                onCheckedChange={(checked) => {
+                                onCheckedChange={async (checked) => {
                                   setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
-                                  callProxy('updateSettings', {
-                                    ...metaSettings,
-                                    google_auto_sync: checked,
-                                  }).then(() => {
+                                  try {
+                                    const { id, created_at, updated_at, webhook_verify_token, vps_status, ...rest } = metaSettings;
+                                    await supabase.from('crm_settings').upsert({
+                                      ...rest,
+                                      google_auto_sync: checked,
+                                      id: '00000000-0000-0000-0000-000000000001',
+                                      updated_at: new Date().toISOString()
+                                    });
                                     toast({ title: checked ? 'Auto Sync ativado' : 'Auto Sync desativado' });
-                                  }).catch(() => {
+                                  } catch {
                                     toast({ title: 'Erro ao atualizar Auto Sync', variant: 'destructive' });
                                     setMetaSettings(prev => ({ ...prev, google_auto_sync: !checked }));
-                                  });
+                                  }
                                 }}
                               />
                             </div>
