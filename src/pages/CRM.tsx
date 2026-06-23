@@ -6581,9 +6581,27 @@ const CRM = () => {
                               {googleAccountInfo ? (
                                 <div className="flex flex-col">
                                   <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{googleAccountInfo.email}</span>
-                                  <button 
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Switch
+                                      id="google-sync-list-connected"
+                                      checked={metaSettings.google_auto_sync}
+                                      onCheckedChange={async (checked) => {
+                                        setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
+                                        const { id, created_at, updated_at, webhook_verify_token, vps_status, ...rest } = metaSettings;
+                                        await supabase.from('crm_settings').upsert({
+                                          ...rest,
+                                          google_auto_sync: checked,
+                                          id: '00000000-0000-0000-0000-000000000001',
+                                          updated_at: new Date().toISOString()
+                                        });
+                                        toast({ title: checked ? "Auto Sync ativado" : "Auto Sync desativado" });
+                                      }}
+                                    />
+                                    <Label htmlFor="google-sync-list-connected" className="text-[10px] font-bold cursor-pointer whitespace-nowrap">Auto Sync</Label>
+                                  </div>
+                                  <button
                                     onClick={handleDisconnectGoogle}
-                                    className="text-[10px] text-destructive hover:underline text-left font-bold"
+                                    className="text-[10px] text-destructive hover:underline text-left font-bold mt-1"
                                   >
                                     SAIR
                                   </button>
