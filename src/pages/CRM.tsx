@@ -351,6 +351,13 @@ const CRM = () => {
   // Per-contact inbound message timestamps (last 7 days) used to compute
   // unread counts shown as a yellow badge on the conversation list.
   const [inboundTimestampsByContact, setInboundTimestampsByContact] = useState<Record<string, string[]>>({});
+  // Freeze conversation order toggle — when on, the conversation list keeps
+  // its current ordering (new contacts go on top, but existing ones don't
+  // jump when new messages arrive). Persisted in localStorage.
+  const [freezeConversationOrder, setFreezeConversationOrder] = useState<boolean>(() => {
+    try { return localStorage.getItem('crm_freeze_order') === '1'; } catch { return false; }
+  });
+  const frozenOrderRef = useRef<string[]>([]);
   // Pre-computed once whenever `contacts` changes — used by the Conversas
   // tab. Avoids re-scanning 14k+ rows on every tab switch / status change.
   const contactsCacheKeyRef = useRef<string | null>(null);
@@ -1508,15 +1515,32 @@ const CRM = () => {
     // where all contacts appeared before the conversation-only filter applied.
     const base = activeTab === 'contacts' ? conversationContacts : [];
 
-    if (statusFilter === 'all') return base;
+    const filtered = statusFilter === 'all'
+      ? base
+      : (() => {
+          const needle = statusFilter.toLowerCase();
+          return base.filter(c =>
+            c.status === statusFilter ||
+            c.name?.toLowerCase().includes(needle) ||
+            c.wa_id?.includes(statusFilter)
+          );
+        })();
 
-    const needle = statusFilter.toLowerCase();
-    return base.filter(c =>
-      c.status === statusFilter ||
-      c.name?.toLowerCase().includes(needle) ||
-      c.wa_id?.includes(statusFilter)
-    );
-  }, [statusFilter, conversationContacts, activeTab]);
+    if (!freezeConversationOrder) {
+      // Default behavior: most recent on top (already sorted upstream).
+      frozenOrderRef.current = filtered.map(c => c.id);
+      return filtered;
+    }
+
+    // Frozen order: preserve previously seen order, prepend new contacts on top.
+    const byId = new Map(filtered.map(c => [c.id, c]));
+    const previousOrder = frozenOrderRef.current.filter(id => byId.has(id));
+    const known = new Set(previousOrder);
+    const newcomers = filtered.filter(c => !known.has(c.id)).map(c => c.id);
+    const nextOrder = [...newcomers, ...previousOrder];
+    frozenOrderRef.current = nextOrder;
+    return nextOrder.map(id => byId.get(id)).filter(Boolean) as any[];
+  }, [statusFilter, conversationContacts, activeTab, freezeConversationOrder]);
 
   const fetchData = async (isInitialLoad = false) => {
      if (isInitialLoad) setLoading(true);
@@ -7302,6 +7326,22 @@ const CRM = () => {
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="px-6 pb-6 pt-2 space-y-8 border-t">
+                          <div className="flex items-start justify-between gap-4 p-4 rounded-xl border bg-muted/30">
+                            <div className="min-w-0">
+                              <Label className="text-sm font-bold">Congelar ordem das conversas</Label>
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                Quando ativado, as conversas não sobem para o topo ao enviar/receber mensagens. Apenas conversas novas entram no topo.
+                              </p>
+                            </div>
+                            <Switch
+                              checked={freezeConversationOrder}
+                              onCheckedChange={(val) => {
+                                setFreezeConversationOrder(val);
+                                try { localStorage.setItem('crm_freeze_order', val ? '1' : '0'); } catch {}
+                              }}
+                            />
+                          </div>
+
                           <div className="space-y-4 mt-2">
                             <div className="flex justify-between items-center">
                               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tamanho dos Atalhos (Modelos/Fluxos)</Label>
