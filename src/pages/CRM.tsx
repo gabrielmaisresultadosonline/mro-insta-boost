@@ -351,6 +351,10 @@ const CRM = () => {
   // Per-contact inbound message timestamps (last 7 days) used to compute
   // unread counts shown as a yellow badge on the conversation list.
   const [inboundTimestampsByContact, setInboundTimestampsByContact] = useState<Record<string, string[]>>({});
+  // Baseline timestamp for unread counts: messages received before the user
+  // first loaded the CRM are considered "already seen" so the badge only
+  // shows truly new inbound messages.
+  const unreadBaselineRef = useRef<number>(Date.now());
   // Freeze conversation order toggle — when on, the conversation list keeps
   // its current ordering (new contacts go on top, but existing ones don't
   // jump when new messages arrive). Persisted in localStorage.
@@ -4644,9 +4648,10 @@ const CRM = () => {
                               <div className="flex items-center w-full gap-2 min-w-0">
                                 <div className="flex flex-1 min-w-0 items-center gap-2 overflow-hidden">
                                   {(() => {
-                                    const lastReadT = contact.last_read_at ? new Date(contact.last_read_at).getTime() : 0;
-                                    const stamps = inboundTimestampsByContact[contact.id] || [];
-                                    const unread = stamps.filter(ts => new Date(ts).getTime() > lastReadT).length;
+                                     const lastReadT = contact.last_read_at ? new Date(contact.last_read_at).getTime() : 0;
+                                     const baselineT = Math.max(lastReadT, unreadBaselineRef.current);
+                                     const stamps = inboundTimestampsByContact[contact.id] || [];
+                                     const unread = stamps.filter(ts => new Date(ts).getTime() > baselineT).length;
                                     if (unread <= 0) return null;
                                     return (
                                       <div
