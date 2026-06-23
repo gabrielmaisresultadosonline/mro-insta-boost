@@ -7326,6 +7326,22 @@ const CRM = () => {
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="px-6 pb-6 pt-2 space-y-8 border-t">
+                          <div className="flex items-start justify-between gap-4 p-4 rounded-xl border bg-muted/30">
+                            <div className="min-w-0">
+                              <Label className="text-sm font-bold">Congelar ordem das conversas</Label>
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                Quando ativado, as conversas não sobem para o topo ao enviar/receber mensagens. Apenas conversas novas entram no topo.
+                              </p>
+                            </div>
+                            <Switch
+                              checked={freezeConversationOrder}
+                              onCheckedChange={(val) => {
+                                setFreezeConversationOrder(val);
+                                try { localStorage.setItem('crm_freeze_order', val ? '1' : '0'); } catch {}
+                              }}
+                            />
+                          </div>
+
                           <div className="space-y-4 mt-2">
                             <div className="flex justify-between items-center">
                               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tamanho dos Atalhos (Modelos/Fluxos)</Label>
