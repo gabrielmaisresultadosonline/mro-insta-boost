@@ -3947,6 +3947,94 @@ async function fetchAndStoreIncomingMedia(
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
     }
+
+    if (action === 'syncPendingToGoogle') {
+      // Push contacts that are NOT yet on Google up to the user's Google account.
+      // Does NOT pull from Google (avoid duplication caused by re-importing).
+      const { data: account } = await supabase
+        .from('crm_google_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!account) {
+        return new Response(JSON.stringify({ success: false, error: 'Nenhuma conta Google conectada' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Refresh token if expired
+      let accessToken = account.access_token;
+      if (Date.now() >= (account.expiry_date || 0)) {
+        const { clientId: googleClientId, clientSecret: googleClientSecret } = getGoogleOAuthCredentials(settings);
+        if (googleClientSecret && account.refresh_token) {
+          const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: googleClientId,
+              client_secret: googleClientSecret,
+              refresh_token: account.refresh_token,
+              grant_type: 'refresh_token',
+            }),
+          });
+          const refreshTokens = await refreshResponse.json();
+          if (refreshResponse.ok) {
+            accessToken = refreshTokens.access_token;
+            await supabase.from('crm_google_accounts').update({
+              access_token: accessToken,
+              expiry_date: Date.now() + (refreshTokens.expires_in * 1000),
+              updated_at: new Date().toISOString()
+            }).eq('id', account.id);
+          }
+        }
+      }
+
+      // Fetch only PENDING contacts (not yet synced with this Google account)
+      const { data: pending } = await supabase
+        .from('crm_contacts')
+        .select('id, name, wa_id, google_sync_account_id')
+        .eq('user_id', userId)
+        .is('google_sync_account_id', null)
+        .limit(200);
+
+      const list = pending || [];
+      let pushed = 0;
+      let failed = 0;
+
+      for (const c of list) {
+        try {
+          const resp = await fetch('https://people.googleapis.com/v1/people:createContact', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              names: [{ givenName: c.name || c.wa_id }],
+              phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
+            }),
+          });
+          if (resp.ok) {
+            await supabase.from('crm_contacts').update({
+              google_sync_account_id: account.id,
+              google_synced_at: new Date().toISOString(),
+            }).eq('id', c.id);
+            pushed++;
+          } else {
+            failed++;
+          }
+        } catch (_e) {
+          failed++;
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, pushed, failed, pending: list.length }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     // Legacy action block removed to prevent duplication with main processScheduled at line 332
 
     if (action === 'processWebhook') {
