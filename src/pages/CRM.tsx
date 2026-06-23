@@ -6618,13 +6618,14 @@ const CRM = () => {
                                       checked={metaSettings.google_auto_sync}
                                       onCheckedChange={async (checked) => {
                                         setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
-                                        const { id, created_at, updated_at, webhook_verify_token, vps_status, ...rest } = metaSettings;
-                                        await supabase.from('crm_settings').upsert({
-                                          ...rest,
-                                          google_auto_sync: checked,
-                                          id: '00000000-0000-0000-0000-000000000001',
-                                          updated_at: new Date().toISOString()
-                                        });
+                                        try {
+                                          const { data: { user } } = await supabase.auth.getUser();
+                                          if (user) {
+                                            await supabase.from('crm_settings')
+                                              .update({ google_auto_sync: checked, updated_at: new Date().toISOString() })
+                                              .eq('user_id', user.id);
+                                          }
+                                        } catch {}
                                         toast({ title: checked ? "Auto Sync ativado" : "Auto Sync desativado" });
                                       }}
                                     />
@@ -6644,13 +6645,14 @@ const CRM = () => {
                                     checked={metaSettings.google_auto_sync} 
                                     onCheckedChange={async (checked) => {
                                       setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
-                                      const { id, created_at, updated_at, webhook_verify_token, vps_status, ...rest } = metaSettings;
-                                      await supabase.from('crm_settings').upsert({
-                                        ...rest,
-                                        google_auto_sync: checked,
-                                        id: '00000000-0000-0000-0000-000000000001',
-                                        updated_at: new Date().toISOString()
-                                      });
+                                      try {
+                                        const { data: { user } } = await supabase.auth.getUser();
+                                        if (user) {
+                                          await supabase.from('crm_settings')
+                                            .update({ google_auto_sync: checked, updated_at: new Date().toISOString() })
+                                            .eq('user_id', user.id);
+                                        }
+                                      } catch {}
                                       toast({ title: checked ? "Sincronização automática ativada" : "Sincronização automática desativada" });
                                     }}
                                   />
@@ -6991,13 +6993,12 @@ const CRM = () => {
                                 onCheckedChange={async (checked) => {
                                   setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
                                   try {
-                                    const { id, created_at, updated_at, webhook_verify_token, vps_status, ...rest } = metaSettings;
-                                    await supabase.from('crm_settings').upsert({
-                                      ...rest,
-                                      google_auto_sync: checked,
-                                      id: '00000000-0000-0000-0000-000000000001',
-                                      updated_at: new Date().toISOString()
-                                    });
+                                    const { data: { user } } = await supabase.auth.getUser();
+                                    if (!user) throw new Error('no user');
+                                    const { error } = await supabase.from('crm_settings')
+                                      .update({ google_auto_sync: checked, updated_at: new Date().toISOString() })
+                                      .eq('user_id', user.id);
+                                    if (error) throw error;
                                     toast({ title: checked ? 'Auto Sync ativado' : 'Auto Sync desativado' });
                                   } catch {
                                     toast({ title: 'Erro ao atualizar Auto Sync', variant: 'destructive' });
