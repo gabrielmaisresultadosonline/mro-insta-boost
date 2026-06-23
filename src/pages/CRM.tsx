@@ -6933,9 +6933,26 @@ const CRM = () => {
                           </Card>
                           <Card className="p-4">
                             <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Auto Sync</p>
-                            <p className={cn("text-sm md:text-base font-black mt-2", metaSettings.google_auto_sync ? "text-emerald-500" : "text-muted-foreground")}>
-                              {metaSettings.google_auto_sync ? '● Ativo' : '○ Desativado'}
-                            </p>
+                            <div className="flex items-center justify-between mt-2 gap-2">
+                              <p className={cn("text-sm md:text-base font-black", metaSettings.google_auto_sync ? "text-emerald-500" : "text-muted-foreground")}>
+                                {metaSettings.google_auto_sync ? '● Ativo' : '○ Desativado'}
+                              </p>
+                              <Switch
+                                checked={metaSettings.google_auto_sync}
+                                onCheckedChange={(checked) => {
+                                  setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
+                                  callProxy('updateSettings', {
+                                    ...metaSettings,
+                                    google_auto_sync: checked,
+                                  }).then(() => {
+                                    toast({ title: checked ? 'Auto Sync ativado' : 'Auto Sync desativado' });
+                                  }).catch(() => {
+                                    toast({ title: 'Erro ao atualizar Auto Sync', variant: 'destructive' });
+                                    setMetaSettings(prev => ({ ...prev, google_auto_sync: !checked }));
+                                  });
+                                }}
+                              />
+                            </div>
                           </Card>
                         </div>
 
