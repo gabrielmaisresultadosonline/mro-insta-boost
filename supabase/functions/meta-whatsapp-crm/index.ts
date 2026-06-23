@@ -3992,15 +3992,21 @@ async function fetchAndStoreIncomingMedia(
         }
       }
 
-      // Fetch only PENDING contacts (not yet synced with this Google account)
+      // Fetch only PENDING contacts (not yet synced) that have a real name set
+      // (skip contacts whose name is empty or equal to the wa_id — those weren't named by the user)
       const { data: pending } = await supabase
         .from('crm_contacts')
         .select('id, name, wa_id, google_sync_account_id')
         .eq('user_id', userId)
         .is('google_sync_account_id', null)
-        .limit(200);
+        .limit(500);
 
-      const list = pending || [];
+      const list = (pending || []).filter((c: any) => {
+        const name = (c.name || '').trim();
+        if (!name) return false;
+        if (name === (c.wa_id || '').trim()) return false;
+        return true;
+      });
       let pushed = 0;
       let failed = 0;
 
