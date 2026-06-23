@@ -490,8 +490,14 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       const sizeMb = file.size / (1024 * 1024);
 
       if (type === 'video') {
-        // Todos os vídeos passam pelo FFmpeg antes do upload. Os logs da Meta mostraram
-        // "No video stream found", então não podemos mais enviar MP4 cru/MediaRecorder.
+        // Se já é MP4 e está dentro do limite da Meta, envia direto sem comprimir.
+        const isMp4 =
+          file.type === 'video/mp4' ||
+          /\.mp4$/i.test(file.name || '');
+        if (isMp4 && file.size <= WHATSAPP_VIDEO_MAX_BYTES) {
+          await doUploadFile(file, nodeId, type);
+          return;
+        }
         setCompressState({
           file,
           nodeId,
