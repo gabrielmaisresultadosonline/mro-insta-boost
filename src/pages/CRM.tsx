@@ -6960,7 +6960,10 @@ const CRM = () => {
                   </div>
 
                   {(() => {
-                    const synced = contacts.filter(c => c.google_sync_account_id || c.metadata?.google_resource_name);
+                    const isSynced = (c: any) => !!(c.google_sync_account_id || c.metadata?.google_resource_name);
+                    const hasRealName = (c: any) => !!(c.name && c.name.trim() && c.name.trim() !== c.wa_id);
+                    const synced = contacts.filter(isSynced);
+                    const pendingNamed = contacts.filter(c => !isSynced(c) && hasRealName(c));
                     const filtered = synced.filter(c => {
                       if (contactListSearch === 'all') return true;
                       const q = contactListSearch.toLowerCase();
@@ -6980,7 +6983,7 @@ const CRM = () => {
                           </Card>
                           <Card className="p-4">
                             <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Pendentes</p>
-                            <p className="text-2xl md:text-3xl font-black text-orange-500 mt-1">{contacts.length - synced.length}</p>
+                            <p className="text-2xl md:text-3xl font-black text-orange-500 mt-1">{pendingNamed.length}</p>
                           </Card>
                           <Card className="p-4">
                             <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Auto Sync</p>
@@ -7010,6 +7013,34 @@ const CRM = () => {
                           </Card>
                         </div>
 
+                        {pendingNamed.length > 0 && (
+                          <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
+                            <div className="px-4 md:px-6 py-3 border-b bg-orange-500/5 flex items-center gap-2">
+                              <RefreshCcw className="w-4 h-4 text-orange-500 animate-spin-slow" />
+                              <h3 className="text-sm font-bold">Pendentes — aguardando subir ao Google</h3>
+                              <span className="ml-auto text-[10px] uppercase font-bold text-orange-500">{pendingNamed.length}</span>
+                            </div>
+                            <div className="divide-y divide-border max-h-72 overflow-auto">
+                              {pendingNamed.slice(0, 100).map((contact) => (
+                                <div key={contact.id} className="px-4 md:px-6 py-3 flex items-center justify-between gap-3 hover:bg-muted/30">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 font-bold text-xs flex-shrink-0">
+                                      {contact.name?.charAt(0).toUpperCase() || <User className="w-4 h-4" />}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-semibold text-sm truncate">{contact.name}</p>
+                                      <p className="text-[11px] text-muted-foreground font-mono truncate">{contact.wa_id}</p>
+                                    </div>
+                                  </div>
+                                  <span className="text-[10px] uppercase font-bold text-orange-500 flex items-center gap-1 shrink-0">
+                                    <Clock className="w-3 h-3" /> aguardando
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
                           {filtered.length === 0 ? (
                             <div className="p-12 text-center text-muted-foreground text-sm italic">
@@ -7017,6 +7048,11 @@ const CRM = () => {
                             </div>
                           ) : (
                             <>
+                              <div className="px-4 md:px-6 py-3 border-b bg-emerald-500/5 flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                <h3 className="text-sm font-bold">Histórico — sincronizados com Google</h3>
+                                <span className="ml-auto text-[10px] uppercase font-bold text-emerald-500">{filtered.length}</span>
+                              </div>
                               {/* Mobile cards */}
                               <div className="md:hidden divide-y divide-border">
                                 {filtered.slice(0, showAllGoogleContacts ? undefined : 50).map((contact) => (
