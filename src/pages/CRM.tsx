@@ -2954,12 +2954,14 @@ const CRM = () => {
       if (updatedContact) {
         console.log('[CRM] Contato atualizado após startFlow:', updatedContact.flow_state);
         setContacts(prev => prev.map(c => c.id === targetContactId ? updatedContact : c));
-        if (selectedContact?.id === targetContactId) {
-          setSelectedContact(updatedContact);
+        // Use ref para não "puxar" o usuário de volta caso ele tenha aberto outra conversa
+        // enquanto o envio do fluxo estava em andamento.
+        if (selectedContactRef.current?.id === targetContactId) {
+          setSelectedContact((prev: any) => prev && prev.id === targetContactId ? { ...prev, ...updatedContact } : prev);
         }
       }
 
-      await fetchMessages(targetContactId);
+      await fetchMessages(targetContactId, true);
     } catch (err: any) {
       toast({ title: "Erro ao iniciar fluxo", description: err.message, variant: "destructive" });
     } finally {
