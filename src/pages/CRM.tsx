@@ -1786,7 +1786,7 @@ const CRM = () => {
     const silentSync = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-          body: { action: 'syncGoogleContacts' }
+          body: { action: 'syncPendingToGoogle' }
         });
         if (cancelled) return;
         if (!error && data?.success) {
