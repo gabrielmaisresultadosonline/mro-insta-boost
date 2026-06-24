@@ -2727,17 +2727,34 @@ async function fetchAndStoreIncomingMedia(
       console.log(`[BACKGROUND-LOG] Background processing for action: ${action}`);
       const now = new Date().toISOString();
       
-      // Select only what's needed and use a more strict query
-       const { data: contactsToProcess, error: fetchError } = await supabase
-         .from('crm_contacts')
-         .select('id, wa_id, user_id, current_flow_id, current_node_id, flow_timeout_minutes, flow_timeout_node_id, last_flow_interaction, flow_state, next_execution_time')
-         .neq('flow_state', 'idle')
-         .limit(50);
-        
-      if (fetchError) throw fetchError;
-      
-      const results = [];
-      if (contactsToProcess) {
+      // Buscar apenas contatos REALMENTE elegíveis (timeout pronto OU delay pronto)
+      // Evita que o limite de 50 contatos "presos" em waiting_response indefinido
+      // bloqueie a execução de um timeout que já venceu.
+      const nowDate = new Date();
+      const [waitingRes, delayRes] = await Promise.all([
+        supabase
+          .from('crm_contacts')
+          .select('id, wa_id, user_id, current_flow_id, current_node_id, flow_timeout_minutes, flow_timeout_node_id, last_flow_interaction, flow_state, next_execution_time, last_message_received_at')
+          .eq('flow_state', 'waiting_response')
+          .not('flow_timeout_node_id', 'is', null)
+          .not('flow_timeout_minutes', 'is', null)
+          .limit(200),
+        supabase
+          .from('crm_contacts')
+          .select('id, wa_id, user_id, current_flow_id, current_node_id, flow_timeout_minutes, flow_timeout_node_id, last_flow_interaction, flow_state, next_execution_time, last_message_received_at')
+          .neq('flow_state', 'idle')
+          .neq('flow_state', 'waiting_response')
+          .not('next_execution_time', 'is', null)
+          .lte('next_execution_time', now)
+          .limit(200),
+      ]);
+
+      if (waitingRes.error) throw waitingRes.error;
+      if (delayRes.error) throw delayRes.error;
+
+      const contactsToProcess = [...(waitingRes.data || []), ...(delayRes.data || [])];
+      const results: any[] = [];
+      if (contactsToProcess.length > 0) {
         for (const contact of contactsToProcess) {
           // 1. Process Timeout (se aplicável)
           if (contact.flow_state === 'waiting_response') {
@@ -2746,11 +2763,35 @@ async function fetchAndStoreIncomingMedia(
             if (!contact.flow_timeout_node_id) {
               continue;
             }
-            const timeoutMinutes = contact.flow_timeout_minutes || 20;
-            const lastInteraction = new Date(contact.last_flow_interaction || new Date().toISOString());
+            const timeoutMinutes = Number(contact.flow_timeout_minutes) > 0
+              ? Number(contact.flow_timeout_minutes)
+              : 20;
+            const lastInteractionRaw = contact.last_flow_interaction || new Date().toISOString();
+            const lastInteraction = new Date(lastInteractionRaw);
             const timeoutThreshold = new Date(lastInteraction.getTime() + timeoutMinutes * 60000);
-            
-            if (new Date() >= timeoutThreshold) {
+
+            if (nowDate >= timeoutThreshold) {
+              // === Verificação da janela de 24h do WhatsApp ===
+              // Se a última mensagem recebida do cliente está fora da janela de 24h,
+              // cancelamos o fluxo inteiro (não conseguiríamos enviar mensagem livre).
+              const lastUserMsgRaw = (contact as any).last_message_received_at;
+              if (lastUserMsgRaw) {
+                const lastUserMsg = new Date(lastUserMsgRaw);
+                const hoursSince = (nowDate.getTime() - lastUserMsg.getTime()) / (1000 * 60 * 60);
+                if (hoursSince >= 24) {
+                  console.log(`[TIMEOUT-24H-EXPIRED] Contact ${contact.wa_id}: janela de 24h expirou (${hoursSince.toFixed(1)}h). Cancelando fluxo.`);
+                  await supabase.from('crm_contacts').update({
+                    flow_state: 'idle',
+                    current_flow_id: null,
+                    current_node_id: null,
+                    flow_timeout_minutes: null,
+                    flow_timeout_node_id: null,
+                    next_execution_time: null,
+                  }).eq('id', contact.id).eq('flow_state', 'waiting_response');
+                  continue;
+                }
+              }
+
               console.log(`[TIMEOUT-EXPIRED] Contact ${contact.wa_id} timed out.`);
               // Tenta atualizar de forma atômica para evitar duplicidade
               const { data: updated } = await supabase.from('crm_contacts').update({ 
