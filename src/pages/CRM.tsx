@@ -1827,8 +1827,8 @@ const CRM = () => {
 
     // Roda imediatamente ao montar/ativar
     silentSync();
-    // E depois a cada 2 minutos
-    const intervalId = window.setInterval(silentSync, 2 * 60 * 1000);
+    // E depois a cada 15 segundos para subir pendentes rapidamente
+    const intervalId = window.setInterval(silentSync, 15 * 1000);
 
     return () => {
       cancelled = true;
@@ -4574,6 +4574,12 @@ const CRM = () => {
                                           fetchContacts();
                                           setSelectedContactIds([]);
                                           setBulkName('');
+                                          // Dispara sync imediato para o Google (não espera o intervalo)
+                                          if (googleContactsEnabled && metaSettings.google_auto_sync) {
+                                            supabase.functions.invoke('meta-whatsapp-crm', {
+                                              body: { action: 'syncPendingToGoogle' }
+                                            }).then(() => fetchContacts()).catch(() => {});
+                                          }
                                         } catch (e) {
                                           toast({ title: 'Erro ao atualizar', variant: 'destructive' });
                                         } finally {
