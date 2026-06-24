@@ -719,7 +719,13 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
       meta_message_id: metaMessageId || null,
       media_url: echoMediaUrl,
       metadata: { raw: echo, source: 'echo_mobile_app' },
-      user_id: userId
+      user_id: userId,
+      // Preserve the real send order from the WhatsApp client (phone/desktop).
+      // Webhook events can arrive out-of-order; rely on Meta's timestamp so the
+      // chat renders in the same order the user actually sent the messages.
+      created_at: echo?.timestamp
+        ? new Date(Number(echo.timestamp) * 1000).toISOString()
+        : new Date().toISOString()
     });
     if (insertErr) {
       // Duplicate (race condition) — partial unique index will reject it. Treat as success.
