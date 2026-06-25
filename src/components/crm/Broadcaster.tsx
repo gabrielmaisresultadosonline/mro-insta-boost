@@ -643,6 +643,52 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                 </div>
               )}
 
+              <div className="space-y-2 p-3 bg-[#202c33] rounded-xl border border-white/5">
+                <Label className="text-xs md:text-sm flex items-center gap-2 text-white">
+                  <Bookmark className="w-3.5 h-3.5 text-[#00a884]" /> Filtrar por Etiquetas (opcional)
+                </Label>
+                <p className="text-[10px] text-white/40">
+                  Selecione etiquetas para disparar apenas para contatos com esses status. Se nenhuma for selecionada, dispara para todos dentro da janela.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {statuses.length === 0 && (
+                    <span className="text-[10px] text-white/40 italic">Nenhuma etiqueta cadastrada no CRM.</span>
+                  )}
+                  {statuses.map((s: any) => {
+                    const active = countdownStatusFilter.includes(s.name);
+                    return (
+                      <button
+                        key={s.id || s.name}
+                        type="button"
+                        onClick={() =>
+                          setCountdownStatusFilter(prev =>
+                            prev.includes(s.name) ? prev.filter(x => x !== s.name) : [...prev, s.name]
+                          )
+                        }
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[10px] md:text-xs font-medium border transition-all",
+                          active
+                            ? "bg-[#00a884] text-white border-[#00a884]"
+                            : "bg-transparent text-white/70 border-white/15 hover:border-[#00a884]/60"
+                        )}
+                        style={active && s.color ? { backgroundColor: s.color, borderColor: s.color } : undefined}
+                      >
+                        {s.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {countdownStatusFilter.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCountdownStatusFilter([])}
+                    className="text-[10px] text-white/50 hover:text-white underline mt-1"
+                  >
+                    Limpar seleção ({countdownStatusFilter.length})
+                  </button>
+                )}
+              </div>
+
               <Button 
                 onClick={handleSaveCountdown} 
                 disabled={savingCountdown}
