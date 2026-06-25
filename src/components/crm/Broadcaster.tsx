@@ -648,6 +648,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                 disabled={savingCountdown}
                 className="w-full h-10 bg-[#00a884] hover:bg-[#00a884]/90 text-white font-semibold"
               >
+              </Button>
+              {/* placeholder removed */}
                 {savingCountdown ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                 {countdownEnabled ? "ATIVAR E SALVAR CONFIGURAÇÃO" : "SALVAR CONFIGURAÇÃO"}
               </Button>
