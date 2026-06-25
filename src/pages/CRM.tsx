@@ -4883,7 +4883,8 @@ const CRM = () => {
                                       <Clock className="w-2.5 h-2.5" />
                                       {(() => {
                                         if (selectedContact.flow_state === 'waiting_response') {
-                                          const timeoutMinutes = selectedContact.flow_timeout_minutes || 20;
+                                          const timeoutMinutes = Number(selectedContact.flow_timeout_minutes);
+                                          if (!timeoutMinutes || timeoutMinutes <= 0) return '';
                                           const lastInteraction = new Date(selectedContact.last_flow_interaction || Date.now()).getTime();
                                           const timeoutThreshold = lastInteraction + (timeoutMinutes * 60 * 1000);
                                           const remainingSeconds = Math.max(0, Math.floor((timeoutThreshold - now) / 1000));
