@@ -4758,7 +4758,8 @@ const CRM = () => {
                                              contact.flow_state === 'waiting_response' ? 'Aguardando' : 'Fluxo'}
                                             {contact.current_step_name && <span className="ml-1 text-white/90">({contact.current_step_name})</span>}
                                             {contact.flow_state === 'waiting_response' && (() => {
-                                              const timeoutMinutes = contact.flow_timeout_minutes || 20;
+                                              const timeoutMinutes = Number(contact.flow_timeout_minutes);
+                                              if (!timeoutMinutes || timeoutMinutes <= 0) return null;
                                               const lastInteraction = new Date(contact.last_flow_interaction || Date.now()).getTime();
                                               const timeoutThreshold = lastInteraction + (timeoutMinutes * 60 * 1000);
                                               const remainingSeconds = Math.max(0, Math.floor((timeoutThreshold - now) / 1000));
