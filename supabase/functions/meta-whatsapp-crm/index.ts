@@ -4183,13 +4183,21 @@ async function fetchAndStoreIncomingMedia(
         const windowLimitDate = new Date(now.getTime() - (24 * 60 * 60 * 1000));
         const triggerThresholdDate = new Date(now.getTime() - ((24 * 60 - thresholdMinutes) * 60 * 1000));
         
-        const { data: contacts } = await supabase
+        let contactsQuery = supabase
           .from('crm_contacts')
           .select('*')
           .eq('user_id', settings.user_id)
           .gt('last_message_received_at', windowLimitDate.toISOString())
           .lt('last_message_received_at', triggerThresholdDate.toISOString())
           .is('countdown_trigger_sent_at', null);
+
+        const statusFilter: string[] = Array.isArray(settings.countdown_trigger_status_filter)
+          ? settings.countdown_trigger_status_filter
+          : [];
+        if (statusFilter.length > 0) {
+          contactsQuery = contactsQuery.in('status', statusFilter);
+        }
+        const { data: contacts } = await contactsQuery;
 
         if (contacts && contacts.length > 0) {
           console.log(`[COUNTDOWN] Found ${contacts.length} contacts for user ${settings.user_id}`);

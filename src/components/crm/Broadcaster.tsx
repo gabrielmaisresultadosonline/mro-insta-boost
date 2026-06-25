@@ -86,6 +86,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [countdownTemplate, setCountdownTemplate] = useState('');
   const [countdownFlow, setCountdownFlow] = useState('');
   const [savingCountdown, setSavingCountdown] = useState(false);
+  const [countdownStatusFilter, setCountdownStatusFilter] = useState<string[]>([]);
 
   useEffect(() => {
     fetchBroadcasts();
@@ -216,6 +217,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       setCountdownContent(settings.countdown_trigger_content || '');
       setCountdownTemplate(settings.countdown_trigger_template_id || '');
       setCountdownFlow(settings.countdown_trigger_flow_id || '');
+      setCountdownStatusFilter(Array.isArray((settings as any).countdown_trigger_status_filter) ? (settings as any).countdown_trigger_status_filter : []);
     }
   };
 
@@ -230,8 +232,9 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           countdown_trigger_message_type: countdownType,
           countdown_trigger_content: countdownContent,
           countdown_trigger_template_id: countdownTemplate,
-          countdown_trigger_flow_id: countdownFlow || null
-        })
+          countdown_trigger_flow_id: countdownFlow || null,
+          countdown_trigger_status_filter: countdownStatusFilter,
+        } as any)
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
       if (error) throw error;
@@ -639,6 +642,52 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                   </Select>
                 </div>
               )}
+
+              <div className="space-y-2 p-3 bg-[#202c33] rounded-xl border border-white/5">
+                <Label className="text-xs md:text-sm flex items-center gap-2 text-white">
+                  <Bookmark className="w-3.5 h-3.5 text-[#00a884]" /> Filtrar por Etiquetas (opcional)
+                </Label>
+                <p className="text-[10px] text-white/40">
+                  Selecione etiquetas para disparar apenas para contatos com esses status. Se nenhuma for selecionada, dispara para todos dentro da janela.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {statuses.length === 0 && (
+                    <span className="text-[10px] text-white/40 italic">Nenhuma etiqueta cadastrada no CRM.</span>
+                  )}
+                  {statuses.map((s: any) => {
+                    const active = countdownStatusFilter.includes(s.name);
+                    return (
+                      <button
+                        key={s.id || s.name}
+                        type="button"
+                        onClick={() =>
+                          setCountdownStatusFilter(prev =>
+                            prev.includes(s.name) ? prev.filter(x => x !== s.name) : [...prev, s.name]
+                          )
+                        }
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[10px] md:text-xs font-medium border transition-all",
+                          active
+                            ? "bg-[#00a884] text-white border-[#00a884]"
+                            : "bg-transparent text-white/70 border-white/15 hover:border-[#00a884]/60"
+                        )}
+                        style={active && s.color ? { backgroundColor: s.color, borderColor: s.color } : undefined}
+                      >
+                        {s.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {countdownStatusFilter.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCountdownStatusFilter([])}
+                    className="text-[10px] text-white/50 hover:text-white underline mt-1"
+                  >
+                    Limpar seleção ({countdownStatusFilter.length})
+                  </button>
+                )}
+              </div>
 
               <Button 
                 onClick={handleSaveCountdown} 
