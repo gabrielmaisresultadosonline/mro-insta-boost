@@ -86,6 +86,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [countdownTemplate, setCountdownTemplate] = useState('');
   const [countdownFlow, setCountdownFlow] = useState('');
   const [savingCountdown, setSavingCountdown] = useState(false);
+  const [countdownStatusFilter, setCountdownStatusFilter] = useState<string[]>([]);
 
   useEffect(() => {
     fetchBroadcasts();
@@ -216,6 +217,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       setCountdownContent(settings.countdown_trigger_content || '');
       setCountdownTemplate(settings.countdown_trigger_template_id || '');
       setCountdownFlow(settings.countdown_trigger_flow_id || '');
+      setCountdownStatusFilter(Array.isArray((settings as any).countdown_trigger_status_filter) ? (settings as any).countdown_trigger_status_filter : []);
     }
   };
 
@@ -230,8 +232,9 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           countdown_trigger_message_type: countdownType,
           countdown_trigger_content: countdownContent,
           countdown_trigger_template_id: countdownTemplate,
-          countdown_trigger_flow_id: countdownFlow || null
-        })
+          countdown_trigger_flow_id: countdownFlow || null,
+          countdown_trigger_status_filter: countdownStatusFilter,
+        } as any)
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
       if (error) throw error;
