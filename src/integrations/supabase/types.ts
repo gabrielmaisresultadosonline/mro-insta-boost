@@ -1422,6 +1422,7 @@ export type Database = {
           countdown_trigger_enabled: boolean | null
           countdown_trigger_flow_id: string | null
           countdown_trigger_message_type: string | null
+          countdown_trigger_status_filter: string[]
           countdown_trigger_template_id: string | null
           countdown_trigger_threshold_minutes: number | null
           created_at: string | null
@@ -1470,6 +1471,7 @@ export type Database = {
           countdown_trigger_enabled?: boolean | null
           countdown_trigger_flow_id?: string | null
           countdown_trigger_message_type?: string | null
+          countdown_trigger_status_filter?: string[]
           countdown_trigger_template_id?: string | null
           countdown_trigger_threshold_minutes?: number | null
           created_at?: string | null
@@ -1518,6 +1520,7 @@ export type Database = {
           countdown_trigger_enabled?: boolean | null
           countdown_trigger_flow_id?: string | null
           countdown_trigger_message_type?: string | null
+          countdown_trigger_status_filter?: string[]
           countdown_trigger_template_id?: string | null
           countdown_trigger_threshold_minutes?: number | null
           created_at?: string | null
