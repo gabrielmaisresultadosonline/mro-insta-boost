@@ -176,9 +176,11 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         const timeoutEdge = isExplicitWait
           ? flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout')
           : null;
-        const configuredTimeout = parseInt(node.data?.timeout || '20');
-        const timeoutMinutes = isExplicitWait
-          ? (Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 20)
+        // Só configuramos contagem regressiva quando EXISTE uma aresta de "timeout"
+        // ligada a um próximo nó. Sem aresta, aguarda indefinidamente (sem fake 20m).
+        const rawTimeout = Number(node.data?.timeout);
+        const timeoutMinutes = (isExplicitWait && timeoutEdge && Number.isFinite(rawTimeout) && rawTimeout > 0)
+          ? rawTimeout
           : null;
 
         console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}, explicitWait=${isExplicitWait}). Timeout: ${timeoutMinutes ? timeoutMinutes + 'min' : 'INDEFINIDO (sem contagem)'}. Target timeout: ${timeoutEdge?.target}`);
