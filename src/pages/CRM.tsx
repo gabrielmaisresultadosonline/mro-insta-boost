@@ -1249,13 +1249,41 @@ const CRM = () => {
     const scheduledInterval = setInterval(async () => {
       try {
         const nowIso = new Date().toISOString();
-        const { data: contactsToProcess } = await supabase
+        // 1) Contatos com delay agendado pronto para executar
+        const { data: delayContacts } = await supabase
           .from('crm_contacts')
           .select('id, last_message_received_at, last_interaction')
           .neq('flow_state', 'idle')
           .lte('next_execution_time', nowIso);
-          
-        if (contactsToProcess && contactsToProcess.length > 0) {
+
+        // 2) Contatos em waiting_response cujo timeout (ex.: 40 min) já venceu.
+        //    Estes têm next_execution_time = NULL, então não apareciam no query
+        //    acima e o processScheduled nunca era acionado pelo front, dependendo
+        //    apenas do pg_cron (que pode falhar/atrasar). Aqui detectamos no
+        //    cliente e disparamos imediatamente o processamento na edge function.
+        const { data: waitingContacts } = await supabase
+          .from('crm_contacts')
+          .select('id, last_message_received_at, last_flow_interaction, flow_timeout_minutes, flow_timeout_node_id')
+          .eq('flow_state', 'waiting_response')
+          .not('flow_timeout_node_id', 'is', null)
+          .not('flow_timeout_minutes', 'is', null);
+
+        const nowMs = Date.now();
+        const expiredWaiting = (waitingContacts || []).filter((c: any) => {
+          const mins = Number(c.flow_timeout_minutes);
+          if (!Number.isFinite(mins) || mins <= 0) return false;
+          const baseRaw = c.last_flow_interaction;
+          if (!baseRaw) return false;
+          const base = new Date(baseRaw).getTime();
+          return nowMs >= base + mins * 60000;
+        });
+
+        const contactsToProcess = [
+          ...((delayContacts as any[]) || []),
+          ...expiredWaiting,
+        ];
+
+        if (contactsToProcess.length > 0) {
           // Regra de interrupção de fluxo: Só paramos o fluxo se o ÚLTIMO INBOUND (mensagem do cliente)
           // tiver ocorrido há mais de 24 horas + 30 minutos de tolerância.
           const DAY = 24 * 60 * 60 * 1000;
