@@ -4258,6 +4258,32 @@ const CRM = () => {
                                           <div className={cn("w-1.5 h-1.5 rounded-full animate-ping", contact.flow_state === 'error' ? "bg-red-500" : "bg-green-500")} />
                                           <span className="capitalize font-medium">{contact.flow_state}</span>
                                         </div>
+                                        {contact.flow_state === 'waiting_response' && contact.last_flow_interaction && (() => {
+                                          const mins = Number(contact.flow_timeout_minutes);
+                                          const base = new Date(contact.last_flow_interaction).getTime();
+                                          const elapsed = Math.max(0, Math.floor((now - base) / 1000));
+                                          const eh = Math.floor(elapsed / 3600);
+                                          const em = Math.floor((elapsed % 3600) / 60);
+                                          const es = elapsed % 60;
+                                          const elapsedStr = eh > 0 ? `${eh}h ${em}m` : `${em}m ${es}s`;
+                                          if (Number.isFinite(mins) && mins > 0) {
+                                            const remaining = Math.max(0, mins * 60 - elapsed);
+                                            const rm = Math.floor(remaining / 60);
+                                            const rs = remaining % 60;
+                                            return (
+                                              <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-500 tabular-nums">
+                                                <Clock className="w-3 h-3" />
+                                                Aguardando resposta: {elapsedStr} (restam {rm}m {rs}s de {mins}m)
+                                              </div>
+                                            );
+                                          }
+                                          return (
+                                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-500 tabular-nums">
+                                              <Clock className="w-3 h-3" />
+                                              Aguardando resposta há {elapsedStr}
+                                            </div>
+                                          );
+                                        })()}
                                         {contact.next_execution_time && (
                                           <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary tabular-nums">
                                             <Clock className="w-3 h-3" />
