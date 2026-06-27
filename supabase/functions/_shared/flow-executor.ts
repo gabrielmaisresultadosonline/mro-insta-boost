@@ -166,24 +166,21 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       // NOVO: Se o nó não é uma pergunta/espera mas tem botões, ele deve parar e esperar resposta
       // para que os cliques nos botões funcionem.
       const hasButtons = node.data?.buttons && node.data.buttons.length > 0;
-      
-      if (node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse' || hasButtons) {
-        // Só aplicamos contagem regressiva / timeout quando o usuário EXPLICITAMENTE
-        // configurou o nó como "Aguardar resposta" (question/wait_response/waitResponse).
-        // Para nós de mensagem com botões, apenas pausamos o fluxo aguardando o clique,
-        // sem timeout visível e sem queda automática do fluxo.
-        const isExplicitWait = node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse';
+      const isExplicitWait = node.type === 'question' || node.type === 'wait_response' || node.type === 'waitResponse';
+      // Existem arestas de SAÍDA reais a partir deste nó (clique de botão / resposta / timeout)?
+      const outgoingEdges = (flow.edges || []).filter((e: any) => e.source === node.id);
+      const hasFollowups = outgoingEdges.length > 0;
+
+      if (isExplicitWait || (hasButtons && hasFollowups)) {
         const timeoutEdge = isExplicitWait
           ? flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout')
           : null;
-        // Só configuramos contagem regressiva quando EXISTE uma aresta de "timeout"
-        // ligada a um próximo nó. Sem aresta, aguarda indefinidamente (sem fake 20m).
         const rawTimeout = Number(node.data?.timeout);
         const timeoutMinutes = (isExplicitWait && timeoutEdge && Number.isFinite(rawTimeout) && rawTimeout > 0)
           ? rawTimeout
           : null;
 
-        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}, explicitWait=${isExplicitWait}). Timeout: ${timeoutMinutes ? timeoutMinutes + 'min' : 'INDEFINIDO (sem contagem)'}. Target timeout: ${timeoutEdge?.target}`);
+        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}, explicitWait=${isExplicitWait}). Timeout: ${timeoutMinutes ? timeoutMinutes + 'min' : 'INDEFINIDO'}. Target timeout: ${timeoutEdge?.target}`);
 
         const { error: updateError } = await supabase.from('crm_contacts').update({
           flow_state: 'waiting_response',
@@ -197,9 +194,21 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           console.error(`[FLOW-LOG] ERROR updating contact ${contactId} to waiting_response:`, updateError);
           throw updateError;
         }
-        
-        console.log(`[FLOW-LOG] Contact ${contactId} updated to state: waiting_response`);
-        return { success: true, message: 'Sent interactive buttons and waiting for response' };
+        return { success: true, message: 'Waiting for response' };
+      }
+
+      if (hasButtons && !hasFollowups) {
+        // Botões enviados (ex: link/URL) sem ramificações configuradas — encerra o fluxo.
+        console.log(`[FLOW-LOG] Node ${node.id} sent buttons without follow-up edges. Closing flow.`);
+        await supabase.from('crm_contacts').update({
+          flow_state: 'idle',
+          current_flow_id: null,
+          current_node_id: null,
+          next_execution_time: null,
+          flow_timeout_minutes: null,
+          flow_timeout_node_id: null
+        }).eq('id', contactId);
+        return { success: true, message: 'Buttons sent, no follow-up, flow closed' };
       }
     } else if (node.type === 'image' || node.type === 'video' || node.type === 'audio' || node.type === 'document') {
       const mediaUrl = node.data?.url || node.data?.mediaUrl || node.data?.fileUrl || node.data?.audioUrl || node.data?.imageUrl || node.data?.videoUrl || node.data?.documentUrl;
@@ -408,6 +417,8 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
     
     console.log(`[EXECUTOR] Checking next node. isQuestionNode=${isQuestionNode}, hasButtons=${hasButtons}, nodeType=${node.type}`);
 
+    const outgoingEdgesAll = (flow.edges || []).filter((e: any) => e.source === node.id);
+
     if (!isQuestionNode && node.type !== 'delay' && node.type !== 'aiAgent' && !hasButtons) {
       const edge = flow.edges?.find((e: any) => e.source === node.id && (!e.sourceHandle || e.sourceHandle === 'next' || e.sourceHandle === 'responded' || e.sourceHandle === 'any_response'));
       
@@ -428,7 +439,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           return await executeVisualNode(supabase, flow, nextNode, contactId, waId);
         }
       }
-    } else if (hasButtons || isQuestionNode) {
+    } else if (isQuestionNode || (hasButtons && outgoingEdgesAll.length > 0)) {
        console.log(`[EXECUTOR] Node ${node.id} has buttons or is question. Stopped to wait for interaction.`);
        // Certifica que o estado está correto
        await supabase.from('crm_contacts').update({
@@ -436,6 +447,17 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
          current_node_id: node.id
        }).eq('id', contactId);
        return { success: true, message: 'Wait for interaction' };
+    } else if (hasButtons && outgoingEdgesAll.length === 0) {
+       console.log(`[EXECUTOR] Node ${node.id} has buttons but no outgoing edges. Closing flow.`);
+       await supabase.from('crm_contacts').update({
+         flow_state: 'idle',
+         current_flow_id: null,
+         current_node_id: null,
+         next_execution_time: null,
+         flow_timeout_minutes: null,
+         flow_timeout_node_id: null
+       }).eq('id', contactId);
+       return { success: true, message: 'Buttons sent, no follow-up' };
     }
 
 
