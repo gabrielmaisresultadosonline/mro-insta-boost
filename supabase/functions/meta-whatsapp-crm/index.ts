@@ -1480,6 +1480,101 @@ function getGoogleOAuthCredentials(settings?: any) {
   };
 }
 
+// Push named (renamed by user) CRM contacts up to the user's connected Google account.
+// Runs in background — one call iterates over every connected Google account so the
+// minute cron keeps Google in sync without depending on any open browser tab.
+async function autoPushGoogleContactsForAllUsers(supabase: any) {
+  try {
+    const { data: accounts } = await supabase
+      .from('crm_google_accounts')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (!accounts || accounts.length === 0) return;
+
+    // Keep one (most recent) account per user
+    const byUser = new Map<string, any>();
+    for (const a of accounts) if (!byUser.has(a.user_id)) byUser.set(a.user_id, a);
+
+    for (const [userId, account] of byUser.entries()) {
+      try {
+        // Find pending named contacts for this user
+        const { data: pending } = await supabase
+          .from('crm_contacts')
+          .select('id, name, wa_id, google_sync_account_id')
+          .eq('user_id', userId)
+          .is('google_sync_account_id', null)
+          .limit(100);
+
+        const list = (pending || []).filter((c: any) => {
+          const name = (c.name || '').trim();
+          if (!name) return false;
+          if (name === (c.wa_id || '').trim()) return false;
+          return true;
+        });
+        if (list.length === 0) continue;
+
+        // Refresh token if needed
+        let accessToken = account.access_token;
+        if (Date.now() >= (account.expiry_date || 0)) {
+          const settings = await getCrmSettings(supabase, userId);
+          const { clientId, clientSecret } = getGoogleOAuthCredentials(settings);
+          if (clientSecret && account.refresh_token) {
+            const r = await fetch('https://oauth2.googleapis.com/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                client_id: clientId,
+                client_secret: clientSecret,
+                refresh_token: account.refresh_token,
+                grant_type: 'refresh_token',
+              }),
+            });
+            const t = await r.json();
+            if (r.ok && t.access_token) {
+              accessToken = t.access_token;
+              await supabase.from('crm_google_accounts').update({
+                access_token: accessToken,
+                expiry_date: Date.now() + ((t.expires_in || 3600) * 1000),
+                updated_at: new Date().toISOString(),
+              }).eq('id', account.id);
+            } else {
+              continue; // can't push without valid token
+            }
+          } else {
+            continue;
+          }
+        }
+
+        for (const c of list) {
+          try {
+            const resp = await fetch('https://people.googleapis.com/v1/people:createContact', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                names: [{ givenName: c.name || c.wa_id }],
+                phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
+              }),
+            });
+            if (resp.ok) {
+              await supabase.from('crm_contacts').update({
+                google_sync_account_id: account.id,
+                google_synced_at: new Date().toISOString(),
+              }).eq('id', c.id);
+            }
+          } catch (_) { /* skip */ }
+        }
+      } catch (e) {
+        console.warn('[auto-google-push] user error', userId, (e as any)?.message);
+      }
+    }
+  } catch (e) {
+    console.warn('[auto-google-push] fatal', (e as any)?.message);
+  }
+}
+
 async function getCrmSettings(supabase: any, userId?: string | null) {
   if (userId) {
     const { data, error } = await supabase
