@@ -2961,7 +2961,19 @@ async function fetchAndStoreIncomingMedia(
           }
         }
       }
-      
+
+      // Auto-push named CRM contacts to Google for every user with a connected account.
+      // Fire-and-forget so cron stays fast and never blocks flow processing.
+      try {
+        // @ts-ignore EdgeRuntime is available in Supabase Edge Functions
+        if (typeof EdgeRuntime !== 'undefined' && (EdgeRuntime as any).waitUntil) {
+          // @ts-ignore
+          EdgeRuntime.waitUntil(autoPushGoogleContactsForAllUsers(supabase));
+        } else {
+          autoPushGoogleContactsForAllUsers(supabase).catch(() => {});
+        }
+      } catch (_) { /* ignore */ }
+
       return jsonResponse({ success: true, processed: results.length });
     }
 
