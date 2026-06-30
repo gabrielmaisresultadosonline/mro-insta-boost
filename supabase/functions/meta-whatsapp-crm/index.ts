@@ -2860,21 +2860,68 @@ async function fetchAndStoreIncomingMedia(
 
       const contactsToProcess = [...(waitingRes.data || []), ...(delayRes.data || [])];
       const results: any[] = [];
+      const flowCache = new Map<string, any>();
       if (contactsToProcess.length > 0) {
         for (const contact of contactsToProcess) {
           // 1. Process Timeout (se aplicável)
           if (contact.flow_state === 'waiting_response') {
+            let effectiveTimeoutNodeId = contact.flow_timeout_node_id;
+            let effectiveTimeoutMinutes = Number(contact.flow_timeout_minutes);
+            let flowForTimeout: any = null;
+
+            // Compatibilidade/auto-correção: alguns contatos antigos ficaram parados
+            // no nó de pergunta anterior ao bloco "Aguardar Resposta", com
+            // flow_timeout_* nulo. Se esse nó aponta para um waitResponse, usamos o
+            // tempo e a saída "timeout" configurados nele, sem reiniciar o relógio.
+            if ((!effectiveTimeoutNodeId || !effectiveTimeoutMinutes || effectiveTimeoutMinutes <= 0) && contact.current_flow_id) {
+              if (!flowCache.has(contact.current_flow_id)) {
+                const { data: cachedFlow } = await supabase
+                  .from('crm_flows')
+                  .select('*')
+                  .eq('id', contact.current_flow_id)
+                  .eq('user_id', contact.user_id)
+                  .maybeSingle();
+                flowCache.set(contact.current_flow_id, cachedFlow || null);
+              }
+              flowForTimeout = flowCache.get(contact.current_flow_id);
+              const currentNode = flowForTimeout?.nodes?.find((n: any) => n.id === contact.current_node_id);
+              const currentIsWait = currentNode?.type === 'waitResponse' || currentNode?.type === 'wait_response';
+              const linkedWaitEdge = !currentIsWait
+                ? (flowForTimeout?.edges || []).find((e: any) => {
+                    if (e.source !== contact.current_node_id) return false;
+                    const targetNode = flowForTimeout?.nodes?.find((n: any) => n.id === e.target);
+                    return targetNode?.type === 'waitResponse' || targetNode?.type === 'wait_response';
+                  })
+                : null;
+              const waitNode = currentIsWait
+                ? currentNode
+                : (linkedWaitEdge ? flowForTimeout?.nodes?.find((n: any) => n.id === linkedWaitEdge.target) : null);
+              const timeoutEdge = waitNode
+                ? (flowForTimeout?.edges || []).find((e: any) => e.source === waitNode.id && e.sourceHandle === 'timeout')
+                : null;
+              const configuredMinutes = Number(waitNode?.data?.timeout);
+
+              if (timeoutEdge?.target && Number.isFinite(configuredMinutes) && configuredMinutes > 0) {
+                effectiveTimeoutNodeId = timeoutEdge.target;
+                effectiveTimeoutMinutes = configuredMinutes;
+                await supabase.from('crm_contacts').update({
+                  current_node_id: waitNode.id,
+                  flow_timeout_minutes: effectiveTimeoutMinutes,
+                  flow_timeout_node_id: effectiveTimeoutNodeId,
+                  next_execution_time: null,
+                }).eq('id', contact.id).eq('flow_state', 'waiting_response');
+                console.log(`[TIMEOUT-REPAIRED] Contact ${contact.wa_id}: using wait node ${waitNode.id}, ${effectiveTimeoutMinutes}min -> ${effectiveTimeoutNodeId}`);
+              }
+            }
+
             // Se o fluxo não tem um nó de timeout configurado, aguarda indefinidamente
             // pela resposta do cliente (sem expirar/cair sozinho).
-            if (!contact.flow_timeout_node_id) {
+            if (!effectiveTimeoutNodeId || !effectiveTimeoutMinutes || effectiveTimeoutMinutes <= 0) {
               continue;
             }
-            const timeoutMinutes = Number(contact.flow_timeout_minutes) > 0
-              ? Number(contact.flow_timeout_minutes)
-              : 20;
             const lastInteractionRaw = contact.last_flow_interaction || new Date().toISOString();
             const lastInteraction = new Date(lastInteractionRaw);
-            const timeoutThreshold = new Date(lastInteraction.getTime() + timeoutMinutes * 60000);
+            const timeoutThreshold = new Date(lastInteraction.getTime() + effectiveTimeoutMinutes * 60000);
 
             if (nowDate >= timeoutThreshold) {
               // === Verificação da janela de 24h do WhatsApp ===
@@ -2902,14 +2949,17 @@ async function fetchAndStoreIncomingMedia(
               // Tenta atualizar de forma atômica para evitar duplicidade
               const { data: updated } = await supabase.from('crm_contacts').update({ 
                 flow_state: 'running',
-                current_node_id: contact.flow_timeout_node_id,
+                current_node_id: effectiveTimeoutNodeId,
                 next_execution_time: null,
+                flow_timeout_minutes: null,
                 flow_timeout_node_id: null
               }).eq('id', contact.id).eq('flow_state', 'waiting_response').select();
 
                if (updated && updated.length > 0) {
-                 const { data: flow } = await supabase.from('crm_flows').select('*').eq('id', contact.current_flow_id).eq('user_id', contact.user_id).single();
-                 const nextNode = flow?.nodes?.find((n: any) => n.id === contact.flow_timeout_node_id);
+                 const flow = flowForTimeout || (flowCache.has(contact.current_flow_id)
+                   ? flowCache.get(contact.current_flow_id)
+                   : (await supabase.from('crm_flows').select('*').eq('id', contact.current_flow_id).eq('user_id', contact.user_id).single()).data);
+                 const nextNode = flow?.nodes?.find((n: any) => n.id === effectiveTimeoutNodeId);
                  if (nextNode) {
                    const res = await executeVisualNode(supabase, flow, nextNode, contact.id, contact.wa_id);
                    results.push({ contactId: contact.id, result: res });
