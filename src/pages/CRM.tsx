@@ -5638,24 +5638,38 @@ const CRM = () => {
                                       </div>
                                     )}
                                     <div className="flex items-center gap-0.5 sm:gap-1 w-full min-w-0 px-0 sm:px-0">
-                                      <div className="flex items-center gap-0 shrink-0">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          onClick={() => { setUploadType('image'); fileInputRef.current?.click(); }} 
-                                          className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full shrink-0"
-                                        >
-                                          <Plus className="w-6 h-6" />
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
-                                          onClick={() => { setUploadType('image'); fileInputRef.current?.click(); }} 
-                                          className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full hidden sm:flex shrink-0"
-                                        >
-                                          <ImageIcon className="w-5 h-5" />
-                                        </Button>
-                                      </div>
+                                       <div className="flex items-center gap-0 shrink-0">
+                                         <DropdownMenu>
+                                           <DropdownMenuTrigger asChild>
+                                             <Button 
+                                               variant="ghost" 
+                                               size="icon" 
+                                               className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full shrink-0"
+                                             >
+                                               <Plus className="w-6 h-6" />
+                                             </Button>
+                                           </DropdownMenuTrigger>
+                                           <DropdownMenuContent align="start" side="top" className="w-52">
+                                             <DropdownMenuItem onClick={() => { setUploadType('document'); setTimeout(() => fileInputRef.current?.click(), 0); }}>
+                                               <FileText className="w-4 h-4 mr-2" /> Documento (PDF, etc.)
+                                             </DropdownMenuItem>
+                                             <DropdownMenuItem onClick={() => { setUploadType('image'); setTimeout(() => fileInputRef.current?.click(), 0); }}>
+                                               <ImageIcon className="w-4 h-4 mr-2" /> Fotos (várias)
+                                             </DropdownMenuItem>
+                                             <DropdownMenuItem onClick={() => { setUploadType('video'); setTimeout(() => fileInputRef.current?.click(), 0); }}>
+                                               <Video className="w-4 h-4 mr-2" /> Vídeo
+                                             </DropdownMenuItem>
+                                           </DropdownMenuContent>
+                                         </DropdownMenu>
+                                         <Button 
+                                           variant="ghost" 
+                                           size="icon" 
+                                           onClick={() => { setUploadType('image'); setTimeout(() => fileInputRef.current?.click(), 0); }} 
+                                           className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full hidden sm:flex shrink-0"
+                                         >
+                                           <ImageIcon className="w-5 h-5" />
+                                         </Button>
+                                       </div>
                                       <div className="flex-1 relative flex items-center min-w-0">
                                         <Textarea 
                                           placeholder={isRecording ? "Gravando..." : "Mensagem"}
