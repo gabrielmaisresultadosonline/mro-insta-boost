@@ -989,7 +989,7 @@ else if (message.type === "unsupported") {
      const { error: insertMessageError } = await supabase.from('crm_messages').insert({
        contact_id: contactForSave.id,
        direction: 'inbound',
-      message_type: message.type,
+       message_type: message.type === 'ptv' ? 'video' : message.type,
       content: text || extractedInboundText || `[${message.type}]`,
        status: 'received',
        meta_message_id: message.id,
