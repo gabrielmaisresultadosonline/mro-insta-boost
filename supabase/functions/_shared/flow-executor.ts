@@ -173,6 +173,8 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
 
       if (isExplicitWait || (hasButtons && hasFollowups)) {
         const linkedWaitEdge = outgoingEdges.find((e: any) => {
+          const handle = e.sourceHandle;
+          if (handle && handle !== 'any_response' && handle !== 'responded' && handle !== 'next') return false;
           const targetNode = flow.nodes?.find((n: any) => n.id === e.target);
           return targetNode?.type === 'waitResponse' || targetNode?.type === 'wait_response';
         });
