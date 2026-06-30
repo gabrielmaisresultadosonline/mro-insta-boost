@@ -713,7 +713,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
     const { error: insertErr } = await supabase.from('crm_messages').insert({
       contact_id: contact!.id,
       direction: 'outbound',
-      message_type: type,
+      message_type: type === 'ptv' ? 'video' : type,
       content: content || `[${type}]`,
       status: 'sent',
       meta_message_id: metaMessageId || null,
