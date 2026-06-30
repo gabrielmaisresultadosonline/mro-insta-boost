@@ -881,7 +881,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     extractedInboundText = await getConfiguredCtwaFallbackText(supabase, userId);
   }
 
-  if (message.type === 'image' || message.type === 'video') {
+  if (message.type === 'image' || message.type === 'video' || message.type === 'ptv') {
     console.log(`[FLOW-LOG] Received ${message.type} from ${waId}. Resolving media ID...`);
   }
 
@@ -906,7 +906,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
       buttonId = message.interactive.button_reply.id;
       text = extractedInboundText || message.interactive.button_reply.title;
     }
-  } else if (['image', 'video', 'audio', 'voice', 'sticker', 'document'].includes(message.type)) {
+  } else if (['image', 'video', 'ptv', 'audio', 'voice', 'sticker', 'document'].includes(message.type)) {
     const node = message[message.type] || {};
     mediaCaption = node?.caption || '';
     const mediaId = node?.id;
@@ -923,7 +923,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
             supabase,
             token,
             mediaId,
-            message.type === 'voice' ? 'audio' : message.type,
+            message.type === 'voice' ? 'audio' : (message.type === 'ptv' ? 'video' : message.type),
             `${waId}_${message.type}`,
             node?.mime_type
           );
