@@ -680,7 +680,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
       content = echo?.text?.body || '';
     } else if (type === 'interactive') {
       content = echo?.interactive?.button_reply?.title || echo?.interactive?.list_reply?.title || `[${type}]`;
-    } else if (['image', 'video', 'audio', 'voice', 'sticker', 'document'].includes(type)) {
+    } else if (['image', 'video', 'ptv', 'audio', 'voice', 'sticker', 'document'].includes(type)) {
       const node = echo?.[type] || {};
       content = node?.caption || '';
       const mediaId = node?.id;
@@ -697,7 +697,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
               supabase,
               token,
               mediaId,
-              type === 'voice' ? 'audio' : type,
+              type === 'voice' ? 'audio' : (type === 'ptv' ? 'video' : type),
               `echo_${waId}_${type}`,
               node?.mime_type
             );
@@ -713,7 +713,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
     const { error: insertErr } = await supabase.from('crm_messages').insert({
       contact_id: contact!.id,
       direction: 'outbound',
-      message_type: type,
+      message_type: type === 'ptv' ? 'video' : type,
       content: content || `[${type}]`,
       status: 'sent',
       meta_message_id: metaMessageId || null,
@@ -881,7 +881,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     extractedInboundText = await getConfiguredCtwaFallbackText(supabase, userId);
   }
 
-  if (message.type === 'image' || message.type === 'video') {
+  if (message.type === 'image' || message.type === 'video' || message.type === 'ptv') {
     console.log(`[FLOW-LOG] Received ${message.type} from ${waId}. Resolving media ID...`);
   }
 
@@ -906,7 +906,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
       buttonId = message.interactive.button_reply.id;
       text = extractedInboundText || message.interactive.button_reply.title;
     }
-  } else if (['image', 'video', 'audio', 'voice', 'sticker', 'document'].includes(message.type)) {
+  } else if (['image', 'video', 'ptv', 'audio', 'voice', 'sticker', 'document'].includes(message.type)) {
     const node = message[message.type] || {};
     mediaCaption = node?.caption || '';
     const mediaId = node?.id;
@@ -923,7 +923,7 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
             supabase,
             token,
             mediaId,
-            message.type === 'voice' ? 'audio' : message.type,
+            message.type === 'voice' ? 'audio' : (message.type === 'ptv' ? 'video' : message.type),
             `${waId}_${message.type}`,
             node?.mime_type
           );
@@ -989,7 +989,7 @@ else if (message.type === "unsupported") {
      const { error: insertMessageError } = await supabase.from('crm_messages').insert({
        contact_id: contactForSave.id,
        direction: 'inbound',
-      message_type: message.type,
+       message_type: message.type === 'ptv' ? 'video' : message.type,
       content: text || extractedInboundText || `[${message.type}]`,
        status: 'received',
        meta_message_id: message.id,
