@@ -5743,7 +5743,19 @@ const CRM = () => {
                                     </div>
                                   </div>
                                 )}
-                                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
+                                <input
+                                  type="file"
+                                  ref={fileInputRef}
+                                  className="hidden"
+                                  multiple={uploadType === 'image' || uploadType === 'document'}
+                                  accept={
+                                    uploadType === 'image' ? 'image/*'
+                                    : uploadType === 'video' ? 'video/*'
+                                    : uploadType === 'document' ? '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain'
+                                    : undefined
+                                  }
+                                  onChange={handleFileSelect}
+                                />
                               </>
                             ) : (
                               <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8 bg-white dark:bg-[#111b21]">
