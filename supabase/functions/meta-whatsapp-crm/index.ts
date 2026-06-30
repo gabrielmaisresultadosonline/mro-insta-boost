@@ -2842,9 +2842,8 @@ async function fetchAndStoreIncomingMedia(
           .from('crm_contacts')
           .select('id, wa_id, user_id, current_flow_id, current_node_id, flow_timeout_minutes, flow_timeout_node_id, last_flow_interaction, flow_state, next_execution_time, last_message_received_at')
           .eq('flow_state', 'waiting_response')
-          .not('flow_timeout_node_id', 'is', null)
-          .not('flow_timeout_minutes', 'is', null)
-          .limit(200),
+          .not('current_flow_id', 'is', null)
+          .limit(500),
         supabase
           .from('crm_contacts')
           .select('id, wa_id, user_id, current_flow_id, current_node_id, flow_timeout_minutes, flow_timeout_node_id, last_flow_interaction, flow_state, next_execution_time, last_message_received_at')
