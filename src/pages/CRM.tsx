@@ -2949,12 +2949,26 @@ const CRM = () => {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadType) return;
-    
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length || !uploadType) return;
+
     const isVoice = uploadType === 'audio';
-    handleSendMedia(file, uploadType, isVoice);
+    for (const file of files) {
+      // Auto-detect per-file type when user picked "all" (image/video/document)
+      let typeForFile: 'image' | 'video' | 'audio' | 'document' = uploadType;
+      const mime = file.type || '';
+      if (uploadType !== 'audio') {
+        if (mime.startsWith('image/')) typeForFile = 'image';
+        else if (mime.startsWith('video/')) typeForFile = 'video';
+        else typeForFile = 'document';
+      }
+      try {
+        await handleSendMedia(file, typeForFile, isVoice);
+      } catch (err) {
+        console.error('[CRM][handleFileSelect] erro ao enviar arquivo', file.name, err);
+      }
+    }
     e.target.value = '';
   };
 
