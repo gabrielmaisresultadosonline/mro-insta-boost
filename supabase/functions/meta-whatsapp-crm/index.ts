@@ -2888,6 +2888,8 @@ async function fetchAndStoreIncomingMedia(
               const linkedWaitEdge = !currentIsWait
                 ? (flowForTimeout?.edges || []).find((e: any) => {
                     if (e.source !== contact.current_node_id) return false;
+                    const handle = e.sourceHandle;
+                    if (handle && handle !== 'any_response' && handle !== 'responded' && handle !== 'next') return false;
                     const targetNode = flowForTimeout?.nodes?.find((n: any) => n.id === e.target);
                     return targetNode?.type === 'waitResponse' || targetNode?.type === 'wait_response';
                   })
