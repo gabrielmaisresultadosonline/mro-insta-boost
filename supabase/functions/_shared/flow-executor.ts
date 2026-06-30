@@ -172,18 +172,31 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       const hasFollowups = outgoingEdges.length > 0;
 
       if (isExplicitWait || (hasButtons && hasFollowups)) {
-        const timeoutEdge = isExplicitWait
-          ? flow.edges?.find((e: any) => e.source === node.id && e.sourceHandle === 'timeout')
+        const linkedWaitEdge = outgoingEdges.find((e: any) => {
+          const targetNode = flow.nodes?.find((n: any) => n.id === e.target);
+          return targetNode?.type === 'waitResponse' || targetNode?.type === 'wait_response';
+        });
+        const linkedWaitNode = linkedWaitEdge
+          ? flow.nodes?.find((n: any) => n.id === linkedWaitEdge.target)
           : null;
-        const rawTimeout = Number(node.data?.timeout);
-        const timeoutMinutes = (isExplicitWait && timeoutEdge && Number.isFinite(rawTimeout) && rawTimeout > 0)
+
+        // Quando o usuário liga uma pergunta/mensagem ao bloco "Aguardar Resposta",
+        // o bloco de espera precisa ser armado imediatamente após o envio da mensagem.
+        // Caso contrário o contato fica parado no nó anterior sem flow_timeout_* e nunca expira.
+        const waitNode = linkedWaitNode || node;
+        const timeoutEdge = (waitNode.type === 'question' || waitNode.type === 'wait_response' || waitNode.type === 'waitResponse')
+          ? flow.edges?.find((e: any) => e.source === waitNode.id && e.sourceHandle === 'timeout')
+          : null;
+        const rawTimeout = Number(waitNode.data?.timeout);
+        const timeoutMinutes = (timeoutEdge && Number.isFinite(rawTimeout) && rawTimeout > 0)
           ? rawTimeout
           : null;
 
-        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT (hasButtons=${hasButtons}, explicitWait=${isExplicitWait}). Timeout: ${timeoutMinutes ? timeoutMinutes + 'min' : 'INDEFINIDO'}. Target timeout: ${timeoutEdge?.target}`);
+        console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) STARTING WAIT via ${waitNode.id} (${waitNode.type}) (hasButtons=${hasButtons}, explicitWait=${isExplicitWait}). Timeout: ${timeoutMinutes ? timeoutMinutes + 'min' : 'INDEFINIDO'}. Target timeout: ${timeoutEdge?.target}`);
 
         const { error: updateError } = await supabase.from('crm_contacts').update({
           flow_state: 'waiting_response',
+          current_node_id: waitNode.id,
           next_execution_time: null,
           flow_timeout_minutes: timeoutMinutes,
           flow_timeout_node_id: timeoutEdge?.target || null,
