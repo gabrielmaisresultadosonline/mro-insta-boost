@@ -680,7 +680,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
       content = echo?.text?.body || '';
     } else if (type === 'interactive') {
       content = echo?.interactive?.button_reply?.title || echo?.interactive?.list_reply?.title || `[${type}]`;
-    } else if (['image', 'video', 'audio', 'voice', 'sticker', 'document'].includes(type)) {
+    } else if (['image', 'video', 'ptv', 'audio', 'voice', 'sticker', 'document'].includes(type)) {
       const node = echo?.[type] || {};
       content = node?.caption || '';
       const mediaId = node?.id;
@@ -697,7 +697,7 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
               supabase,
               token,
               mediaId,
-              type === 'voice' ? 'audio' : type,
+              type === 'voice' ? 'audio' : (type === 'ptv' ? 'video' : type),
               `echo_${waId}_${type}`,
               node?.mime_type
             );
