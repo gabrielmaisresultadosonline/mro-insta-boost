@@ -5460,7 +5460,7 @@ const CRM = () => {
                                               </div>
                                             </div>
                                           )}
-                                          {(m.message_text || m.content) && m.message_type !== 'reaction' && m.message_type !== 'audio' && m.message_type !== 'voice' && m.message_type !== 'unsupported' && !((m.message_text || m.content || '').trim() === '[Mensagem de Áudio]') && (
+                                          {(m.message_text || m.content) && m.message_type !== 'reaction' && m.message_type !== 'audio' && m.message_type !== 'voice' && m.message_type !== 'unsupported' && !((m.message_text || m.content || '').trim() === '[Mensagem de Áudio]') && !/^\[(image|video|document|audio|sticker|imagem|vídeo|video|documento|áudio|audio)\]$/i.test((m.message_text || m.content || '').trim()) && (
                                             <div className="space-y-2">
                                               <div className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5">
                                                 {m.message_text || m.content}
@@ -5503,19 +5503,7 @@ const CRM = () => {
                                               </div>
                                             </div>
                                           )}
-                                          {m.message_type === 'unsupported' && !hasReadableUnsupportedContent(m) && (
-                                            <div className="mt-1 p-2 rounded-lg bg-muted/40 border border-border/40 text-xs text-muted-foreground max-w-[280px]">
-                                              <div className="flex items-start gap-2">
-                                                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                                                <div className="space-y-1">
-                                                  <div className="font-medium text-foreground">{getUnsupportedMetaMessage(m)}</div>
-                                                  {getUnsupportedMetaDetails(m) && (
-                                                    <div className="text-[10px] leading-snug opacity-80">{getUnsupportedMetaDetails(m)}</div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </div>
-                                          )}
+                                          {m.message_type === 'unsupported' && !hasReadableUnsupportedContent(m) && null}
                                           {(() => {
                                             const ref = getAdReferral(m);
                                             if (!ref) return null;
