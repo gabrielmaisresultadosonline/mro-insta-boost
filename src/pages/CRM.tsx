@@ -5671,8 +5671,8 @@ const CRM = () => {
                                               handleSendMessage();
                                             }
                                           }}
-                                          rows={1}
-                                          className="bg-white dark:bg-[#2a3942] border-none min-h-10 max-h-32 py-2 pr-8 sm:pr-9 rounded-xl shadow-sm text-sm focus-visible:ring-0 w-full min-w-0 resize-none"
+                                           rows={1}
+                                           className="bg-white dark:bg-[#2a3942] border-none min-h-10 max-h-[60vh] py-2 pr-8 sm:pr-9 rounded-xl shadow-sm text-sm focus-visible:ring-0 w-full min-w-0 resize-y"
                                         />
                                         <Button 
                                           size="icon" 
