@@ -1603,6 +1603,33 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
           setCompressState(null);
         }}
       />
+      <Dialog open={expandedTextOpen} onOpenChange={setExpandedTextOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Editar Texto da Mensagem</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={expandedTextValue}
+            onChange={(e) => setExpandedTextValue(e.target.value)}
+            rows={18}
+            className="text-sm font-mono whitespace-pre-wrap"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExpandedTextOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (selectedNode) {
+                  updateNodeData(selectedNode.id, { text: expandedTextValue });
+                }
+                setExpandedTextOpen(false);
+              }}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
