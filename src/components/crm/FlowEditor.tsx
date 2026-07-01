@@ -446,6 +446,8 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [nodes, setNodes, onNodesChange] = useNodesState(flow?.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState((flow?.edges || []).map((e: any) => ({ ...e, type: 'button' })));
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [expandedTextOpen, setExpandedTextOpen] = useState(false);
+  const [expandedTextValue, setExpandedTextValue] = useState('');
   const [flowName, setFlowName] = useState(flow?.name || 'Novo Fluxo');
   const [triggerType, setTriggerType] = useState(flow?.trigger_type || 'manual');
   const [triggerKeywords, setTriggerKeywords] = useState(
