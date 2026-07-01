@@ -89,7 +89,7 @@ const MessageNode = ({ data }: any) => (
       </CardTitle>
     </CardHeader>
     <CardContent className="p-3">
-      <p className="text-[10px] text-muted-foreground line-clamp-2">{data.text || 'Sem texto...'}</p>
+      <p className="text-[10px] text-muted-foreground line-clamp-6 whitespace-pre-wrap break-words">{data.text || 'Sem texto...'}</p>
     </CardContent>
     <Handle type="source" position={Position.Bottom} />
   </Card>
