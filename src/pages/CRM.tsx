@@ -6022,9 +6022,9 @@ const CRM = () => {
             </div>
 
             {/* Fluxos */}
-            <div className={cn("flex-1 h-full overflow-hidden", activeTab !== 'flows' && "hidden")}>
+            <div className={cn("flex-1 h-full overflow-hidden flex flex-col", activeTab !== 'flows' && "hidden")}>
               {activeTab === 'flows' && (
-              <ScrollArea className="flex-1 p-3 sm:p-4 md:p-8 bg-muted/5">
+              <ScrollArea className="flex-1 h-full p-3 sm:p-4 md:p-8 bg-muted/5">
                 <div className="max-w-7xl mx-auto space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-card p-4 md:p-6 rounded-2xl border shadow-sm">
                     <div className="min-w-0">
