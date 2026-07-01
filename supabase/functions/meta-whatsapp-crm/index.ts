@@ -1062,7 +1062,10 @@ else if (message.type === "unsupported") {
         console.log(`[TRIGGER] Starting ad flow ${matchingTriggeredFlow.id} (${matchingTriggeredFlow.name}) for ${waId} before AI handling`);
         await supabase.from('crm_scheduled_messages').delete().eq('contact_id', contact.id);
         let startNode = matchingTriggeredFlow.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
-        if (!startNode && matchingTriggeredFlow.nodes?.length > 0) startNode = matchingTriggeredFlow.nodes[0];
+        if (!startNode && matchingTriggeredFlow.nodes?.length > 0) {
+          const targets = new Set((matchingTriggeredFlow.edges || []).map((e: any) => e.target));
+          startNode = matchingTriggeredFlow.nodes.find((n: any) => !targets.has(n.id)) || matchingTriggeredFlow.nodes[0];
+        }
 
         if (startNode) {
           await supabase.from('crm_contacts').update({
@@ -1128,7 +1131,10 @@ else if (message.type === "unsupported") {
         console.log(`[TRIGGER] Restarting from waiting flow ${contact.current_flow_id} to ${matchingTriggeredFlow.id} for ${waId}`);
         await supabase.from('crm_scheduled_messages').delete().eq('contact_id', contact.id);
         let startNode = matchingTriggeredFlow.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
-        if (!startNode && matchingTriggeredFlow.nodes?.length > 0) startNode = matchingTriggeredFlow.nodes[0];
+        if (!startNode && matchingTriggeredFlow.nodes?.length > 0) {
+          const targets = new Set((matchingTriggeredFlow.edges || []).map((e: any) => e.target));
+          startNode = matchingTriggeredFlow.nodes.find((n: any) => !targets.has(n.id)) || matchingTriggeredFlow.nodes[0];
+        }
 
         if (startNode) {
           await supabase.from('crm_contacts').update({
@@ -1310,8 +1316,9 @@ else if (message.type === "unsupported") {
           let startNode = chosen.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
           
           if (!startNode && chosen.nodes?.length > 0) {
-            console.log(`[TRIGGER] No explicit start node found for flow ${chosen.id}. Falling back to first available node.`);
-            startNode = chosen.nodes[0];
+            console.log(`[TRIGGER] No explicit start node found for flow ${chosen.id}. Falling back to node with no incoming edges.`);
+            const targets = new Set((chosen.edges || []).map((e: any) => e.target));
+            startNode = chosen.nodes.find((n: any) => !targets.has(n.id)) || chosen.nodes[0];
           }
 
           if (startNode) {
