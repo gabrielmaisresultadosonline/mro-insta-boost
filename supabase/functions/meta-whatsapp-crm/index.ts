@@ -1316,8 +1316,9 @@ else if (message.type === "unsupported") {
           let startNode = chosen.nodes?.find((n: any) => n.type === 'start' || n.data?.isStartNode);
           
           if (!startNode && chosen.nodes?.length > 0) {
-            console.log(`[TRIGGER] No explicit start node found for flow ${chosen.id}. Falling back to first available node.`);
-            startNode = chosen.nodes[0];
+            console.log(`[TRIGGER] No explicit start node found for flow ${chosen.id}. Falling back to node with no incoming edges.`);
+            const targets = new Set((chosen.edges || []).map((e: any) => e.target));
+            startNode = chosen.nodes.find((n: any) => !targets.has(n.id)) || chosen.nodes[0];
           }
 
           if (startNode) {
