@@ -54,10 +54,12 @@ import {
   BrainCircuit,
   UserCog,
   Link as LinkIcon
+  , Maximize2
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { compressVideoForWhatsApp, WHATSAPP_VIDEO_MAX_BYTES } from "@/lib/videoCompress";
 import { VideoCompressDialog } from "./VideoCompressDialog";
 
@@ -444,6 +446,8 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [nodes, setNodes, onNodesChange] = useNodesState(flow?.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState((flow?.edges || []).map((e: any) => ({ ...e, type: 'button' })));
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [expandedTextOpen, setExpandedTextOpen] = useState(false);
+  const [expandedTextValue, setExpandedTextValue] = useState('');
   const [flowName, setFlowName] = useState(flow?.name || 'Novo Fluxo');
   const [triggerType, setTriggerType] = useState(flow?.trigger_type || 'manual');
   const [triggerKeywords, setTriggerKeywords] = useState(
@@ -819,12 +823,32 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
               <div className="space-y-4">
                 {(selectedNode.type === 'message' || selectedNode.type === 'question') && (
                   <div className="space-y-2">
-                    <Label className="text-xs">Texto da Mensagem</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Texto da Mensagem</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-1"
+                        onClick={() => {
+                          setExpandedTextValue((selectedNode.data.text as string) || '');
+                          setExpandedTextOpen(true);
+                        }}
+                        title="Expandir editor"
+                      >
+                        <Maximize2 className="w-3 h-3" /> Expandir
+                      </Button>
+                    </div>
                     <Textarea 
                       value={selectedNode.data.text as string} 
                       onChange={(e) => updateNodeData(selectedNode.id, { text: e.target.value })}
+                      onClick={() => {
+                        setExpandedTextValue((selectedNode.data.text as string) || '');
+                        setExpandedTextOpen(true);
+                      }}
                       rows={4}
-                      className="text-sm"
+                      className="text-sm cursor-pointer"
+                      readOnly
                     />
                   </div>
                 )}
@@ -1579,6 +1603,33 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
           setCompressState(null);
         }}
       />
+      <Dialog open={expandedTextOpen} onOpenChange={setExpandedTextOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Editar Texto da Mensagem</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={expandedTextValue}
+            onChange={(e) => setExpandedTextValue(e.target.value)}
+            rows={18}
+            className="text-sm font-mono whitespace-pre-wrap"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExpandedTextOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (selectedNode) {
+                  updateNodeData(selectedNode.id, { text: expandedTextValue });
+                }
+                setExpandedTextOpen(false);
+              }}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
