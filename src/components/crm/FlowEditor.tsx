@@ -233,6 +233,7 @@ const QuestionNode = ({ data }: any) => (
         )}
       </div>
     </CardContent>
+    <Handle type="source" position={Position.Bottom} id="next" className="!w-3 !h-3 !bg-emerald-500 !border-2 !border-white" />
   </Card>
 );
 
