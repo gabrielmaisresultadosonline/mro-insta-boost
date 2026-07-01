@@ -202,7 +202,7 @@ const QuestionNode = ({ data }: any) => (
       </CardTitle>
     </CardHeader>
     <CardContent className="p-3 space-y-3">
-      <p className="text-[10px] text-muted-foreground line-clamp-2 bg-slate-50 p-2 rounded border border-slate-100">{data.text || 'Qual a sua dúvida?'}</p>
+      <p className="text-[10px] text-muted-foreground line-clamp-6 whitespace-pre-wrap break-words bg-slate-50 p-2 rounded border border-slate-100">{data.text || 'Qual a sua dúvida?'}</p>
       <div className="flex flex-col gap-2">
         {(data.buttons || []).map((btn: any, idx: number) => (
           <div key={idx} className="relative flex items-center justify-between bg-emerald-50 text-emerald-700 px-3 py-2 rounded border border-emerald-200 text-[10px] font-medium group">
