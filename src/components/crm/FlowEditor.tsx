@@ -54,10 +54,12 @@ import {
   BrainCircuit,
   UserCog,
   Link as LinkIcon
+  , Maximize2
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { compressVideoForWhatsApp, WHATSAPP_VIDEO_MAX_BYTES } from "@/lib/videoCompress";
 import { VideoCompressDialog } from "./VideoCompressDialog";
 
