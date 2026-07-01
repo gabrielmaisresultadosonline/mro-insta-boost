@@ -823,12 +823,32 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
               <div className="space-y-4">
                 {(selectedNode.type === 'message' || selectedNode.type === 'question') && (
                   <div className="space-y-2">
-                    <Label className="text-xs">Texto da Mensagem</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Texto da Mensagem</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-1"
+                        onClick={() => {
+                          setExpandedTextValue((selectedNode.data.text as string) || '');
+                          setExpandedTextOpen(true);
+                        }}
+                        title="Expandir editor"
+                      >
+                        <Maximize2 className="w-3 h-3" /> Expandir
+                      </Button>
+                    </div>
                     <Textarea 
                       value={selectedNode.data.text as string} 
                       onChange={(e) => updateNodeData(selectedNode.id, { text: e.target.value })}
+                      onClick={() => {
+                        setExpandedTextValue((selectedNode.data.text as string) || '');
+                        setExpandedTextOpen(true);
+                      }}
                       rows={4}
-                      className="text-sm"
+                      className="text-sm cursor-pointer"
+                      readOnly
                     />
                   </div>
                 )}
