@@ -419,6 +419,117 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       });
 
       console.log(`[EXECUTOR] PIX enviado com sucesso para ${waId}`);
+    } else if (node.type === 'mediaCarousel') {
+      const cards = Array.isArray(node.data?.cards) ? node.data.cards : [];
+      const headerText = (node.data?.headerText || '').toString().trim();
+      console.log(`[EXECUTOR] mediaCarousel node ${node.id}: ${cards.length} cards, headerText=${!!headerText}`);
+
+      const { data: settings } = await supabase.from('crm_settings')
+        .select('meta_phone_number_id, meta_access_token')
+        .eq('user_id', flow.user_id)
+        .maybeSingle();
+
+      if (headerText) {
+        await supabase.functions.invoke('meta-whatsapp-crm', {
+          headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+          body: {
+            action: 'sendMessage', to: waId, text: headerText, contactId, nodeId: node.id,
+            meta_phone_number_id: settings?.meta_phone_number_id,
+            meta_access_token: settings?.meta_access_token
+          }
+        });
+        await wait(600);
+      }
+
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i] || {};
+        const mediaUrl = (card.mediaUrl || '').toString();
+        const mediaType = card.mediaType === 'video' ? 'video' : 'image';
+        const caption = (card.caption || '').toString();
+        const rawButtons = Array.isArray(card.buttons) ? card.buttons : [];
+        const linkButtons = rawButtons.filter((b: any) => b.url && String(b.url).startsWith('http'));
+        const replyButtons = rawButtons.filter((b: any) => !(b.url && String(b.url).startsWith('http')));
+
+        try {
+          // If there are reply buttons: send interactive with media header + buttons
+          if (replyButtons.length > 0 && mediaUrl) {
+            await supabase.functions.invoke('meta-whatsapp-crm', {
+              headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+              body: {
+                action: 'sendMessage', to: waId, contactId, nodeId: node.id,
+                meta_phone_number_id: settings?.meta_phone_number_id,
+                meta_access_token: settings?.meta_access_token,
+                interactive: {
+                  type: 'button',
+                  header: { type: mediaType, [mediaType]: { link: mediaUrl } },
+                  body: { text: caption || ' ' },
+                  action: {
+                    buttons: replyButtons.slice(0, 3).map((b: any, bi: number) => {
+                      const rawTitle = b.text || b.label || `Opção ${bi + 1}`;
+                      const title = rawTitle.length > 20 ? rawTitle.substring(0, 17) + '...' : rawTitle;
+                      return { type: 'reply', reply: { id: b.id || `btn_${i}_${bi}`, title } };
+                    })
+                  }
+                }
+              }
+            });
+          } else if (mediaUrl) {
+            // No reply buttons: send plain media with caption
+            await supabase.functions.invoke('meta-whatsapp-crm', {
+              headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+              body: {
+                action: 'sendMessage', to: waId, contactId, nodeId: node.id,
+                [mediaType + 'Url']: mediaUrl,
+                text: caption || undefined,
+                meta_phone_number_id: settings?.meta_phone_number_id,
+                meta_access_token: settings?.meta_access_token
+              }
+            });
+          } else if (caption) {
+            // Card without media: send caption as text
+            await supabase.functions.invoke('meta-whatsapp-crm', {
+              headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+              body: {
+                action: 'sendMessage', to: waId, text: caption, contactId, nodeId: node.id,
+                meta_phone_number_id: settings?.meta_phone_number_id,
+                meta_access_token: settings?.meta_access_token
+              }
+            });
+          }
+          await wait(700);
+
+          // Send any link (CTA URL) buttons for this card as separate cta_url messages
+          for (const lb of linkButtons) {
+            const interactive: any = {
+              type: 'cta_url',
+              body: { text: caption || 'Clique abaixo para acessar:' },
+              action: {
+                name: 'cta_url',
+                parameters: {
+                  display_text: (lb.text || lb.label || 'Acessar').substring(0, 20),
+                  url: lb.url
+                }
+              }
+            };
+            if (mediaUrl && mediaType === 'image') {
+              interactive.header = { type: 'image', image: { link: mediaUrl } };
+            }
+            await supabase.functions.invoke('meta-whatsapp-crm', {
+              headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+              body: {
+                action: 'sendMessage', to: waId, contactId,
+                meta_phone_number_id: settings?.meta_phone_number_id,
+                meta_access_token: settings?.meta_access_token,
+                interactive
+              }
+            });
+            await wait(500);
+          }
+        } catch (e: any) {
+          console.error(`[EXECUTOR] mediaCarousel card ${i} error:`, e?.message || e);
+        }
+      }
+      console.log(`[EXECUTOR] mediaCarousel enviado com sucesso para ${waId}`);
     }
 
     
