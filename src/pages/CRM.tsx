@@ -3537,6 +3537,25 @@ const CRM = () => {
     setInboundTimestampsByContact(prev => ({ ...prev, [contact.id]: [] }));
   };
 
+  // Kanban quick-preview popup state
+  const [previewContact, setPreviewContact] = useState<any>(null);
+  const [previewMessages, setPreviewMessages] = useState<any[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const openPreview = async (contact: any) => {
+    setPreviewContact(contact);
+    setPreviewMessages([]);
+    setPreviewLoading(true);
+    const { data } = await supabase
+      .from('crm_messages')
+      .select('*')
+      .eq('contact_id', contact.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setPreviewMessages((data || []).reverse());
+    setPreviewLoading(false);
+  };
+
   const fetchScheduledMessages = async (contactId: string) => {
     const { data } = await supabase
       .from('crm_scheduled_messages')
