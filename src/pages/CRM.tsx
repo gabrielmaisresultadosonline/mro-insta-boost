@@ -4403,7 +4403,29 @@ const CRM = () => {
                     </div>
                   </div>
                 ) : kanbanView ? (
-                  <div className="flex-1 overflow-x-auto p-3 md:p-4 flex gap-3 md:gap-4 bg-muted/5 snap-x relative group/kanban">
+                  <div className="flex-1 flex flex-col min-h-0">
+                  <div className="p-3 border-b border-border/30 bg-white dark:bg-[#111b21] flex items-center gap-2 shrink-0">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar contato por nome ou número..."
+                        value={kanbanSearch}
+                        onChange={e => setKanbanSearch(e.target.value)}
+                        className="pl-10 h-9 bg-[#f0f2f5] dark:bg-[#202c33] border-none rounded-lg text-sm"
+                      />
+                    </div>
+                    {kanbanSearch && (
+                      <Button size="sm" variant="ghost" onClick={() => setKanbanSearch('')}>Limpar</Button>
+                    )}
+                  </div>
+                  <div
+                    ref={kanbanScrollRef}
+                    onDragOver={handleKanbanDragOver}
+                    onDragLeave={stopKanbanAutoScroll}
+                    onDrop={stopKanbanAutoScroll}
+                    onDragEnd={stopKanbanAutoScroll}
+                    className="flex-1 overflow-x-auto p-3 md:p-4 flex gap-3 md:gap-4 bg-muted/5 snap-x relative group/kanban"
+                  >
                     <div className="absolute top-0 left-0 p-2 z-10 opacity-0 group-hover/kanban:opacity-100 transition-opacity">
                       <Button 
                         size="sm" 
@@ -4427,7 +4449,11 @@ const CRM = () => {
                         );
                         const geralContacts = contacts.filter(
                           c => c.last_interaction !== null && !customValues.has(c.status)
-                        );
+                        ).filter(c => {
+                          if (!kanbanSearch.trim()) return true;
+                          const q = kanbanSearch.toLowerCase();
+                          return (c.name || '').toLowerCase().includes(q) || (c.wa_id || '').includes(q);
+                        });
                         return (
                           <div
                             key="__geral__"
@@ -4563,11 +4589,16 @@ const CRM = () => {
                           </div>
                         </div>
                         <ScrollArea className="flex-1 p-3">
-                          {contacts.filter(c => c.status === status.value && c.last_interaction !== null).map(contact => (
+                          {contacts.filter(c => c.status === status.value && c.last_interaction !== null).filter(c => {
+                            if (!kanbanSearch.trim()) return true;
+                            const q = kanbanSearch.toLowerCase();
+                            return (c.name || '').toLowerCase().includes(q) || (c.wa_id || '').includes(q);
+                          }).map(contact => (
                             <Card 
                               key={contact.id} 
                               draggable 
                               onDragStart={() => handleDragStart(contact)} 
+                              onDragEnd={stopKanbanAutoScroll}
                               className="p-4 mb-3 cursor-grab active:cursor-grabbing border-none bg-white dark:bg-[#202c33] shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg rounded-xl animate-in fade-in slide-in-from-top-2" 
                               onClick={() => openPreview(contact)}
                             >
@@ -4587,7 +4618,11 @@ const CRM = () => {
                               </div>
                             </Card>
                           ))}
-                          {contacts.filter(c => c.status === status.value && c.last_interaction !== null).length === 0 && (
+                          {contacts.filter(c => c.status === status.value && c.last_interaction !== null).filter(c => {
+                            if (!kanbanSearch.trim()) return true;
+                            const q = kanbanSearch.toLowerCase();
+                            return (c.name || '').toLowerCase().includes(q) || (c.wa_id || '').includes(q);
+                          }).length === 0 && (
                             <div className="h-20 flex items-center justify-center border-2 border-dashed border-muted rounded-xl opacity-40">
                               <p className="text-[10px] font-bold uppercase tracking-widest">Vazio</p>
                             </div>
@@ -4597,6 +4632,7 @@ const CRM = () => {
                     ))}
                       </>
                     )}
+                  </div>
                   </div>
                 ) : (
                   <>
