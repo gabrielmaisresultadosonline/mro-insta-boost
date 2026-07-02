@@ -1379,6 +1379,39 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                     </div>
                   </div>
                 )}
+                {selectedNode.type === 'mediaCarousel' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Texto de abertura (opcional)</Label>
+                      <Textarea
+                        rows={3}
+                        placeholder="Ex.: Confira nossos destaques 👇"
+                        value={(selectedNode.data.headerText as string) || ''}
+                        onChange={(e) => updateNodeData(selectedNode.id, { headerText: e.target.value })}
+                        className="text-xs"
+                      />
+                      <p className="text-[9px] text-muted-foreground italic">
+                        Enviado como mensagem antes dos cards. Deixe em branco para não enviar.
+                      </p>
+                    </div>
+                    <div className="p-3 bg-pink-50 rounded-lg border border-pink-100 space-y-2">
+                      <p className="text-[11px] font-bold text-pink-700 flex items-center gap-1">
+                        <Images className="w-3 h-3" /> {(selectedNode.data.cards as any[])?.length || 0} card(s) configurado(s)
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full h-8 text-xs bg-pink-600 hover:bg-pink-700 text-white gap-1"
+                        onClick={() => setCarouselDialogOpen(true)}
+                      >
+                        <Maximize2 className="w-3 h-3" /> Abrir editor do Carrossel
+                      </Button>
+                      <p className="text-[9px] text-pink-700/70 italic">
+                        Cada card pode ter imagem OU vídeo, texto (caption) e botões (resposta ou link). Sem texto e sem botões também funciona.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {selectedNode.type === 'template' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-100 shadow-sm">
