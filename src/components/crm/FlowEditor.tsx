@@ -1706,6 +1706,187 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={carouselDialogOpen} onOpenChange={setCarouselDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Images className="w-4 h-4 text-pink-600" /> Editor do Carrossel de Mídia
+            </DialogTitle>
+          </DialogHeader>
+          {selectedNode?.type === 'mediaCarousel' && (() => {
+            const cards: any[] = Array.isArray(selectedNode.data.cards) ? (selectedNode.data.cards as any[]) : [];
+            const updateCards = (next: any[]) => updateNodeData(selectedNode.id, { cards: next });
+            const uploadCardMedia = async (file: File, cardIdx: number, type: 'image' | 'video') => {
+              setUploading(true);
+              try {
+                const fileExt = type === 'video' ? 'mp4' : (file.name.split('.').pop() || 'jpg');
+                const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                const filePath = `flow-media/carousel/${fileName}`;
+                const { error: uploadError } = await supabase.storage
+                  .from('crm-media')
+                  .upload(filePath, file, { contentType: type === 'video' ? 'video/mp4' : file.type || undefined });
+                if (uploadError) throw uploadError;
+                const { data: { publicUrl } } = supabase.storage.from('crm-media').getPublicUrl(filePath);
+                const next = [...cards];
+                next[cardIdx] = { ...next[cardIdx], mediaType: type, mediaUrl: publicUrl, fileName: file.name };
+                updateCards(next);
+                toast({ title: 'Mídia enviada!' });
+              } catch (e: any) {
+                toast({ title: 'Erro ao enviar', description: e.message, variant: 'destructive' });
+              } finally {
+                setUploading(false);
+              }
+            };
+            return (
+              <div className="space-y-4">
+                {cards.map((card: any, idx: number) => (
+                  <div key={card.id || idx} className="border rounded-lg p-4 space-y-3 bg-slate-50">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-slate-700">Card #{idx + 1}</p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-500"
+                        onClick={() => updateCards(cards.filter((_, i) => i !== idx))}
+                        disabled={cards.length <= 1}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-[11px]">Tipo de mídia</Label>
+                        <Select
+                          value={card.mediaType || 'image'}
+                          onValueChange={(v) => {
+                            const next = [...cards];
+                            next[idx] = { ...next[idx], mediaType: v, mediaUrl: '', fileName: '' };
+                            updateCards(next);
+                          }}
+                        >
+                          <SelectTrigger className="text-xs h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="image">Imagem</SelectItem>
+                            <SelectItem value="video">Vídeo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[11px]">Upload</Label>
+                        <Input
+                          type="file"
+                          accept={card.mediaType === 'video' ? 'video/*' : 'image/*'}
+                          className="text-[10px] h-8"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) uploadCardMedia(f, idx, (card.mediaType === 'video' ? 'video' : 'image'));
+                          }}
+                        />
+                      </div>
+                    </div>
+                    {card.mediaUrl && (
+                      <div className="text-[10px] text-emerald-700 truncate">✓ {card.fileName || card.mediaUrl}</div>
+                    )}
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Texto do card (opcional)</Label>
+                      <Textarea
+                        rows={2}
+                        value={card.caption || ''}
+                        placeholder="Legenda ou descrição..."
+                        onChange={(e) => {
+                          const next = [...cards];
+                          next[idx] = { ...next[idx], caption: e.target.value };
+                          updateCards(next);
+                        }}
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[11px]">Botões (opcional, máx. 3)</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[10px] gap-1"
+                          disabled={(card.buttons || []).length >= 3}
+                          onClick={() => {
+                            const btns = card.buttons || [];
+                            const next = [...cards];
+                            next[idx] = {
+                              ...next[idx],
+                              buttons: [...btns, { id: `btn_${Date.now()}`, text: `Botão ${btns.length + 1}`, url: '' }]
+                            };
+                            updateCards(next);
+                          }}
+                        >
+                          <Plus className="w-3 h-3" /> Botão
+                        </Button>
+                      </div>
+                      {(card.buttons || []).map((btn: any, bIdx: number) => (
+                        <div key={btn.id || bIdx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                          <Input
+                            placeholder="Texto (máx 20)"
+                            value={btn.text || ''}
+                            maxLength={20}
+                            className="text-[11px] h-8"
+                            onChange={(e) => {
+                              const next = [...cards];
+                              const btns = [...(next[idx].buttons || [])];
+                              btns[bIdx] = { ...btns[bIdx], text: e.target.value };
+                              next[idx] = { ...next[idx], buttons: btns };
+                              updateCards(next);
+                            }}
+                          />
+                          <Input
+                            placeholder="URL (opcional, deixa vazio p/ resposta)"
+                            value={btn.url || ''}
+                            className="text-[11px] h-8"
+                            onChange={(e) => {
+                              const next = [...cards];
+                              const btns = [...(next[idx].buttons || [])];
+                              btns[bIdx] = { ...btns[bIdx], url: e.target.value };
+                              next[idx] = { ...next[idx], buttons: btns };
+                              updateCards(next);
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-red-500"
+                            onClick={() => {
+                              const next = [...cards];
+                              next[idx] = {
+                                ...next[idx],
+                                buttons: (next[idx].buttons || []).filter((_: any, i: number) => i !== bIdx)
+                              };
+                              updateCards(next);
+                            }}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-9 text-xs gap-1 border-pink-400 text-pink-700 hover:bg-pink-50"
+                  onClick={() => updateCards([...cards, {
+                    id: `c_${Date.now()}`, mediaType: 'image', mediaUrl: '', fileName: '', caption: '', buttons: []
+                  }])}
+                >
+                  <Plus className="w-3 h-3" /> Adicionar card
+                </Button>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button onClick={() => setCarouselDialogOpen(false)}>Concluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
