@@ -664,6 +664,13 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       case 'jump': data = { targetFlowId: '', targetFlowName: '' }; break;
       case 'aiAgent': data = { prompt: '', labelOnHumanTransfer: 'Atenção: Humano Necessário' }; break;
       case 'pix': data = { pixKey: '', amount: '47.00', description: 'Pagamento via PIX' }; break;
+      case 'mediaCarousel': data = {
+        headerText: '',
+        cards: [
+          { id: `c_${Date.now()}_1`, mediaType: 'image', mediaUrl: '', fileName: '', caption: '', buttons: [] },
+          { id: `c_${Date.now()}_2`, mediaType: 'image', mediaUrl: '', fileName: '', caption: '', buttons: [] }
+        ]
+      }; break;
     }
 
     const newNode: Node = {
