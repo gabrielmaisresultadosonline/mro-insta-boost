@@ -432,6 +432,28 @@ const nodeTypes = {
   mediaCarousel: MediaCarouselNode,
 };
 
+function MediaCarouselNode({ data }: any) {
+  const cards = Array.isArray(data?.cards) ? data.cards : [];
+  return (
+    <Card className="min-w-[220px] border-pink-500 shadow-md">
+      <Handle type="target" position={Position.Top} />
+      <CardHeader className="p-3 bg-pink-500 text-white rounded-t-lg">
+        <CardTitle className="text-xs font-bold flex items-center gap-2">
+          <Images className="w-3 h-3" /> Carrossel de Mídia
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-3 space-y-1">
+        {data?.headerText ? (
+          <p className="text-[10px] text-muted-foreground line-clamp-2 whitespace-pre-wrap">{data.headerText}</p>
+        ) : null}
+        <p className="text-[10px] font-semibold text-pink-700">{cards.length} card(s)</p>
+        <p className="text-[9px] text-muted-foreground italic">Clique para configurar</p>
+      </CardContent>
+      <Handle type="source" position={Position.Bottom} />
+    </Card>
+  );
+}
+
 const edgeTypes = {
   button: ButtonEdge,
 };
