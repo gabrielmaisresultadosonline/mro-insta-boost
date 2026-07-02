@@ -4424,7 +4424,7 @@ const CRM = () => {
                                   draggable
                                   onDragStart={() => handleDragStart(contact)}
                                   className="p-4 mb-3 cursor-grab active:cursor-grabbing border-none bg-white dark:bg-[#202c33] shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg rounded-xl animate-in fade-in slide-in-from-top-2"
-                                  onClick={() => { openChat(contact); setKanbanView(false); }}
+                                  onClick={() => openPreview(contact)}
                                 >
                                   <p className="text-sm font-bold truncate">{contact.name || contact.wa_id}</p>
                                   <div className="flex justify-between items-center mt-3">
@@ -4542,7 +4542,7 @@ const CRM = () => {
                               draggable 
                               onDragStart={() => handleDragStart(contact)} 
                               className="p-4 mb-3 cursor-grab active:cursor-grabbing border-none bg-white dark:bg-[#202c33] shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg rounded-xl animate-in fade-in slide-in-from-top-2" 
-                              onClick={() => { openChat(contact); setKanbanView(false); }}
+                              onClick={() => openPreview(contact)}
                             >
                               <p className="text-sm font-bold truncate">{contact.name || contact.wa_id}</p>
                               <div className="flex justify-between items-center mt-3">
