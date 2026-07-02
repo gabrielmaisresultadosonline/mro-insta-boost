@@ -429,6 +429,7 @@ const nodeTypes = {
   jump: JumpNode,
   aiAgent: AIAgentNode,
   pix: PixNode,
+  mediaCarousel: MediaCarouselNode,
 };
 
 const edgeTypes = {
