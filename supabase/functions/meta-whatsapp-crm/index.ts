@@ -3778,13 +3778,32 @@ async function fetchAndStoreIncomingMedia(
             }
           }
 
-          // Priority 2: Match generic "responded" or the new "any_response" handle
+          // Para nós de "Aguardar Resposta" (wait_response/waitResponse/question/followup),
+          // quando o contato RESPONDE, só devemos seguir se houver aresta ligada explicitamente
+          // no handle "Se responder" (id='responded' ou 'any_response'). Se o usuário não
+          // ligou nada nesse handle, o fluxo deve ENCERRAR — nunca cair no handle 'timeout'
+          // nem em uma aresta genérica sem handle.
+          const isWaitLikeNode =
+            currentNode.type === 'wait_response' ||
+            currentNode.type === 'waitResponse' ||
+            currentNode.type === 'question' ||
+            currentNode.type === 'followup';
+
           if (!nextEdge) {
-            nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response' || e.sourceHandle === 'next' || !e.sourceHandle));
+            if (isWaitLikeNode) {
+              // Só segue se o handle "responded"/"any_response" estiver conectado
+              nextEdge = flow.edges.find((e: any) =>
+                e.source === currentNode.id &&
+                (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response')
+              );
+            } else {
+              // Priority 2: Match generic "responded"/"any_response"/"next" handles
+              nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (e.sourceHandle === 'responded' || e.sourceHandle === 'any_response' || e.sourceHandle === 'next' || !e.sourceHandle));
+            }
           }
 
-          // Priority 3: Match standard transition (no handle) or "next" handle (often used in wait nodes)
-          if (!nextEdge) {
+          // Priority 3: Match standard transition (no handle) or "next" handle — NUNCA para nós de espera
+          if (!nextEdge && !isWaitLikeNode) {
             nextEdge = flow.edges.find((e: any) => e.source === currentNode.id && (!e.sourceHandle || e.sourceHandle === 'next'));
           }
 
