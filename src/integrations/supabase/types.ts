@@ -1076,6 +1076,7 @@ export type Database = {
           nodes: Json | null
           trigger_keyword: string | null
           trigger_keywords: string[] | null
+          trigger_tag: string | null
           trigger_type: string | null
           updated_at: string | null
           user_id: string | null
@@ -1090,6 +1091,7 @@ export type Database = {
           nodes?: Json | null
           trigger_keyword?: string | null
           trigger_keywords?: string[] | null
+          trigger_tag?: string | null
           trigger_type?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -1104,6 +1106,7 @@ export type Database = {
           nodes?: Json | null
           trigger_keyword?: string | null
           trigger_keywords?: string[] | null
+          trigger_tag?: string | null
           trigger_type?: string | null
           updated_at?: string | null
           user_id?: string | null
