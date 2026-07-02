@@ -384,6 +384,33 @@ const CRM = () => {
   // `statusFilter`) when the user navigates back to Conversas.
   const [contactListSearch, setContactListSearch] = useState('all');
   const [kanbanView, setKanbanView] = useState(false);
+  const [kanbanSearch, setKanbanSearch] = useState('');
+  const kanbanScrollRef = useRef<HTMLDivElement>(null);
+  const kanbanScrollTimerRef = useRef<number | null>(null);
+
+  const stopKanbanAutoScroll = () => {
+    if (kanbanScrollTimerRef.current !== null) {
+      window.clearInterval(kanbanScrollTimerRef.current);
+      kanbanScrollTimerRef.current = null;
+    }
+  };
+
+  const handleKanbanDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    const el = kanbanScrollRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const edge = 80;
+    const x = e.clientX;
+    let dir = 0;
+    if (x - rect.left < edge) dir = -1;
+    else if (rect.right - x < edge) dir = 1;
+    if (dir === 0) { stopKanbanAutoScroll(); return; }
+    if (kanbanScrollTimerRef.current !== null) return;
+    kanbanScrollTimerRef.current = window.setInterval(() => {
+      el.scrollLeft += dir * 20;
+    }, 16);
+  };
   const [draggedContact, setDraggedContact] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const selectedContactRef = useRef<any>(null);
