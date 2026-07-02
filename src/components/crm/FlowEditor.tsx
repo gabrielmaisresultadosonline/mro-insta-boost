@@ -803,17 +803,6 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
               </Button>
               <Button 
                 variant="outline" 
-                className="justify-start gap-2 border-blue-600 bg-blue-50 hover:bg-blue-100 group transition-all h-auto py-2.5 shadow-sm" 
-                onClick={() => addNode('template')}
-              >
-                <FileText className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" /> 
-                <div className="flex flex-col items-start">
-                  <span className="text-blue-800 font-bold text-xs">Template Meta</span>
-                  <span className="text-[9px] text-blue-600 font-medium uppercase tracking-wider">Marketing/Utilitário</span>
-                </div>
-              </Button>
-              <Button 
-                variant="outline" 
                 className="justify-start gap-2 border-cyan-500 bg-cyan-50 hover:bg-cyan-100 group transition-all h-auto py-2.5 shadow-sm" 
                 onClick={() => addNode('pix')}
               >
