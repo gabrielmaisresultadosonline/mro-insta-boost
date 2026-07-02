@@ -4476,6 +4476,7 @@ const CRM = () => {
                                   key={contact.id}
                                   draggable
                                   onDragStart={() => handleDragStart(contact)}
+                                  onDragEnd={stopKanbanAutoScroll}
                                   className="p-4 mb-3 cursor-grab active:cursor-grabbing border-none bg-white dark:bg-[#202c33] shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg rounded-xl animate-in fade-in slide-in-from-top-2"
                                   onClick={() => openPreview(contact)}
                                 >
