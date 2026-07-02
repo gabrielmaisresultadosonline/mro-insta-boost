@@ -8884,6 +8884,60 @@ const CRM = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Kanban quick preview */}
+      <Dialog open={!!previewContact} onOpenChange={(o) => { if (!o) setPreviewContact(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b bg-[#202c33] text-white">
+            <DialogTitle className="text-base font-bold truncate">
+              {previewContact?.name || previewContact?.wa_id}
+            </DialogTitle>
+            {previewContact?.name && (
+              <p className="text-xs opacity-70 font-mono">{previewContact.wa_id}</p>
+            )}
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4 bg-[#0b141a] space-y-2 min-h-[300px]">
+            {previewLoading ? (
+              <p className="text-center text-xs text-muted-foreground py-8">Carregando conversa...</p>
+            ) : previewMessages.length === 0 ? (
+              <p className="text-center text-xs text-muted-foreground py-8">Sem mensagens</p>
+            ) : previewMessages.map((m: any) => {
+              const isOut = m.direction === 'outbound';
+              const body = (m.body || m.content || m.text || '').toString().replace(/\[(image|video|document|audio|sticker)\]/gi, '').trim();
+              const hasMedia = m.media_url || m.image_url || m.video_url || m.document_url || m.audio_url;
+              return (
+                <div key={m.id} className={cn("flex", isOut ? "justify-end" : "justify-start")}>
+                  <div className={cn(
+                    "max-w-[75%] rounded-lg px-3 py-2 text-sm break-words whitespace-pre-wrap shadow",
+                    isOut ? "bg-[#005c4b] text-white" : "bg-[#202c33] text-[#e9edef]"
+                  )}>
+                    {hasMedia && (
+                      <p className="text-[10px] opacity-70 mb-1 uppercase">📎 mídia</p>
+                    )}
+                    {body || (hasMedia ? '' : <span className="opacity-50 italic">(vazio)</span>)}
+                    <p className="text-[9px] opacity-50 mt-1 text-right">
+                      {m.created_at && new Date(m.created_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter className="p-3 border-t bg-background">
+            <Button variant="outline" onClick={() => setPreviewContact(null)}>Fechar</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => {
+                const c = previewContact;
+                setPreviewContact(null);
+                setKanbanView(false);
+                if (c) openChat(c);
+              }}
+            >
+              Abrir Completa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
