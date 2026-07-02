@@ -472,6 +472,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [expandedTextOpen, setExpandedTextOpen] = useState(false);
   const [expandedTextValue, setExpandedTextValue] = useState('');
+  const [carouselDialogOpen, setCarouselDialogOpen] = useState(false);
   const [flowName, setFlowName] = useState(flow?.name || 'Novo Fluxo');
   const [triggerType, setTriggerType] = useState(flow?.trigger_type || 'manual');
   const [triggerKeywords, setTriggerKeywords] = useState(
