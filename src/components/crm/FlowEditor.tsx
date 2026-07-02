@@ -55,6 +55,7 @@ import {
   UserCog,
   Link as LinkIcon
   , Maximize2
+  , Images
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -428,7 +429,30 @@ const nodeTypes = {
   jump: JumpNode,
   aiAgent: AIAgentNode,
   pix: PixNode,
+  mediaCarousel: MediaCarouselNode,
 };
+
+function MediaCarouselNode({ data }: any) {
+  const cards = Array.isArray(data?.cards) ? data.cards : [];
+  return (
+    <Card className="min-w-[220px] border-pink-500 shadow-md">
+      <Handle type="target" position={Position.Top} />
+      <CardHeader className="p-3 bg-pink-500 text-white rounded-t-lg">
+        <CardTitle className="text-xs font-bold flex items-center gap-2">
+          <Images className="w-3 h-3" /> Carrossel de Mídia
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-3 space-y-1">
+        {data?.headerText ? (
+          <p className="text-[10px] text-muted-foreground line-clamp-2 whitespace-pre-wrap">{data.headerText}</p>
+        ) : null}
+        <p className="text-[10px] font-semibold text-pink-700">{cards.length} card(s)</p>
+        <p className="text-[9px] text-muted-foreground italic">Clique para configurar</p>
+      </CardContent>
+      <Handle type="source" position={Position.Bottom} />
+    </Card>
+  );
+}
 
 const edgeTypes = {
   button: ButtonEdge,
@@ -448,6 +472,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [expandedTextOpen, setExpandedTextOpen] = useState(false);
   const [expandedTextValue, setExpandedTextValue] = useState('');
+  const [carouselDialogOpen, setCarouselDialogOpen] = useState(false);
   const [flowName, setFlowName] = useState(flow?.name || 'Novo Fluxo');
   const [triggerType, setTriggerType] = useState(flow?.trigger_type || 'manual');
   const [triggerKeywords, setTriggerKeywords] = useState(
@@ -640,6 +665,13 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       case 'jump': data = { targetFlowId: '', targetFlowName: '' }; break;
       case 'aiAgent': data = { prompt: '', labelOnHumanTransfer: 'Atenção: Humano Necessário' }; break;
       case 'pix': data = { pixKey: '', amount: '47.00', description: 'Pagamento via PIX' }; break;
+      case 'mediaCarousel': data = {
+        headerText: '',
+        cards: [
+          { id: `c_${Date.now()}_1`, mediaType: 'image', mediaUrl: '', fileName: '', caption: '', buttons: [] },
+          { id: `c_${Date.now()}_2`, mediaType: 'image', mediaUrl: '', fileName: '', caption: '', buttons: [] }
+        ]
+      }; break;
     }
 
     const newNode: Node = {
@@ -789,6 +821,17 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                 <div className="flex flex-col items-start text-left">
                   <span className="text-cyan-800 font-bold text-xs">Enviar PIX</span>
                   <span className="text-[9px] text-cyan-600 font-medium uppercase tracking-wider">Copia e Cola + QR Code</span>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start gap-2 border-pink-500 bg-pink-50 hover:bg-pink-100 group transition-all h-auto py-2.5 shadow-sm"
+                onClick={() => addNode('mediaCarousel')}
+              >
+                <Images className="w-5 h-5 text-pink-600 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-pink-800 font-bold text-xs">Carrossel de Mídia</span>
+                  <span className="text-[9px] text-pink-600 font-medium uppercase tracking-wider">Imagens/Vídeos + Botões</span>
                 </div>
               </Button>
               <Button variant="outline" className="justify-start gap-2 border-slate-700/20 hover:bg-slate-700/10" onClick={() => addNode('crmAction')}>
@@ -1336,6 +1379,39 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                     </div>
                   </div>
                 )}
+                {selectedNode.type === 'mediaCarousel' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Texto de abertura (opcional)</Label>
+                      <Textarea
+                        rows={3}
+                        placeholder="Ex.: Confira nossos destaques 👇"
+                        value={(selectedNode.data.headerText as string) || ''}
+                        onChange={(e) => updateNodeData(selectedNode.id, { headerText: e.target.value })}
+                        className="text-xs"
+                      />
+                      <p className="text-[9px] text-muted-foreground italic">
+                        Enviado como mensagem antes dos cards. Deixe em branco para não enviar.
+                      </p>
+                    </div>
+                    <div className="p-3 bg-pink-50 rounded-lg border border-pink-100 space-y-2">
+                      <p className="text-[11px] font-bold text-pink-700 flex items-center gap-1">
+                        <Images className="w-3 h-3" /> {(selectedNode.data.cards as any[])?.length || 0} card(s) configurado(s)
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full h-8 text-xs bg-pink-600 hover:bg-pink-700 text-white gap-1"
+                        onClick={() => setCarouselDialogOpen(true)}
+                      >
+                        <Maximize2 className="w-3 h-3" /> Abrir editor do Carrossel
+                      </Button>
+                      <p className="text-[9px] text-pink-700/70 italic">
+                        Cada card pode ter imagem OU vídeo, texto (caption) e botões (resposta ou link). Sem texto e sem botões também funciona.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {selectedNode.type === 'template' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-100 shadow-sm">
@@ -1627,6 +1703,187 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
             >
               Salvar
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={carouselDialogOpen} onOpenChange={setCarouselDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Images className="w-4 h-4 text-pink-600" /> Editor do Carrossel de Mídia
+            </DialogTitle>
+          </DialogHeader>
+          {selectedNode?.type === 'mediaCarousel' && (() => {
+            const cards: any[] = Array.isArray(selectedNode.data.cards) ? (selectedNode.data.cards as any[]) : [];
+            const updateCards = (next: any[]) => updateNodeData(selectedNode.id, { cards: next });
+            const uploadCardMedia = async (file: File, cardIdx: number, type: 'image' | 'video') => {
+              setUploading(true);
+              try {
+                const fileExt = type === 'video' ? 'mp4' : (file.name.split('.').pop() || 'jpg');
+                const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                const filePath = `flow-media/carousel/${fileName}`;
+                const { error: uploadError } = await supabase.storage
+                  .from('crm-media')
+                  .upload(filePath, file, { contentType: type === 'video' ? 'video/mp4' : file.type || undefined });
+                if (uploadError) throw uploadError;
+                const { data: { publicUrl } } = supabase.storage.from('crm-media').getPublicUrl(filePath);
+                const next = [...cards];
+                next[cardIdx] = { ...next[cardIdx], mediaType: type, mediaUrl: publicUrl, fileName: file.name };
+                updateCards(next);
+                toast({ title: 'Mídia enviada!' });
+              } catch (e: any) {
+                toast({ title: 'Erro ao enviar', description: e.message, variant: 'destructive' });
+              } finally {
+                setUploading(false);
+              }
+            };
+            return (
+              <div className="space-y-4">
+                {cards.map((card: any, idx: number) => (
+                  <div key={card.id || idx} className="border rounded-lg p-4 space-y-3 bg-slate-50">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-slate-700">Card #{idx + 1}</p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-500"
+                        onClick={() => updateCards(cards.filter((_, i) => i !== idx))}
+                        disabled={cards.length <= 1}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-[11px]">Tipo de mídia</Label>
+                        <Select
+                          value={card.mediaType || 'image'}
+                          onValueChange={(v) => {
+                            const next = [...cards];
+                            next[idx] = { ...next[idx], mediaType: v, mediaUrl: '', fileName: '' };
+                            updateCards(next);
+                          }}
+                        >
+                          <SelectTrigger className="text-xs h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="image">Imagem</SelectItem>
+                            <SelectItem value="video">Vídeo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[11px]">Upload</Label>
+                        <Input
+                          type="file"
+                          accept={card.mediaType === 'video' ? 'video/*' : 'image/*'}
+                          className="text-[10px] h-8"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) uploadCardMedia(f, idx, (card.mediaType === 'video' ? 'video' : 'image'));
+                          }}
+                        />
+                      </div>
+                    </div>
+                    {card.mediaUrl && (
+                      <div className="text-[10px] text-emerald-700 truncate">✓ {card.fileName || card.mediaUrl}</div>
+                    )}
+                    <div className="space-y-1">
+                      <Label className="text-[11px]">Texto do card (opcional)</Label>
+                      <Textarea
+                        rows={2}
+                        value={card.caption || ''}
+                        placeholder="Legenda ou descrição..."
+                        onChange={(e) => {
+                          const next = [...cards];
+                          next[idx] = { ...next[idx], caption: e.target.value };
+                          updateCards(next);
+                        }}
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[11px]">Botões (opcional, máx. 3)</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[10px] gap-1"
+                          disabled={(card.buttons || []).length >= 3}
+                          onClick={() => {
+                            const btns = card.buttons || [];
+                            const next = [...cards];
+                            next[idx] = {
+                              ...next[idx],
+                              buttons: [...btns, { id: `btn_${Date.now()}`, text: `Botão ${btns.length + 1}`, url: '' }]
+                            };
+                            updateCards(next);
+                          }}
+                        >
+                          <Plus className="w-3 h-3" /> Botão
+                        </Button>
+                      </div>
+                      {(card.buttons || []).map((btn: any, bIdx: number) => (
+                        <div key={btn.id || bIdx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                          <Input
+                            placeholder="Texto (máx 20)"
+                            value={btn.text || ''}
+                            maxLength={20}
+                            className="text-[11px] h-8"
+                            onChange={(e) => {
+                              const next = [...cards];
+                              const btns = [...(next[idx].buttons || [])];
+                              btns[bIdx] = { ...btns[bIdx], text: e.target.value };
+                              next[idx] = { ...next[idx], buttons: btns };
+                              updateCards(next);
+                            }}
+                          />
+                          <Input
+                            placeholder="URL (opcional, deixa vazio p/ resposta)"
+                            value={btn.url || ''}
+                            className="text-[11px] h-8"
+                            onChange={(e) => {
+                              const next = [...cards];
+                              const btns = [...(next[idx].buttons || [])];
+                              btns[bIdx] = { ...btns[bIdx], url: e.target.value };
+                              next[idx] = { ...next[idx], buttons: btns };
+                              updateCards(next);
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-red-500"
+                            onClick={() => {
+                              const next = [...cards];
+                              next[idx] = {
+                                ...next[idx],
+                                buttons: (next[idx].buttons || []).filter((_: any, i: number) => i !== bIdx)
+                              };
+                              updateCards(next);
+                            }}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-9 text-xs gap-1 border-pink-400 text-pink-700 hover:bg-pink-50"
+                  onClick={() => updateCards([...cards, {
+                    id: `c_${Date.now()}`, mediaType: 'image', mediaUrl: '', fileName: '', caption: '', buttons: []
+                  }])}
+                >
+                  <Plus className="w-3 h-3" /> Adicionar card
+                </Button>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button onClick={() => setCarouselDialogOpen(false)}>Concluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
