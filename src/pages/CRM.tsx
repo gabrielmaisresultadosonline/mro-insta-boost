@@ -5776,7 +5776,6 @@ const CRM = () => {
                                             <Button 
                                               size="icon" 
                                               onClick={handleSendMessage} 
-                                              disabled={isSending(selectedContact?.id)}
                                               className="h-9 w-9 sm:h-10 sm:w-10 shadow-lg rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white active:scale-95 transition-all"
                                             >
                                               <Send className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />
