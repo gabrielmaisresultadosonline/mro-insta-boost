@@ -5143,28 +5143,63 @@ const CRM = () => {
                                 <span className="hidden sm:inline">Fluxos</span>
                                 {showFlows ? <Eye className="w-2 h-2 ml-0.5 opacity-40 group-hover:opacity-100" /> : <EyeOff className="w-2 h-2 ml-0.5 opacity-100 text-blue-500" />}
                               </button>
-                              
-                              {showFlows && (
-                                <div className="flex gap-1 flex-1 overflow-x-auto scrollbar-hide animate-in fade-in slide-in-from-left-2 duration-200 py-0.5">
-                                  {flows.filter(f => f.is_active).map(f => (
-                                    <Button 
-                                      key={f.id} 
-                                      variant="outline" 
-                                      size="sm" 
-                                      style={{ height: `${20 * ((metaSettings.shortcut_size || 100) / 100)}px`, fontSize: `${9 * ((metaSettings.shortcut_size || 100) / 100)}px` }}
-                                      className="px-2 rounded-md border-blue-500/20 bg-blue-500/5 text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-all font-bold whitespace-nowrap shadow-none shrink-0" 
-                                      onClick={() => handleTriggerFlow(f.id)} 
-                                      disabled={isSending(selectedContact?.id)}
-                                    >
-                                      {f.name}
-                                    </Button>
-                                  ))}
-                                </div>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => setFlowBarSettingsOpen(true)}
+                                title="Configurar botões de fluxo"
+                                className="shrink-0 h-4 w-4 flex items-center justify-center rounded-sm border border-border/20 bg-muted/30 hover:bg-muted/60 text-muted-foreground/70 hover:text-foreground transition-colors"
+                              >
+                                <Settings className="w-2.5 h-2.5" />
+                              </button>
+
+                              {showFlows && (() => {
+                                const activeFlows = flows.filter(f => f.is_active);
+                                const order = flowBarPrefs.order || [];
+                                const ordered = [...activeFlows].sort((a, b) => {
+                                  const ia = order.indexOf(a.id); const ib = order.indexOf(b.id);
+                                  if (ia === -1 && ib === -1) return 0;
+                                  if (ia === -1) return 1;
+                                  if (ib === -1) return -1;
+                                  return ia - ib;
+                                });
+                                const scale = (flowBarPrefs.size || 100) / 100;
+                                const c = FLOW_BAR_COLORS[flowBarPrefs.color] || FLOW_BAR_COLORS.blue;
+                                const layoutClass = flowBarPrefs.layout === 'scroll'
+                                  ? 'flex gap-1 flex-1 overflow-x-auto scrollbar-hide flex-nowrap'
+                                  : flowBarPrefs.layout === 'one'
+                                    ? 'flex gap-1 flex-1 flex-wrap'
+                                    : 'flex gap-1 flex-1 flex-wrap max-h-[calc(2*(20px*var(--fbs,1))+8px)] overflow-hidden';
+                                return (
+                                  <div
+                                    className={cn(layoutClass, 'animate-in fade-in slide-in-from-left-2 duration-200 py-0.5')}
+                                    style={{ ['--fbs' as any]: scale }}
+                                  >
+                                    {ordered.map(f => (
+                                      <Button
+                                        key={f.id}
+                                        variant="outline"
+                                        size="sm"
+                                        style={{ height: `${20 * scale}px`, fontSize: `${9 * scale}px` }}
+                                        className={cn(
+                                          'px-2 rounded-md transition-all font-bold whitespace-nowrap shadow-none shrink-0',
+                                          c.border, c.bg, c.text, c.hover
+                                        )}
+                                        onClick={() => handleTriggerFlow(f.id)}
+                                        disabled={isSending(selectedContact?.id)}
+                                      >
+                                        {f.name}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
 
-                          <ScrollArea className="flex-1 bg-[#efeae2] dark:bg-[#0b141a] relative min-h-0 min-w-0 w-full overflow-x-hidden">
+                          <ScrollArea
+                            className="flex-1 bg-[#efeae2] dark:bg-[#0b141a] relative min-h-0 min-w-0 w-full overflow-x-hidden"
+                            style={{ fontSize: `${flowBarPrefs.chatFontScale || 100}%` }}
+                          >
                             <div className="absolute inset-0 opacity-[0.06] dark:opacity-[0.05] pointer-events-none bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat"></div>
                             {chatMessages.some((m: any) => m.direction === 'outbound' && m.status === 'failed' && isBusinessVerificationError(m)) && (
                               <div className="sticky top-0 z-40 m-2">
