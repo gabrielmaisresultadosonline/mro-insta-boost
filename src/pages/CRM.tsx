@@ -9061,6 +9061,141 @@ const CRM = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Configurações da barra de fluxos */}
+      <Dialog open={flowBarSettingsOpen} onOpenChange={setFlowBarSettingsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Settings className="w-4 h-4" /> Configurar Botões de Fluxo
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Personalize tamanho, cor, ordem e disposição dos botões de fluxo, além do tamanho do texto do chat.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-xs font-bold">Tamanho dos botões</Label>
+                <span className="text-[10px] text-muted-foreground tabular-nums">{flowBarPrefs.size}%</span>
+              </div>
+              <input
+                type="range" min={70} max={200} step={5}
+                value={flowBarPrefs.size}
+                onChange={(e) => setFlowBarPrefs(p => ({ ...p, size: Number(e.target.value) }))}
+                className="w-full accent-primary"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-xs font-bold">Tamanho do texto do chat</Label>
+                <span className="text-[10px] text-muted-foreground tabular-nums">{flowBarPrefs.chatFontScale}%</span>
+              </div>
+              <input
+                type="range" min={80} max={160} step={5}
+                value={flowBarPrefs.chatFontScale}
+                onChange={(e) => setFlowBarPrefs(p => ({ ...p, chatFontScale: Number(e.target.value) }))}
+                className="w-full accent-primary"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold mb-1.5 block">Cor dos botões</Label>
+              <div className="flex gap-2 flex-wrap">
+                {Object.keys(FLOW_BAR_COLORS).map((colorKey) => (
+                  <button
+                    key={colorKey}
+                    type="button"
+                    onClick={() => setFlowBarPrefs(p => ({ ...p, color: colorKey }))}
+                    className={cn(
+                      'h-8 px-3 rounded-md border font-bold text-xs capitalize transition-all',
+                      FLOW_BAR_COLORS[colorKey].border,
+                      FLOW_BAR_COLORS[colorKey].bg,
+                      FLOW_BAR_COLORS[colorKey].text,
+                      flowBarPrefs.color === colorKey && 'ring-2 ring-offset-1 ring-primary'
+                    )}
+                  >
+                    {colorKey}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold mb-1.5 block">Disposição</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { v: 'scroll', l: 'Rolagem' },
+                  { v: 'one', l: '1+ linhas' },
+                  { v: 'two', l: 'Máx. 2 linhas' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setFlowBarPrefs(p => ({ ...p, layout: opt.v }))}
+                    className={cn(
+                      'h-9 rounded-md border text-xs font-bold transition-all',
+                      flowBarPrefs.layout === opt.v
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/30 hover:bg-muted/60 border-border/40'
+                    )}
+                  >
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold mb-1.5 block">Ordem dos botões</Label>
+              <div className="border rounded-md divide-y max-h-56 overflow-y-auto">
+                {(() => {
+                  const activeFlows = flows.filter(f => f.is_active);
+                  const order = flowBarPrefs.order || [];
+                  const ordered = [...activeFlows].sort((a, b) => {
+                    const ia = order.indexOf(a.id); const ib = order.indexOf(b.id);
+                    if (ia === -1 && ib === -1) return 0;
+                    if (ia === -1) return 1;
+                    if (ib === -1) return -1;
+                    return ia - ib;
+                  });
+                  const move = (idx: number, dir: -1 | 1) => {
+                    const arr = ordered.map(f => f.id);
+                    const ni = idx + dir;
+                    if (ni < 0 || ni >= arr.length) return;
+                    [arr[idx], arr[ni]] = [arr[ni], arr[idx]];
+                    setFlowBarPrefs(p => ({ ...p, order: arr }));
+                  };
+                  if (ordered.length === 0) {
+                    return <div className="p-3 text-xs text-muted-foreground text-center">Nenhum fluxo ativo</div>;
+                  }
+                  return ordered.map((f, idx) => (
+                    <div key={f.id} className="flex items-center gap-2 px-2 py-1.5">
+                      <span className="text-[10px] text-muted-foreground tabular-nums w-5">{idx + 1}.</span>
+                      <span className="text-xs font-medium flex-1 truncate">{f.name}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => move(idx, -1)} disabled={idx === 0}>
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => move(idx, 1)} disabled={idx === ordered.length - 1}>
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setFlowBarPrefs({ size: 100, color: 'blue', layout: 'scroll', chatFontScale: 100, order: [] })}
+            >
+              Restaurar padrão
+            </Button>
+            <Button onClick={() => setFlowBarSettingsOpen(false)}>Concluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
