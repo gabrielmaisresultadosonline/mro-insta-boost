@@ -9174,10 +9174,10 @@ const CRM = () => {
                       <span className="text-[10px] text-muted-foreground tabular-nums w-5">{idx + 1}.</span>
                       <span className="text-xs font-medium flex-1 truncate">{f.name}</span>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => move(idx, -1)} disabled={idx === 0}>
-                        <ChevronUp className="w-3.5 h-3.5" />
+                        <LucideIcons.ChevronUp className="w-3.5 h-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => move(idx, 1)} disabled={idx === ordered.length - 1}>
-                        <ChevronDown className="w-3.5 h-3.5" />
+                        <LucideIcons.ChevronDown className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   ));
