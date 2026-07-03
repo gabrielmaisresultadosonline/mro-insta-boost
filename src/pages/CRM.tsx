@@ -2094,7 +2094,7 @@ const CRM = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedContact || isSending(selectedContact.id)) return;
+    if (!newMessage.trim() || !selectedContact) return;
 
     const isColdList = isConversationExpired(selectedContact);
 
@@ -2106,17 +2106,18 @@ const CRM = () => {
     const textToSend = newMessage.trim();
     const targetContactId = selectedContact.id;
     const targetWaId = selectedContact.wa_id;
-    
+    const wasAiActive = !!selectedContact.ai_active;
+
     setNewMessage('');
-    setContactSending(targetContactId, true);
-    
-    // Optimistic update
+
+    // Optimistic update (pending → shows clock icon while queued)
     const optimisticMessage = {
-      id: `temp-${Date.now()}`,
+      id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       contact_id: targetContactId,
       content: textToSend,
       direction: 'outbound',
       message_type: 'text',
+      status: 'pending',
       created_at: new Date().toISOString(),
       isOptimistic: true
     };
@@ -2127,38 +2128,39 @@ const CRM = () => {
       return prev;
     });
 
-    try {
-      // Desativa o agente de IA automaticamente ao enviar mensagem manual
-      if (selectedContact.ai_active) {
-        console.log('[CRM] Desativando IA para contato', targetContactId);
-        await updateContactStatus(targetContactId, { ai_active: false });
-      }
+    // Per-contact FIFO queue: allow the user to type more messages while the
+    // previous ones are still being sent. Each message is dispatched in order.
+    const prevJob = sendQueueRef.current[targetContactId] || Promise.resolve();
+    const job = prevJob.then(async () => {
+      try {
+        if (wasAiActive) {
+          console.log('[CRM] Desativando IA para contato', targetContactId);
+          await updateContactStatus(targetContactId, { ai_active: false });
+        }
 
-      console.log('[CRM][sendText] →', { to: targetWaId, len: textToSend.length, preview: textToSend.slice(0, 80) });
-      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-        body: { action: 'sendMessage', to: targetWaId, text: textToSend, metadata: { source: 'manual_send' } }
-      });
-      console.log('[CRM][sendText] ← resp', { error, data });
-      if (error) throw error;
-      if (!data?.success) {
-        console.error('[CRM][sendText] FAIL', data);
-        throw new Error(data.error || "Erro ao enviar mensagem pela Meta");
+        console.log('[CRM][sendText] →', { to: targetWaId, len: textToSend.length, preview: textToSend.slice(0, 80) });
+        const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+          body: { action: 'sendMessage', to: targetWaId, text: textToSend, metadata: { source: 'manual_send' } }
+        });
+        console.log('[CRM][sendText] ← resp', { error, data });
+        if (error) throw error;
+        if (!data?.success) {
+          console.error('[CRM][sendText] FAIL', data);
+          throw new Error(data.error || 'Erro ao enviar mensagem pela Meta');
+        }
+        await fetchMessages(targetContactId, true);
+      } catch (err: any) {
+        if (selectedContactRef.current?.id === targetContactId) {
+          setChatMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+        }
+        toast({ title: 'Erro ao enviar', description: err.message, variant: 'destructive' });
       }
-      // Remove optimistic and fetch real
-      // Silent fetch (no loading flash) — chatMessages is replaced atomically
-      // including the real sent message, so the optimistic bubble gets swapped
-      // in-place without the previous "conversation reloads, then message
-      // appears" flicker.
-      await fetchMessages(targetContactId, true);
-    } catch (err: any) {
-      if (selectedContactRef.current?.id === targetContactId) {
-        setChatMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
-        setNewMessage(textToSend); // Restore text on failure
+    });
+    sendQueueRef.current[targetContactId] = job.finally(() => {
+      if (sendQueueRef.current[targetContactId] === job) {
+        delete sendQueueRef.current[targetContactId];
       }
-      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
-    } finally {
-      setContactSending(targetContactId, false);
-    }
+    });
   };
 
   const handleUpdateTemplateKnowledge = async (templateId: string, knowledge: string) => {
