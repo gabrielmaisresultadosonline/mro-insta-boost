@@ -769,6 +769,28 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                 </div>
               )}
 
+              {targetType === 'conversation' && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-xs md:text-sm text-[#e9edef]">
+                    Filtrar por Etiqueta (opcional)
+                  </Label>
+                  <Select value={conversationTagFilter} onValueChange={setConversationTagFilter}>
+                    <SelectTrigger className="h-10 md:h-11 rounded-xl bg-[#202c33] border-none text-[#e9edef] text-xs md:text-sm">
+                      <SelectValue placeholder="Todas as etiquetas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas as etiquetas</SelectItem>
+                      {statuses.map(s => (
+                        <SelectItem key={s.id} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] md:text-xs text-[#8696a0]">
+                    Enviará apenas para contatos em janela de 24h com a etiqueta selecionada.
+                  </p>
+                </div>
+              )}
+
               {targetType === 'uploaded' && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
