@@ -76,6 +76,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [savedLists, setSavedLists] = useState<{ name: string; numbers: string[]; createdAt: string }[]>([]);
   const [showRecipients, setShowRecipients] = useState(false);
   const [only24h, setOnly24h] = useState(false);
+  // Optional tag filter when targeting "Contatos em Janela de 24h"
+  const [conversationTagFilter, setConversationTagFilter] = useState<string>('__all__');
   const SAVED_LISTS_KEY = 'crm_broadcast_saved_lists';
 
   // 24h Countdown trigger state
@@ -124,6 +126,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     const now = Date.now();
     if (targetType === 'conversation') {
       return contacts.filter(c => c.last_message_received_at && (now - new Date(c.last_message_received_at).getTime()) < DAY)
+        .filter(c => conversationTagFilter === '__all__' ? true : c.status === conversationTagFilter)
         .map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
     }
     if (targetType === 'contacts') {
@@ -142,7 +145,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       }).filter(Boolean) as { wa_id: string; name: string }[];
     }
     return [];
-  }, [targetType, selectedStatus, contacts, uploadedNumbers]);
+  }, [targetType, selectedStatus, contacts, uploadedNumbers, conversationTagFilter]);
 
   const finalRecipients = useMemo(
     () => {
@@ -763,6 +766,28 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {targetType === 'conversation' && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-xs md:text-sm text-[#e9edef]">
+                    Filtrar por Etiqueta (opcional)
+                  </Label>
+                  <Select value={conversationTagFilter} onValueChange={setConversationTagFilter}>
+                    <SelectTrigger className="h-10 md:h-11 rounded-xl bg-[#202c33] border-none text-[#e9edef] text-xs md:text-sm">
+                      <SelectValue placeholder="Todas as etiquetas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">Todas as etiquetas</SelectItem>
+                      {statuses.map(s => (
+                        <SelectItem key={s.id} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] md:text-xs text-[#8696a0]">
+                    Enviará apenas para contatos em janela de 24h com a etiqueta selecionada.
+                  </p>
                 </div>
               )}
 
