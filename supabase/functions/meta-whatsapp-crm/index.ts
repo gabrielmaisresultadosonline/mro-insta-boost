@@ -1048,9 +1048,11 @@ else if (message.type === "unsupported") {
     contact.current_node_id = null;
   }
 
-  // Mensagem vinda de anúncio (CTWA/referral) deve ter prioridade sobre IA ativa.
-  // Sem isso, contatos com ai_active=true eram enviados para o agente antes do gatilho automático.
-  if (contact && !hasActiveFlow && !isAiHandling && getReferralFromWebhookMessage(message)) {
+  // Gatilhos exact_phrase/keyword devem ter prioridade sobre IA ativa (ai_active=true),
+  // mesmo sem referral. Mensagens de anúncio (CTWA) podem chegar como "unsupported" (code 131060)
+  // SEM referral — antes, o bloco só rodava com referral e a IA interceptava a mensagem,
+  // fazendo o fluxo nunca iniciar. Agora avaliamos sempre que o contato está ocioso.
+  if (contact && !hasActiveFlow && !isAiHandling) {
     try {
       const allCandidateTexts = collectInboundTriggerTexts(message, text);
       console.log(`[TRIGGER-CTWA] (ad-priority) waId=${waId} msgType=${message?.type} aiActive=${isAiActive} candidates=${JSON.stringify(allCandidateTexts)}`);
