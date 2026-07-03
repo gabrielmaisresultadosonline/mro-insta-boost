@@ -337,6 +337,28 @@ const CRM = () => {
   });
   const [whatsAppConnectionConfirmed, setWhatsAppConnectionConfirmed] = useState(false);
 
+  // ---- Flow shortcut bar preferences (persisted in localStorage per profile) ----
+  const FLOW_BAR_PREFS_KEY = 'crm_flow_bar_prefs_v1';
+  const FLOW_BAR_COLORS: Record<string, { border: string; bg: string; text: string; hover: string }> = {
+    blue:   { border: 'border-blue-500/20',   bg: 'bg-blue-500/5',   text: 'text-blue-600',   hover: 'hover:bg-blue-500 hover:text-white hover:border-blue-500' },
+    green:  { border: 'border-green-500/20',  bg: 'bg-green-500/5',  text: 'text-green-600',  hover: 'hover:bg-green-500 hover:text-white hover:border-green-500' },
+    purple: { border: 'border-purple-500/20', bg: 'bg-purple-500/5', text: 'text-purple-600', hover: 'hover:bg-purple-500 hover:text-white hover:border-purple-500' },
+    orange: { border: 'border-orange-500/20', bg: 'bg-orange-500/5', text: 'text-orange-600', hover: 'hover:bg-orange-500 hover:text-white hover:border-orange-500' },
+    pink:   { border: 'border-pink-500/20',   bg: 'bg-pink-500/5',   text: 'text-pink-600',   hover: 'hover:bg-pink-500 hover:text-white hover:border-pink-500' },
+    red:    { border: 'border-red-500/20',    bg: 'bg-red-500/5',    text: 'text-red-600',    hover: 'hover:bg-red-500 hover:text-white hover:border-red-500' },
+  };
+  const [flowBarPrefs, setFlowBarPrefs] = useState<{ size: number; color: string; layout: 'scroll' | 'one' | 'two'; chatFontScale: number; order: string[] }>(() => {
+    try {
+      const raw = localStorage.getItem(FLOW_BAR_PREFS_KEY);
+      if (raw) return { size: 100, color: 'blue', layout: 'scroll', chatFontScale: 100, order: [], ...JSON.parse(raw) };
+    } catch {}
+    return { size: 100, color: 'blue', layout: 'scroll', chatFontScale: 100, order: [] };
+  });
+  useEffect(() => {
+    try { localStorage.setItem(FLOW_BAR_PREFS_KEY, JSON.stringify(flowBarPrefs)); } catch {}
+  }, [flowBarPrefs]);
+  const [flowBarSettingsOpen, setFlowBarSettingsOpen] = useState(false);
+
   const [metrics, setMetrics] = useState<any>({
     sent_count: 0,
     responded_count: 0,
@@ -5121,28 +5143,63 @@ const CRM = () => {
                                 <span className="hidden sm:inline">Fluxos</span>
                                 {showFlows ? <Eye className="w-2 h-2 ml-0.5 opacity-40 group-hover:opacity-100" /> : <EyeOff className="w-2 h-2 ml-0.5 opacity-100 text-blue-500" />}
                               </button>
-                              
-                              {showFlows && (
-                                <div className="flex gap-1 flex-1 overflow-x-auto scrollbar-hide animate-in fade-in slide-in-from-left-2 duration-200 py-0.5">
-                                  {flows.filter(f => f.is_active).map(f => (
-                                    <Button 
-                                      key={f.id} 
-                                      variant="outline" 
-                                      size="sm" 
-                                      style={{ height: `${20 * ((metaSettings.shortcut_size || 100) / 100)}px`, fontSize: `${9 * ((metaSettings.shortcut_size || 100) / 100)}px` }}
-                                      className="px-2 rounded-md border-blue-500/20 bg-blue-500/5 text-blue-600 hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-all font-bold whitespace-nowrap shadow-none shrink-0" 
-                                      onClick={() => handleTriggerFlow(f.id)} 
-                                      disabled={isSending(selectedContact?.id)}
-                                    >
-                                      {f.name}
-                                    </Button>
-                                  ))}
-                                </div>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => setFlowBarSettingsOpen(true)}
+                                title="Configurar botões de fluxo"
+                                className="shrink-0 h-4 w-4 flex items-center justify-center rounded-sm border border-border/20 bg-muted/30 hover:bg-muted/60 text-muted-foreground/70 hover:text-foreground transition-colors"
+                              >
+                                <Settings className="w-2.5 h-2.5" />
+                              </button>
+
+                              {showFlows && (() => {
+                                const activeFlows = flows.filter(f => f.is_active);
+                                const order = flowBarPrefs.order || [];
+                                const ordered = [...activeFlows].sort((a, b) => {
+                                  const ia = order.indexOf(a.id); const ib = order.indexOf(b.id);
+                                  if (ia === -1 && ib === -1) return 0;
+                                  if (ia === -1) return 1;
+                                  if (ib === -1) return -1;
+                                  return ia - ib;
+                                });
+                                const scale = (flowBarPrefs.size || 100) / 100;
+                                const c = FLOW_BAR_COLORS[flowBarPrefs.color] || FLOW_BAR_COLORS.blue;
+                                const layoutClass = flowBarPrefs.layout === 'scroll'
+                                  ? 'flex gap-1 flex-1 overflow-x-auto scrollbar-hide flex-nowrap'
+                                  : flowBarPrefs.layout === 'one'
+                                    ? 'flex gap-1 flex-1 flex-wrap'
+                                    : 'flex gap-1 flex-1 flex-wrap max-h-[calc(2*(20px*var(--fbs,1))+8px)] overflow-hidden';
+                                return (
+                                  <div
+                                    className={cn(layoutClass, 'animate-in fade-in slide-in-from-left-2 duration-200 py-0.5')}
+                                    style={{ ['--fbs' as any]: scale }}
+                                  >
+                                    {ordered.map(f => (
+                                      <Button
+                                        key={f.id}
+                                        variant="outline"
+                                        size="sm"
+                                        style={{ height: `${20 * scale}px`, fontSize: `${9 * scale}px` }}
+                                        className={cn(
+                                          'px-2 rounded-md transition-all font-bold whitespace-nowrap shadow-none shrink-0',
+                                          c.border, c.bg, c.text, c.hover
+                                        )}
+                                        onClick={() => handleTriggerFlow(f.id)}
+                                        disabled={isSending(selectedContact?.id)}
+                                      >
+                                        {f.name}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
 
-                          <ScrollArea className="flex-1 bg-[#efeae2] dark:bg-[#0b141a] relative min-h-0 min-w-0 w-full overflow-x-hidden">
+                          <ScrollArea
+                            className="flex-1 bg-[#efeae2] dark:bg-[#0b141a] relative min-h-0 min-w-0 w-full overflow-x-hidden"
+                            style={{ zoom: (flowBarPrefs.chatFontScale || 100) / 100 } as any}
+                          >
                             <div className="absolute inset-0 opacity-[0.06] dark:opacity-[0.05] pointer-events-none bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat"></div>
                             {chatMessages.some((m: any) => m.direction === 'outbound' && m.status === 'failed' && isBusinessVerificationError(m)) && (
                               <div className="sticky top-0 z-40 m-2">
@@ -9001,6 +9058,141 @@ const CRM = () => {
             >
               Abrir Completa
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Configurações da barra de fluxos */}
+      <Dialog open={flowBarSettingsOpen} onOpenChange={setFlowBarSettingsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Settings className="w-4 h-4" /> Configurar Botões de Fluxo
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Personalize tamanho, cor, ordem e disposição dos botões de fluxo, além do tamanho do texto do chat.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-xs font-bold">Tamanho dos botões</Label>
+                <span className="text-[10px] text-muted-foreground tabular-nums">{flowBarPrefs.size}%</span>
+              </div>
+              <input
+                type="range" min={70} max={200} step={5}
+                value={flowBarPrefs.size}
+                onChange={(e) => setFlowBarPrefs(p => ({ ...p, size: Number(e.target.value) }))}
+                className="w-full accent-primary"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-xs font-bold">Tamanho do texto do chat</Label>
+                <span className="text-[10px] text-muted-foreground tabular-nums">{flowBarPrefs.chatFontScale}%</span>
+              </div>
+              <input
+                type="range" min={80} max={160} step={5}
+                value={flowBarPrefs.chatFontScale}
+                onChange={(e) => setFlowBarPrefs(p => ({ ...p, chatFontScale: Number(e.target.value) }))}
+                className="w-full accent-primary"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold mb-1.5 block">Cor dos botões</Label>
+              <div className="flex gap-2 flex-wrap">
+                {Object.keys(FLOW_BAR_COLORS).map((colorKey) => (
+                  <button
+                    key={colorKey}
+                    type="button"
+                    onClick={() => setFlowBarPrefs(p => ({ ...p, color: colorKey }))}
+                    className={cn(
+                      'h-8 px-3 rounded-md border font-bold text-xs capitalize transition-all',
+                      FLOW_BAR_COLORS[colorKey].border,
+                      FLOW_BAR_COLORS[colorKey].bg,
+                      FLOW_BAR_COLORS[colorKey].text,
+                      flowBarPrefs.color === colorKey && 'ring-2 ring-offset-1 ring-primary'
+                    )}
+                  >
+                    {colorKey}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold mb-1.5 block">Disposição</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { v: 'scroll', l: 'Rolagem' },
+                  { v: 'one', l: '1+ linhas' },
+                  { v: 'two', l: 'Máx. 2 linhas' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setFlowBarPrefs(p => ({ ...p, layout: opt.v }))}
+                    className={cn(
+                      'h-9 rounded-md border text-xs font-bold transition-all',
+                      flowBarPrefs.layout === opt.v
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/30 hover:bg-muted/60 border-border/40'
+                    )}
+                  >
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold mb-1.5 block">Ordem dos botões</Label>
+              <div className="border rounded-md divide-y max-h-56 overflow-y-auto">
+                {(() => {
+                  const activeFlows = flows.filter(f => f.is_active);
+                  const order = flowBarPrefs.order || [];
+                  const ordered = [...activeFlows].sort((a, b) => {
+                    const ia = order.indexOf(a.id); const ib = order.indexOf(b.id);
+                    if (ia === -1 && ib === -1) return 0;
+                    if (ia === -1) return 1;
+                    if (ib === -1) return -1;
+                    return ia - ib;
+                  });
+                  const move = (idx: number, dir: -1 | 1) => {
+                    const arr = ordered.map(f => f.id);
+                    const ni = idx + dir;
+                    if (ni < 0 || ni >= arr.length) return;
+                    [arr[idx], arr[ni]] = [arr[ni], arr[idx]];
+                    setFlowBarPrefs(p => ({ ...p, order: arr }));
+                  };
+                  if (ordered.length === 0) {
+                    return <div className="p-3 text-xs text-muted-foreground text-center">Nenhum fluxo ativo</div>;
+                  }
+                  return ordered.map((f, idx) => (
+                    <div key={f.id} className="flex items-center gap-2 px-2 py-1.5">
+                      <span className="text-[10px] text-muted-foreground tabular-nums w-5">{idx + 1}.</span>
+                      <span className="text-xs font-medium flex-1 truncate">{f.name}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => move(idx, -1)} disabled={idx === 0}>
+                        <LucideIcons.ChevronUp className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => move(idx, 1)} disabled={idx === ordered.length - 1}>
+                        <LucideIcons.ChevronDown className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setFlowBarPrefs({ size: 100, color: 'blue', layout: 'scroll', chatFontScale: 100, order: [] })}
+            >
+              Restaurar padrão
+            </Button>
+            <Button onClick={() => setFlowBarSettingsOpen(false)}>Concluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
