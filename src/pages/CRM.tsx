@@ -414,6 +414,7 @@ const CRM = () => {
   const [draggedContact, setDraggedContact] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const selectedContactRef = useRef<any>(null);
+  const sendQueueRef = useRef<Record<string, Promise<void>>>({});
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const chatMessagesRef = useRef<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
