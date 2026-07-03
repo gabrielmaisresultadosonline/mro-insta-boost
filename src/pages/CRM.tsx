@@ -337,6 +337,28 @@ const CRM = () => {
   });
   const [whatsAppConnectionConfirmed, setWhatsAppConnectionConfirmed] = useState(false);
 
+  // ---- Flow shortcut bar preferences (persisted in localStorage per profile) ----
+  const FLOW_BAR_PREFS_KEY = 'crm_flow_bar_prefs_v1';
+  const FLOW_BAR_COLORS: Record<string, { border: string; bg: string; text: string; hover: string }> = {
+    blue:   { border: 'border-blue-500/20',   bg: 'bg-blue-500/5',   text: 'text-blue-600',   hover: 'hover:bg-blue-500 hover:text-white hover:border-blue-500' },
+    green:  { border: 'border-green-500/20',  bg: 'bg-green-500/5',  text: 'text-green-600',  hover: 'hover:bg-green-500 hover:text-white hover:border-green-500' },
+    purple: { border: 'border-purple-500/20', bg: 'bg-purple-500/5', text: 'text-purple-600', hover: 'hover:bg-purple-500 hover:text-white hover:border-purple-500' },
+    orange: { border: 'border-orange-500/20', bg: 'bg-orange-500/5', text: 'text-orange-600', hover: 'hover:bg-orange-500 hover:text-white hover:border-orange-500' },
+    pink:   { border: 'border-pink-500/20',   bg: 'bg-pink-500/5',   text: 'text-pink-600',   hover: 'hover:bg-pink-500 hover:text-white hover:border-pink-500' },
+    red:    { border: 'border-red-500/20',    bg: 'bg-red-500/5',    text: 'text-red-600',    hover: 'hover:bg-red-500 hover:text-white hover:border-red-500' },
+  };
+  const [flowBarPrefs, setFlowBarPrefs] = useState<{ size: number; color: string; layout: 'scroll' | 'one' | 'two'; chatFontScale: number; order: string[] }>(() => {
+    try {
+      const raw = localStorage.getItem(FLOW_BAR_PREFS_KEY);
+      if (raw) return { size: 100, color: 'blue', layout: 'scroll', chatFontScale: 100, order: [], ...JSON.parse(raw) };
+    } catch {}
+    return { size: 100, color: 'blue', layout: 'scroll', chatFontScale: 100, order: [] };
+  });
+  useEffect(() => {
+    try { localStorage.setItem(FLOW_BAR_PREFS_KEY, JSON.stringify(flowBarPrefs)); } catch {}
+  }, [flowBarPrefs]);
+  const [flowBarSettingsOpen, setFlowBarSettingsOpen] = useState(false);
+
   const [metrics, setMetrics] = useState<any>({
     sent_count: 0,
     responded_count: 0,
