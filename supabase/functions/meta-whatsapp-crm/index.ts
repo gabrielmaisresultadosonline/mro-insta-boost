@@ -1029,7 +1029,24 @@ else if (message.type === "unsupported") {
   const isAiHandling = contact?.flow_state === 'ai_handling';
   const isAiActive = contact?.ai_active === true;
   const isWaitingResponse = contact?.flow_state === 'waiting_response';
-  const hasActiveFlow = !!contact?.current_flow_id;
+  // Only treat as "active flow" when there's a flow AND the state is not idle/completed.
+  // Without this, contacts whose previous flow ended but left `current_flow_id` set
+  // would never trigger any new flow on inbound messages (silent stuck state).
+  const _flowState = contact?.flow_state;
+  const _isFlowEnded = !_flowState || _flowState === 'idle' || _flowState === 'completed' || _flowState === 'ended' || _flowState === 'finished';
+  const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded;
+  if (contact?.current_flow_id && _isFlowEnded) {
+    console.log(`[TRIGGER-GUARD] Contact ${contact.id} has stale current_flow_id with flow_state=${_flowState}. Clearing to allow new triggers.`);
+    await supabase.from('crm_contacts').update({
+      current_flow_id: null,
+      current_node_id: null,
+      flow_timeout_node_id: null,
+      flow_timeout_minutes: null,
+      next_execution_time: null,
+    }).eq('id', contact.id);
+    contact.current_flow_id = null;
+    contact.current_node_id = null;
+  }
 
   // Mensagem vinda de anúncio (CTWA/referral) deve ter prioridade sobre IA ativa.
   // Sem isso, contatos com ai_active=true eram enviados para o agente antes do gatilho automático.
