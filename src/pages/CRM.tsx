@@ -7202,8 +7202,9 @@ const CRM = () => {
                   {(() => {
                     const isSynced = (c: any) => !!(c.google_sync_account_id || c.metadata?.google_resource_name);
                     const hasRealName = (c: any) => !!(c.name && c.name.trim() && c.name.trim() !== c.wa_id);
+                    const isDirty = (c: any) => !!c.metadata?.google_dirty;
                     const synced = contacts.filter(isSynced);
-                    const pendingNamed = contacts.filter(c => !isSynced(c) && hasRealName(c));
+                    const pendingNamed = contacts.filter(c => hasRealName(c) && (!isSynced(c) || isDirty(c)));
                     const filtered = synced.filter(c => {
                       if (contactListSearch === 'all') return true;
                       const q = contactListSearch.toLowerCase();
