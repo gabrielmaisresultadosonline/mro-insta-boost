@@ -4506,7 +4506,8 @@ const CRM = () => {
                         return (
                           <div
                             key="__geral__"
-                            className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden"
+                            className="shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden"
+                            style={{ width: kanbanPrefs.colWidth }}
                             onDragOver={e => e.preventDefault()}
                             onDrop={() => handleDrop('new')}
                           >
@@ -4557,7 +4558,8 @@ const CRM = () => {
                       {kanbanStatuses.filter(s => s.value !== 'human' && s.value !== 'new').map(status => (
                       <div 
                         key={status.value} 
-                        className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden" 
+                        className="shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden" 
+                        style={{ width: kanbanPrefs.colWidth }}
                         onDragOver={e => e.preventDefault()} 
                         onDrop={() => handleDrop(status.value)}
                       >
