@@ -2604,8 +2604,28 @@ const CRM = () => {
   };
 
   const startRecording = async () => {
+    // Cleanup: garante que qualquer gravação/stream anterior seja liberado
+    // antes de pedir microfone novamente (browsers travam o mic se um stream
+    // anterior nao foi fechado — motivo pelo qual "recarregar a página" resolve).
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (mediaRecorder) {
+        try { (mediaRecorder as any).stop?.(); } catch {}
+        try { (mediaRecorder as any).close?.(); } catch {}
+        setMediaRecorder(null);
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      setIsRecording(false);
+    } catch {}
+
+    let stream: MediaStream | null = null;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Navegador nao suporta captura de microfone');
+      }
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       const { default: Recorder } = await import('opus-recorder');
       const recorder: any = new Recorder({
@@ -2619,6 +2639,7 @@ const CRM = () => {
 
       console.log(`[RECORDER] Iniciando gravação PTT com Opus-Recorder.`);
       
+      const activeStream = stream;
       recorder.ondataavailable = (typedArray: Uint8Array) => {
         const buf = typedArray.buffer.slice(typedArray.byteOffset, typedArray.byteOffset + typedArray.byteLength) as ArrayBuffer;
         const audioBlob = new Blob([buf], { type: 'audio/ogg; codecs=opus' });
@@ -2629,9 +2650,12 @@ const CRM = () => {
         setRecordedAudioUrl(audioUrl);
         setIsPreviewingAudio(true);
         
-        stream.getTracks().forEach(track => track.stop());
+        activeStream.getTracks().forEach(track => track.stop());
+        try { (recorder as any).close?.(); } catch {}
       };
 
+      // Alguns browsers suspendem o AudioContext interno — garante retomada
+      try { await (recorder as any).audioContext?.resume?.(); } catch {}
       await recorder.start();
       setMediaRecorder(recorder);
       setIsRecording(true);
@@ -2641,6 +2665,10 @@ const CRM = () => {
       }, 1000);
     } catch (err) {
       console.error('Error starting recording:', err);
+      // Libera o stream caso getUserMedia tenha sucedido mas o recorder falhou
+      if (stream) {
+        try { stream.getTracks().forEach(t => t.stop()); } catch {}
+      }
       toast({ title: "Erro ao acessar microfone", variant: "destructive" });
     }
   };
