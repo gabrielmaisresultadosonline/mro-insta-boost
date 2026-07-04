@@ -5096,13 +5096,13 @@ const CRM = () => {
                                       size="icon"
                                        className={cn(
                                          "h-6 w-6 rounded-full transition-all shrink-0",
-                                         selectedContact.ai_active ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20" : "text-muted-foreground bg-muted hover:bg-muted/80 grayscale"
+                                         (selectedContact.ai_active && (metaSettings.ai_agent_enabled || (selectedContact.metadata as any)?.manual_ai_activation === true)) ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20" : "text-muted-foreground bg-muted hover:bg-muted/80 grayscale"
                                        )}
                                       onClick={async () => {
                                         const newStatus = !selectedContact.ai_active;
                                         await updateContactStatus(selectedContact.id, { ai_active: newStatus });
                                       }}
-                                      title={selectedContact.ai_active ? "Desativar Agente IA" : "Ativar Agente IA"}
+                                      title={(selectedContact.ai_active && (metaSettings.ai_agent_enabled || (selectedContact.metadata as any)?.manual_ai_activation === true)) ? "Desativar Agente IA" : "Ativar Agente IA"}
                                     >
                                       <Bot className="w-3.5 h-3.5" />
                                     </Button>
@@ -5151,27 +5151,27 @@ const CRM = () => {
                               </div>
                             </div>
 
-                            {((selectedContact.flow_state && selectedContact.flow_state !== 'idle') || (selectedContact.ai_active && metaSettings.ai_agent_enabled)) && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000)) && (
+                            {(() => { const aiFunctional = selectedContact.ai_active && (metaSettings.ai_agent_enabled || (selectedContact.metadata as any)?.manual_ai_activation === true); return ((selectedContact.flow_state && selectedContact.flow_state !== 'idle') || aiFunctional) && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000)) && (
                               <div className={cn(
                                 "flex items-center justify-between gap-2 px-2 py-1 rounded-lg border",
-                                selectedContact.ai_active ? "bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30" : "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30"
+                                aiFunctional ? "bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30" : "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30"
                               )}>
                                 <div className="flex items-center gap-2 min-w-0">
                                   <div className={cn(
                                     "w-1.5 h-1.5 rounded-full shrink-0", 
-                                    selectedContact.ai_active ? "bg-blue-500" : "bg-red-500",
+                                    aiFunctional ? "bg-blue-500" : "bg-red-500",
                                     selectedContact.flow_state === 'error' ? "animate-pulse" : "animate-ping"
                                   )} />
                                   <span className={cn(
                                     "text-[10px] font-bold truncate",
-                                    selectedContact.ai_active ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
+                                    aiFunctional ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
                                   )}>
-                                    {selectedContact.ai_active ? 'Agente IA Ativado' : (selectedContact.flow_state === 'error' ? 'Erro no Fluxo' : 'Fluxo Ativo')}
+                                    {aiFunctional ? 'Agente IA Ativado' : (selectedContact.flow_state === 'error' ? 'Erro no Fluxo' : 'Fluxo Ativo')}
                                     {selectedContact.current_step_name && <span className="ml-1 opacity-70">({selectedContact.current_step_name})</span>}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
-                                  {selectedContact.ai_active ? (
+                                  {aiFunctional ? (
                                     <Button 
                                       variant="ghost" 
                                       size="icon" 
@@ -5193,7 +5193,7 @@ const CRM = () => {
                                   )}
                                 </div>
                               </div>
-                            )}
+                            ); })()}
                           </div>
                           
                           <div className={cn(
