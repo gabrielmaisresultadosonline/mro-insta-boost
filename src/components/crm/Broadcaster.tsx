@@ -764,6 +764,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                       ) : (
                         <>
                           <SelectItem value="conversation">Contatos em Janela de 24h (Grátis)</SelectItem>
+                          <SelectItem value="tag_24h">Por Etiquetas (dentro de 24h)</SelectItem>
                         </>
                       )}
                     </SelectContent>
@@ -771,6 +772,58 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                 </div>
 
               </div>
+
+              {targetType === 'tag_24h' && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 p-3 bg-[#202c33] rounded-xl border border-white/5">
+                  <Label className="text-xs md:text-sm flex items-center gap-2 text-white">
+                    <Bookmark className="w-3.5 h-3.5 text-[#00a884]" /> Selecione uma ou mais Etiquetas
+                  </Label>
+                  <p className="text-[10px] text-white/40">
+                    Enviaremos apenas para contatos com essas etiquetas <b>que estão dentro da janela de 24h</b>. Os que estiverem fora serão avisados no relatório.
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {statuses.length === 0 && (
+                      <span className="text-[10px] text-white/40 italic">Nenhuma etiqueta cadastrada.</span>
+                    )}
+                    {statuses.map((s: any) => {
+                      const val = s.value || s.name;
+                      const active = selectedTags24h.includes(val);
+                      return (
+                        <button
+                          key={s.id || val}
+                          type="button"
+                          onClick={() =>
+                            setSelectedTags24h(prev =>
+                              prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]
+                            )
+                          }
+                          className={cn(
+                            "px-2.5 py-1 rounded-full text-[10px] md:text-xs font-medium border transition-all",
+                            active
+                              ? "bg-[#00a884] text-white border-[#00a884]"
+                              : "bg-transparent text-white/70 border-white/15 hover:border-[#00a884]/60"
+                          )}
+                          style={active && s.color ? { backgroundColor: s.color, borderColor: s.color } : undefined}
+                        >
+                          {s.label || s.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedTags24h.length > 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-2">
+                      <span className="text-[10px] text-[#00a884]">
+                        ✓ {finalRecipients.length} dentro da janela de 24h
+                      </span>
+                      {outOf24hByTag > 0 && (
+                        <span className="text-[10px] text-yellow-500">
+                          ⚠ {outOf24hByTag} fora das 24h (serão ignorados)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {targetType === 'tag' && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
