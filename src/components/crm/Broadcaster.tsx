@@ -58,8 +58,9 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   // New campaign state
   const [name, setName] = useState('');
   const [type, setType] = useState<'message' | 'template' | 'flow'>('message');
-  const [targetType, setTargetType] = useState<'contacts' | 'conversation' | 'uploaded' | 'tag'>('contacts');
+  const [targetType, setTargetType] = useState<'contacts' | 'conversation' | 'uploaded' | 'tag' | 'tag_24h'>('contacts');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedTags24h, setSelectedTags24h] = useState<string[]>([]);
   const [messageText, setMessageText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [selectedFlow, setSelectedFlow] = useState('');
@@ -135,6 +136,13 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     if (targetType === 'tag' && selectedStatus) {
       return contacts.filter(c => c.status === selectedStatus).map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
     }
+    if (targetType === 'tag_24h') {
+      if (selectedTags24h.length === 0) return [];
+      return contacts
+        .filter(c => selectedTags24h.includes(c.status))
+        .filter(c => c.last_message_received_at && (now - new Date(c.last_message_received_at).getTime()) < DAY)
+        .map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
+    }
     if (targetType === 'uploaded') {
       return uploadedNumbers.split('\n').map(n => {
         const digits = n.trim().replace(/\D/g, '');
@@ -145,7 +153,18 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       }).filter(Boolean) as { wa_id: string; name: string }[];
     }
     return [];
-  }, [targetType, selectedStatus, contacts, uploadedNumbers, conversationTagFilter]);
+  }, [targetType, selectedStatus, contacts, uploadedNumbers, conversationTagFilter, selectedTags24h]);
+
+  // Count contacts matching selected tags that are OUT of the 24h window (informational)
+  const outOf24hByTag = useMemo(() => {
+    if (targetType !== 'tag_24h' || selectedTags24h.length === 0) return 0;
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    return contacts.filter(c =>
+      selectedTags24h.includes(c.status) &&
+      (!c.last_message_received_at || now - new Date(c.last_message_received_at).getTime() >= DAY)
+    ).length;
+  }, [contacts, selectedTags24h, targetType]);
 
   const finalRecipients = useMemo(
     () => {
