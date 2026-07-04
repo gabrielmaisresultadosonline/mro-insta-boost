@@ -690,14 +690,15 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     <span className="text-[10px] text-white/40 italic">Nenhuma etiqueta cadastrada no CRM.</span>
                   )}
                   {statuses.map((s: any) => {
-                    const active = countdownStatusFilter.includes(s.name);
+                    const val = s.value || s.name;
+                    const active = countdownStatusFilter.includes(val);
                     return (
                       <button
-                        key={s.id || s.name}
+                        key={s.id || val}
                         type="button"
                         onClick={() =>
                           setCountdownStatusFilter(prev =>
-                            prev.includes(s.name) ? prev.filter(x => x !== s.name) : [...prev, s.name]
+                            prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]
                           )
                         }
                         className={cn(
@@ -708,7 +709,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                         )}
                         style={active && s.color ? { backgroundColor: s.color, borderColor: s.color } : undefined}
                       >
-                        {s.name}
+                        {s.label || s.name || val}
                       </button>
                     );
                   })}
