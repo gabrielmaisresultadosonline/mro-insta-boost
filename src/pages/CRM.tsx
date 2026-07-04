@@ -7202,8 +7202,9 @@ const CRM = () => {
                   {(() => {
                     const isSynced = (c: any) => !!(c.google_sync_account_id || c.metadata?.google_resource_name);
                     const hasRealName = (c: any) => !!(c.name && c.name.trim() && c.name.trim() !== c.wa_id);
+                    const isDirty = (c: any) => !!c.metadata?.google_dirty;
                     const synced = contacts.filter(isSynced);
-                    const pendingNamed = contacts.filter(c => !isSynced(c) && hasRealName(c));
+                    const pendingNamed = contacts.filter(c => hasRealName(c) && (!isSynced(c) || isDirty(c)));
                     const filtered = synced.filter(c => {
                       if (contactListSearch === 'all') return true;
                       const q = contactListSearch.toLowerCase();
@@ -8303,10 +8304,24 @@ const CRM = () => {
               onClick={async () => {
                 const { id, ...rest } = contactToView;
                 if (id) {
-                  await supabase.from('crm_contacts').update({ 
+                  // Detect changes that must be re-sent to Google Contacts.
+                  const original = contacts.find((c: any) => c.id === id);
+                  const nameChanged = (original?.name || '') !== (contactToView.name || '');
+                  const phoneChanged = (original?.wa_id || '') !== (contactToView.wa_id || '');
+                  const isSyncedToGoogle = !!(original?.google_sync_account_id || original?.metadata?.google_resource_name);
+                  const nextMetadata: any = { ...(contactToView.metadata || {}) };
+                  if (isSyncedToGoogle && (nameChanged || phoneChanged)) {
+                    nextMetadata.google_dirty = true;
+                  }
+                  await supabase.from('crm_contacts').update({
                     name: contactToView.name,
-                    metadata: contactToView.metadata 
+                    metadata: nextMetadata,
+                    updated_at: new Date().toISOString(),
                   }).eq('id', id);
+                  // Trigger an immediate silent push so Google is updated in <1min.
+                  if (isSyncedToGoogle && (nameChanged || phoneChanged) && metaSettings.google_auto_sync) {
+                    supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'syncPendingToGoogle' } }).catch(() => {});
+                  }
                 } else {
                   const { error } = await supabase.from('crm_contacts').insert([{
                     name: contactToView.name,
