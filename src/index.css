@@ -492,3 +492,22 @@
 }
 .crm-theme-light .bg-primary,
 .crm-theme-light .bg-primary * { color: #ffffff !important; }
+
+/* Kanban horizontal scrollbar — always visible for lateral navigation */
+.kanban-scroll::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+  -webkit-appearance: none;
+}
+.kanban-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.4);
+  border-radius: 8px;
+}
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.7);
+  border-radius: 8px;
+  border: 2px solid hsl(var(--muted) / 0.4);
+}
+.kanban-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
