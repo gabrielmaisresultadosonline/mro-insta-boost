@@ -4322,7 +4322,9 @@ async function fetchAndStoreIncomingMedia(
       let pushed = 0;
       let failed = 0;
 
-      for (const c of list) {
+      // Paralelizar em lotes para acelerar (Google People aguenta bem 10 req simultâneas)
+      const CONCURRENCY = 10;
+      const processOne = async (c: any) => {
         try {
           // Overwrite: if it already exists on Google, delete the old entry first
           const oldResource = (c as any)?.metadata?.google_resource_name;
@@ -4361,6 +4363,10 @@ async function fetchAndStoreIncomingMedia(
         } catch (_e) {
           failed++;
         }
+      };
+      for (let i = 0; i < list.length; i += CONCURRENCY) {
+        const slice = list.slice(i, i + CONCURRENCY);
+        await Promise.all(slice.map(processOne));
       }
 
       return new Response(JSON.stringify({ success: true, pushed, failed, pending: list.length }), {
