@@ -9146,6 +9146,57 @@ const CRM = () => {
         </DialogContent>
       </Dialog>
       {/* Configurações da barra de fluxos */}
+      {/* Histórico de mensagens apagadas */}
+      <Dialog open={deletedHistoryOpen} onOpenChange={setDeletedHistoryOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <HistoryIcon className="w-4 h-4" /> Mensagens apagadas
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Histórico das mensagens desta conversa que foram apagadas.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            {deletedHistoryLoading ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>
+            ) : deletedHistoryMessages.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma mensagem apagada nesta conversa.</div>
+            ) : (
+              <ul className="space-y-2 py-2">
+                {deletedHistoryMessages.map((m) => (
+                  <li key={m.id} className="rounded-lg border border-border/40 bg-muted/30 p-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase px-1.5 py-0.5 rounded",
+                        m.direction === 'inbound' ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'
+                      )}>
+                        {m.direction === 'inbound' ? 'Recebida' : 'Enviada'} · {m.message_type || 'text'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {m.deleted_at ? new Date(m.deleted_at).toLocaleString('pt-BR') : ''}
+                      </span>
+                    </div>
+                    {m.content && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
+                    {m.media_url && (
+                      <a href={m.media_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline break-all">
+                        Ver mídia anexada
+                      </a>
+                    )}
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Enviada em {m.created_at ? new Date(m.created_at).toLocaleString('pt-BR') : '—'}
+                      {m.deleted_by ? ` · Apagada por ${m.deleted_by}` : ''}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeletedHistoryOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Configurações do CRM (Kanban) */}
       <Dialog open={kanbanSettingsOpen} onOpenChange={setKanbanSettingsOpen}>
         <DialogContent className="max-w-sm">
