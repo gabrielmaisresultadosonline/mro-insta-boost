@@ -9103,9 +9103,6 @@ const CRM = () => {
         </DialogContent>
       </Dialog>
       {/* Configurações da barra de fluxos */}
-      <Dialog open={flowBarSettingsOpen} onOpenChange={setFlowBarSettingsOpen}>
-        {/* placeholder */}
-      </Dialog>
       {/* Configurações do CRM (Kanban) */}
       <Dialog open={kanbanSettingsOpen} onOpenChange={setKanbanSettingsOpen}>
         <DialogContent className="max-w-sm">
@@ -9152,7 +9149,7 @@ const CRM = () => {
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog open={false} onOpenChange={() => {}}>
+      <Dialog open={flowBarSettingsOpen} onOpenChange={setFlowBarSettingsOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
