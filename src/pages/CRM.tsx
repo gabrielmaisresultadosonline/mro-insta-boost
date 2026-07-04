@@ -323,6 +323,7 @@ const CRM = () => {
     initial_auto_response_enabled: true,
     initial_response_text: '',
     initial_response_buttons: [],
+    save_deleted_messages: false,
     shortcut_size: 100,
     tag_size: 100,
     business_hours_enabled: false,
