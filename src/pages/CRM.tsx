@@ -2028,7 +2028,7 @@ const CRM = () => {
   const fetchMessages = async (contactId: string, silent = false) => {
     if (!contactId) return;
     if (!silent) setLoadingChat(true);
-    const { data } = await supabase.from('crm_messages').select('*').eq('contact_id', contactId).order('created_at', { ascending: true });
+    const { data } = await supabase.from('crm_messages').select('*').eq('contact_id', contactId).or('is_deleted.is.null,is_deleted.eq.false').order('created_at', { ascending: true });
     
     // Only update the UI if the contact is still the one selected
     if (selectedContactRef.current?.id === contactId) {
@@ -2102,8 +2102,18 @@ const CRM = () => {
 
   const handleClearConversation = async (contactId: string) => {
     try {
-      const { error } = await supabase.from('crm_messages').delete().eq('contact_id', contactId);
-      if (error) throw error;
+      if (metaSettings.save_deleted_messages) {
+        // Soft delete: preserve messages in server-side history
+        const { error } = await supabase
+          .from('crm_messages')
+          .update({ is_deleted: true, deleted_at: new Date().toISOString(), deleted_by: 'admin' })
+          .eq('contact_id', contactId)
+          .or('is_deleted.is.null,is_deleted.eq.false');
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('crm_messages').delete().eq('contact_id', contactId);
+        if (error) throw error;
+      }
       if (selectedContactRef.current?.id === contactId) {
         setChatMessages([]);
       }
