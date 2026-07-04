@@ -83,7 +83,8 @@ import {
    ExternalLink,
     Eraser,
     Moon,
-    Sun
+    Sun,
+    History as HistoryIcon
   } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
 const Instagram = (LucideIcons as any).Instagram || Camera;
@@ -323,6 +324,7 @@ const CRM = () => {
     initial_auto_response_enabled: true,
     initial_response_text: '',
     initial_response_buttons: [],
+    save_deleted_messages: false,
     shortcut_size: 100,
     tag_size: 100,
     business_hours_enabled: false,
@@ -372,6 +374,26 @@ const CRM = () => {
     try { localStorage.setItem(KANBAN_PREFS_KEY, JSON.stringify(kanbanPrefs)); } catch {}
   }, [kanbanPrefs]);
   const [kanbanSettingsOpen, setKanbanSettingsOpen] = useState(false);
+  // Deleted messages history (per conversation)
+  const [deletedHistoryOpen, setDeletedHistoryOpen] = useState(false);
+  const [deletedHistoryMessages, setDeletedHistoryMessages] = useState<any[]>([]);
+  const [deletedHistoryLoading, setDeletedHistoryLoading] = useState(false);
+  const openDeletedHistory = async (contactId: string) => {
+    if (!contactId) return;
+    setDeletedHistoryOpen(true);
+    setDeletedHistoryLoading(true);
+    try {
+      const { data } = await supabase
+        .from('crm_messages')
+        .select('*')
+        .eq('contact_id', contactId)
+        .eq('is_deleted', true)
+        .order('deleted_at', { ascending: false });
+      setDeletedHistoryMessages(data || []);
+    } finally {
+      setDeletedHistoryLoading(false);
+    }
+  };
 
   const [metrics, setMetrics] = useState<any>({
     sent_count: 0,
@@ -1760,7 +1782,7 @@ const CRM = () => {
            'ai_agent_trigger','ai_agent_trigger_keyword','ai_agent_prompt','ai_agent_label_on_transfer',
            'auto_generate_strategy','strategy_generation_prompt',
            'initial_auto_response_enabled','initial_response_text','initial_response_buttons','initial_flow_id',
-           'shortcut_size','tag_size',
+            'shortcut_size','tag_size','save_deleted_messages',
            'business_hours_enabled','business_hours_start','business_hours_end','business_hours_tz',
            'outside_hours_message','business_description',
            'countdown_trigger_enabled','countdown_trigger_flow_id','countdown_trigger_template_id',
@@ -2007,7 +2029,7 @@ const CRM = () => {
   const fetchMessages = async (contactId: string, silent = false) => {
     if (!contactId) return;
     if (!silent) setLoadingChat(true);
-    const { data } = await supabase.from('crm_messages').select('*').eq('contact_id', contactId).order('created_at', { ascending: true });
+    const { data } = await supabase.from('crm_messages').select('*').eq('contact_id', contactId).or('is_deleted.is.null,is_deleted.eq.false').order('created_at', { ascending: true });
     
     // Only update the UI if the contact is still the one selected
     if (selectedContactRef.current?.id === contactId) {
@@ -2081,8 +2103,18 @@ const CRM = () => {
 
   const handleClearConversation = async (contactId: string) => {
     try {
-      const { error } = await supabase.from('crm_messages').delete().eq('contact_id', contactId);
-      if (error) throw error;
+      if (metaSettings.save_deleted_messages) {
+        // Soft delete: preserve messages in server-side history
+        const { error } = await supabase
+          .from('crm_messages')
+          .update({ is_deleted: true, deleted_at: new Date().toISOString(), deleted_by: 'admin' })
+          .eq('contact_id', contactId)
+          .or('is_deleted.is.null,is_deleted.eq.false');
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('crm_messages').delete().eq('contact_id', contactId);
+        if (error) throw error;
+      }
       if (selectedContactRef.current?.id === contactId) {
         setChatMessages([]);
       }
@@ -5074,6 +5106,17 @@ const CRM = () => {
                                     >
                                       <Bot className="w-3.5 h-3.5" />
                                     </Button>
+                                    {metaSettings.save_deleted_messages && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
+                                        onClick={() => openDeletedHistory(selectedContact.id)}
+                                        title="Histórico de mensagens apagadas"
+                                      >
+                                        <HistoryIcon className="w-3.5 h-3.5" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -6454,6 +6497,43 @@ const CRM = () => {
                               <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
                                 {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                                 Salvar Horário
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </AccordionContent>
+                      </Card>
+                    </AccordionItem>
+
+                    {/* Histórico de mensagens apagadas (toggle) */}
+                    <AccordionItem value="deleted-history" className="border-none">
+                      <Card className="rounded-2xl shadow-sm border overflow-hidden">
+                        <CardHeader className="bg-primary/5 border-b p-0">
+                          <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-primary transition-all">
+                            <div className="flex flex-col items-start text-left gap-1">
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                <HistoryIcon className="w-5 h-5 text-primary" /> Histórico de Mensagens Apagadas
+                              </CardTitle>
+                              <CardDescription>Salvar no servidor todas as mensagens apagadas de cada conversa</CardDescription>
+                            </div>
+                          </AccordionTrigger>
+                        </CardHeader>
+                        <AccordionContent>
+                          <CardContent className="p-6 space-y-4 pt-6">
+                            <p className="text-sm text-muted-foreground">
+                              Quando ativo, mensagens apagadas (pelo contato ou por você) ficam guardadas por conversa.
+                              Um pequeno ícone <HistoryIcon className="inline w-3 h-3" /> aparece no topo do chat para consultar o histórico.
+                            </p>
+                            <div className="flex items-center justify-between pt-2 border-t">
+                              <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-lg">
+                                <Label className="text-xs font-bold">Ativar</Label>
+                                <Switch
+                                  checked={!!metaSettings.save_deleted_messages}
+                                  onCheckedChange={(val) => setMetaSettings({ ...metaSettings, save_deleted_messages: val })}
+                                />
+                              </div>
+                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
+                                {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Salvar
                               </Button>
                             </div>
                           </CardContent>
@@ -9103,6 +9183,57 @@ const CRM = () => {
         </DialogContent>
       </Dialog>
       {/* Configurações da barra de fluxos */}
+      {/* Histórico de mensagens apagadas */}
+      <Dialog open={deletedHistoryOpen} onOpenChange={setDeletedHistoryOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <HistoryIcon className="w-4 h-4" /> Mensagens apagadas
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Histórico das mensagens desta conversa que foram apagadas.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            {deletedHistoryLoading ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>
+            ) : deletedHistoryMessages.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma mensagem apagada nesta conversa.</div>
+            ) : (
+              <ul className="space-y-2 py-2">
+                {deletedHistoryMessages.map((m) => (
+                  <li key={m.id} className="rounded-lg border border-border/40 bg-muted/30 p-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase px-1.5 py-0.5 rounded",
+                        m.direction === 'inbound' ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'
+                      )}>
+                        {m.direction === 'inbound' ? 'Recebida' : 'Enviada'} · {m.message_type || 'text'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {m.deleted_at ? new Date(m.deleted_at).toLocaleString('pt-BR') : ''}
+                      </span>
+                    </div>
+                    {m.content && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
+                    {m.media_url && (
+                      <a href={m.media_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline break-all">
+                        Ver mídia anexada
+                      </a>
+                    )}
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      Enviada em {m.created_at ? new Date(m.created_at).toLocaleString('pt-BR') : '—'}
+                      {m.deleted_by ? ` · Apagada por ${m.deleted_by}` : ''}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeletedHistoryOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Configurações do CRM (Kanban) */}
       <Dialog open={kanbanSettingsOpen} onOpenChange={setKanbanSettingsOpen}>
         <DialogContent className="max-w-sm">

@@ -1178,10 +1178,13 @@ export type Database = {
           contact_id: string | null
           content: string | null
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           direction: string | null
           error_code: string | null
           error_message: string | null
           id: string
+          is_deleted: boolean
           media_url: string | null
           message_type: string | null
           meta_message_id: string | null
@@ -1193,10 +1196,13 @@ export type Database = {
           contact_id?: string | null
           content?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           direction?: string | null
           error_code?: string | null
           error_message?: string | null
           id?: string
+          is_deleted?: boolean
           media_url?: string | null
           message_type?: string | null
           meta_message_id?: string | null
@@ -1208,10 +1214,13 @@ export type Database = {
           contact_id?: string | null
           content?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           direction?: string | null
           error_code?: string | null
           error_message?: string | null
           id?: string
+          is_deleted?: boolean
           media_url?: string | null
           message_type?: string | null
           meta_message_id?: string | null
@@ -1447,6 +1456,7 @@ export type Database = {
           meta_waba_id: string | null
           openai_api_key: string | null
           outside_hours_message: string | null
+          save_deleted_messages: boolean
           shortcut_size: number | null
           strategy_generation_prompt: string | null
           tag_size: number | null
@@ -1496,6 +1506,7 @@ export type Database = {
           meta_waba_id?: string | null
           openai_api_key?: string | null
           outside_hours_message?: string | null
+          save_deleted_messages?: boolean
           shortcut_size?: number | null
           strategy_generation_prompt?: string | null
           tag_size?: number | null
@@ -1545,6 +1556,7 @@ export type Database = {
           meta_waba_id?: string | null
           openai_api_key?: string | null
           outside_hours_message?: string | null
+          save_deleted_messages?: boolean
           shortcut_size?: number | null
           strategy_generation_prompt?: string | null
           tag_size?: number | null
