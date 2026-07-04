@@ -1761,7 +1761,7 @@ const CRM = () => {
            'ai_agent_trigger','ai_agent_trigger_keyword','ai_agent_prompt','ai_agent_label_on_transfer',
            'auto_generate_strategy','strategy_generation_prompt',
            'initial_auto_response_enabled','initial_response_text','initial_response_buttons','initial_flow_id',
-           'shortcut_size','tag_size',
+            'shortcut_size','tag_size','save_deleted_messages',
            'business_hours_enabled','business_hours_start','business_hours_end','business_hours_tz',
            'outside_hours_message','business_description',
            'countdown_trigger_enabled','countdown_trigger_flow_id','countdown_trigger_template_id',
