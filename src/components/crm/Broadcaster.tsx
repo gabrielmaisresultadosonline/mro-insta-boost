@@ -294,6 +294,19 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
 
       if (targetType === 'conversation') {
         numbers = curated;
+      } else if (targetType === 'tag_24h') {
+        if (selectedTags24h.length === 0) {
+          toast({ title: "Selecione ao menos uma etiqueta", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+        numbers = curated;
+        if (outOf24hByTag > 0) {
+          toast({
+            title: `${outOf24hByTag} contato(s) fora das 24h`,
+            description: `Foram ignorados pois não estão mais na janela ativa. Use um Template para falar com eles.`,
+          });
+        }
       } else {
         // Lista Geral/Etiqueta/Upload
         let potentialNumbers: string[] = curated;
