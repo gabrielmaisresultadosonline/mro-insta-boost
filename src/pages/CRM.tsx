@@ -6504,6 +6504,43 @@ const CRM = () => {
                       </Card>
                     </AccordionItem>
 
+                    {/* Histórico de mensagens apagadas (toggle) */}
+                    <AccordionItem value="deleted-history" className="border-none">
+                      <Card className="rounded-2xl shadow-sm border overflow-hidden">
+                        <CardHeader className="bg-primary/5 border-b p-0">
+                          <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-primary transition-all">
+                            <div className="flex flex-col items-start text-left gap-1">
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                <HistoryIcon className="w-5 h-5 text-primary" /> Histórico de Mensagens Apagadas
+                              </CardTitle>
+                              <CardDescription>Salvar no servidor todas as mensagens apagadas de cada conversa</CardDescription>
+                            </div>
+                          </AccordionTrigger>
+                        </CardHeader>
+                        <AccordionContent>
+                          <CardContent className="p-6 space-y-4 pt-6">
+                            <p className="text-sm text-muted-foreground">
+                              Quando ativo, mensagens apagadas (pelo contato ou por você) ficam guardadas por conversa.
+                              Um pequeno ícone <HistoryIcon className="inline w-3 h-3" /> aparece no topo do chat para consultar o histórico.
+                            </p>
+                            <div className="flex items-center justify-between pt-2 border-t">
+                              <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-lg">
+                                <Label className="text-xs font-bold">Ativar</Label>
+                                <Switch
+                                  checked={!!metaSettings.save_deleted_messages}
+                                  onCheckedChange={(val) => setMetaSettings({ ...metaSettings, save_deleted_messages: val })}
+                                />
+                              </div>
+                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
+                                {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Salvar
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </AccordionContent>
+                      </Card>
+                    </AccordionItem>
+
                     <AccordionItem value="brain" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
                         <CardHeader className="bg-primary/5 border-b p-0">
