@@ -83,7 +83,8 @@ import {
    ExternalLink,
     Eraser,
     Moon,
-    Sun
+    Sun,
+    History as HistoryIcon
   } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
 const Instagram = (LucideIcons as any).Instagram || Camera;
