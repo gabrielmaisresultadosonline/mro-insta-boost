@@ -359,6 +359,20 @@ const CRM = () => {
   }, [flowBarPrefs]);
   const [flowBarSettingsOpen, setFlowBarSettingsOpen] = useState(false);
 
+  // Kanban view prefs (column width + font scale)
+  const KANBAN_PREFS_KEY = 'crm_kanban_prefs_v1';
+  const [kanbanPrefs, setKanbanPrefs] = useState<{ colWidth: number; fontScale: number }>(() => {
+    try {
+      const raw = localStorage.getItem(KANBAN_PREFS_KEY);
+      if (raw) return { colWidth: 288, fontScale: 100, ...JSON.parse(raw) };
+    } catch {}
+    return { colWidth: 288, fontScale: 100 };
+  });
+  useEffect(() => {
+    try { localStorage.setItem(KANBAN_PREFS_KEY, JSON.stringify(kanbanPrefs)); } catch {}
+  }, [kanbanPrefs]);
+  const [kanbanSettingsOpen, setKanbanSettingsOpen] = useState(false);
+
   const [metrics, setMetrics] = useState<any>({
     sent_count: 0,
     responded_count: 0,
