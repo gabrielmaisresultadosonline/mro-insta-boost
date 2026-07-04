@@ -720,21 +720,21 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
 
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
-      <header className="border-b p-4 flex items-center justify-between bg-card">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onClose}><X className="w-5 h-5" /></Button>
-          <div className="space-y-1">
+      <header className="border-b p-2 md:p-4 flex flex-wrap items-center justify-between gap-2 bg-card">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
+          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0"><X className="w-5 h-5" /></Button>
+          <div className="space-y-1 min-w-0 flex-1">
             <Input 
               value={flowName} 
               onChange={(e) => setFlowName(e.target.value)}
-              className="font-bold border-none h-auto p-0 focus-visible:ring-0 text-lg"
+              className="font-bold border-none h-auto p-0 focus-visible:ring-0 text-base md:text-lg truncate"
             />
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              Editor de Fluxo Visual
+            <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+              <span className="hidden sm:inline">Editor de Fluxo Visual</span>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-6 px-2 text-[10px] gap-1 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 ml-2" 
+                className="h-6 px-2 text-[10px] gap-1 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 sm:ml-2" 
                 onClick={() => setSelectedNode(null)}
               >
                 <Zap className="w-3 h-3" /> Configurar Gatilho
@@ -742,19 +742,23 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-amber-500 border-amber-500/20 bg-amber-500/5 mr-4">
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
+          <Badge variant="outline" className="hidden lg:inline-flex text-amber-500 border-amber-500/20 bg-amber-500/5 mr-4">
             <Zap className="w-3 h-3 mr-1" /> Mensagens após 24h serão Marketing (Pago)
           </Badge>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700">
-            <Save className="w-4 h-4 mr-2" /> Salvar Fluxo
+          <Button variant="outline" size="sm" onClick={onClose} className="h-9 px-2 md:px-4">
+            <X className="w-4 h-4 md:hidden" />
+            <span className="hidden md:inline">Cancelar</span>
+          </Button>
+          <Button size="sm" onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700 h-9 px-2 md:px-4">
+            <Save className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Salvar Fluxo</span>
           </Button>
         </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-64 border-r bg-card/50 p-4 space-y-6 overflow-y-auto">
+        <aside className="w-40 sm:w-52 md:w-64 border-r bg-card/50 p-2 md:p-4 space-y-6 overflow-y-auto shrink-0">
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Adicionar Blocos</h3>
