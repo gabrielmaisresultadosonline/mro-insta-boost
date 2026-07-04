@@ -4456,6 +4456,15 @@ const CRM = () => {
                     {kanbanSearch && (
                       <Button size="sm" variant="ghost" onClick={() => setKanbanSearch('')}>Limpar</Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="ml-auto h-9 w-9 p-0"
+                      onClick={() => setKanbanSettingsOpen(true)}
+                      title="Configurar visualização"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
                   </div>
                   <div
                     ref={kanbanScrollRef}
@@ -4463,7 +4472,8 @@ const CRM = () => {
                     onDragLeave={stopKanbanAutoScroll}
                     onDrop={stopKanbanAutoScroll}
                     onDragEnd={stopKanbanAutoScroll}
-                    className="flex-1 overflow-x-auto p-3 md:p-4 flex gap-3 md:gap-4 bg-muted/5 snap-x relative group/kanban"
+                    className="flex-1 overflow-x-auto overflow-y-hidden p-3 md:p-4 flex gap-3 md:gap-4 bg-muted/5 snap-x relative group/kanban [scrollbar-width:thin]"
+                    style={{ fontSize: `${kanbanPrefs.fontScale}%` }}
                   >
                     <div className="absolute top-0 left-0 p-2 z-10 opacity-0 group-hover/kanban:opacity-100 transition-opacity">
                       <Button 
