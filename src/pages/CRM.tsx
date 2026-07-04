@@ -5114,7 +5114,7 @@ const CRM = () => {
                                         onClick={() => openDeletedHistory(selectedContact.id)}
                                         title="Histórico de mensagens apagadas"
                                       >
-                                        <History className="w-3.5 h-3.5" />
+                                        <HistoryIcon className="w-3.5 h-3.5" />
                                       </Button>
                                     )}
                                   </div>
