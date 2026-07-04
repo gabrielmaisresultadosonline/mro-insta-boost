@@ -5105,6 +5105,17 @@ const CRM = () => {
                                     >
                                       <Bot className="w-3.5 h-3.5" />
                                     </Button>
+                                    {metaSettings.save_deleted_messages && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
+                                        onClick={() => openDeletedHistory(selectedContact.id)}
+                                        title="Histórico de mensagens apagadas"
+                                      >
+                                        <History className="w-3.5 h-3.5" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               </div>
