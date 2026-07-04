@@ -1947,8 +1947,8 @@ const CRM = () => {
 
     // Roda imediatamente ao montar/ativar
     silentSync();
-    // E depois a cada 15 segundos para subir pendentes rapidamente
-    const intervalId = window.setInterval(silentSync, 15 * 1000);
+    // E depois a cada 5 segundos para subir pendentes praticamente em tempo real
+    const intervalId = window.setInterval(silentSync, 5 * 1000);
 
     return () => {
       cancelled = true;
