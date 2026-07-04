@@ -1524,14 +1524,22 @@ async function autoPushGoogleContactsForAllUsers(supabase: any) {
     for (const [userId, account] of byUser.entries()) {
       try {
         // Find pending named contacts for this user
-        const { data: pending } = await supabase
+        const { data: pendingNew } = await supabase
           .from('crm_contacts')
-          .select('id, name, wa_id, google_sync_account_id')
+          .select('id, name, wa_id, google_sync_account_id, metadata')
           .eq('user_id', userId)
           .is('google_sync_account_id', null)
           .limit(100);
+        // Also fetch contacts already synced but marked dirty (name/phone edited after sync)
+        const { data: pendingDirty } = await supabase
+          .from('crm_contacts')
+          .select('id, name, wa_id, google_sync_account_id, metadata')
+          .eq('user_id', userId)
+          .not('google_sync_account_id', 'is', null)
+          .eq('metadata->>google_dirty', 'true')
+          .limit(100);
 
-        const list = (pending || []).filter((c: any) => {
+        const list = ([...(pendingNew || []), ...(pendingDirty || [])]).filter((c: any) => {
           const name = (c.name || '').trim();
           if (!name) return false;
           if (name === (c.wa_id || '').trim()) return false;
@@ -1573,6 +1581,16 @@ async function autoPushGoogleContactsForAllUsers(supabase: any) {
 
         for (const c of list) {
           try {
+            // If this contact was already on Google (dirty edit), delete the old entry first
+            const oldResource = (c as any)?.metadata?.google_resource_name;
+            if (oldResource) {
+              try {
+                await fetch(`https://people.googleapis.com/v1/${oldResource}:deleteContact`, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': `Bearer ${accessToken}` },
+                });
+              } catch (_) { /* ignore */ }
+            }
             const resp = await fetch('https://people.googleapis.com/v1/people:createContact', {
               method: 'POST',
               headers: {
@@ -1585,9 +1603,13 @@ async function autoPushGoogleContactsForAllUsers(supabase: any) {
               }),
             });
             if (resp.ok) {
+              const body = await resp.json().catch(() => ({}));
+              const nextMeta = { ...((c as any).metadata || {}), google_resource_name: body?.resourceName || (c as any)?.metadata?.google_resource_name || null };
+              delete nextMeta.google_dirty;
               await supabase.from('crm_contacts').update({
                 google_sync_account_id: account.id,
                 google_synced_at: new Date().toISOString(),
+                metadata: nextMeta,
               }).eq('id', c.id);
             }
           } catch (_) { /* skip */ }
