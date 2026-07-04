@@ -2013,6 +2013,13 @@ const CRM = () => {
       toast({ title: "Status atualizado!" });
       fetchData(false);
 
+      // Dispara sync imediato para o Google quando ativado (não espera o intervalo)
+      if (googleContactsEnabled && metaSettings.google_auto_sync) {
+        supabase.functions.invoke('meta-whatsapp-crm', {
+          body: { action: 'syncPendingToGoogle' }
+        }).catch(() => {});
+      }
+
 
     } catch (err) {
       toast({ title: "Erro ao atualizar", variant: "destructive" });
