@@ -680,10 +680,10 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
 
               <div className="space-y-2 p-3 bg-[#202c33] rounded-xl border border-white/5">
                 <Label className="text-xs md:text-sm flex items-center gap-2 text-white">
-                  <Bookmark className="w-3.5 h-3.5 text-[#00a884]" /> Filtrar por Etiquetas (opcional)
+                  <Bookmark className="w-3.5 h-3.5 text-[#00a884]" /> Destinatários por Etiqueta (opcional)
                 </Label>
                 <p className="text-[10px] text-white/40">
-                  Selecione etiquetas para disparar apenas para contatos com esses status. Se nenhuma for selecionada, dispara para todos dentro da janela.
+                  Selecione uma ou mais etiquetas para que a automação envie <b>apenas</b> para contatos dessas etiquetas que estejam com a janela de 24h prestes a expirar (dentro do tempo restante configurado acima). Se nenhuma for selecionada, dispara para todos que estiverem encerrando as 24h.
                 </p>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {statuses.length === 0 && (
