@@ -4472,8 +4472,8 @@ const CRM = () => {
                     onDragLeave={stopKanbanAutoScroll}
                     onDrop={stopKanbanAutoScroll}
                     onDragEnd={stopKanbanAutoScroll}
-                    className="flex-1 overflow-x-auto overflow-y-hidden p-3 md:p-4 flex gap-3 md:gap-4 bg-muted/5 snap-x relative group/kanban [scrollbar-width:thin]"
-                    style={{ fontSize: `${kanbanPrefs.fontScale}%` }}
+                    className="flex-1 overflow-x-scroll overflow-y-hidden p-3 md:p-4 flex gap-3 md:gap-4 bg-muted/5 snap-x relative group/kanban kanban-scroll"
+                    style={{ fontSize: `${kanbanPrefs.fontScale}%`, scrollbarWidth: 'auto', scrollbarColor: 'hsl(var(--primary)) hsl(var(--muted))' }}
                   >
                     <div className="absolute top-0 left-0 p-2 z-10 opacity-0 group-hover/kanban:opacity-100 transition-opacity">
                       <Button 
