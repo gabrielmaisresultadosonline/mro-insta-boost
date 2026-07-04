@@ -373,6 +373,26 @@ const CRM = () => {
     try { localStorage.setItem(KANBAN_PREFS_KEY, JSON.stringify(kanbanPrefs)); } catch {}
   }, [kanbanPrefs]);
   const [kanbanSettingsOpen, setKanbanSettingsOpen] = useState(false);
+  // Deleted messages history (per conversation)
+  const [deletedHistoryOpen, setDeletedHistoryOpen] = useState(false);
+  const [deletedHistoryMessages, setDeletedHistoryMessages] = useState<any[]>([]);
+  const [deletedHistoryLoading, setDeletedHistoryLoading] = useState(false);
+  const openDeletedHistory = async (contactId: string) => {
+    if (!contactId) return;
+    setDeletedHistoryOpen(true);
+    setDeletedHistoryLoading(true);
+    try {
+      const { data } = await supabase
+        .from('crm_messages')
+        .select('*')
+        .eq('contact_id', contactId)
+        .eq('is_deleted', true)
+        .order('deleted_at', { ascending: false });
+      setDeletedHistoryMessages(data || []);
+    } finally {
+      setDeletedHistoryLoading(false);
+    }
+  };
 
   const [metrics, setMetrics] = useState<any>({
     sent_count: 0,
