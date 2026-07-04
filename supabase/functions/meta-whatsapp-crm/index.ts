@@ -4292,7 +4292,16 @@ async function fetchAndStoreIncomingMedia(
               expiry_date: Date.now() + (refreshTokens.expires_in * 1000),
               updated_at: new Date().toISOString()
             }).eq('id', account.id);
+          } else {
+            console.error('[GOOGLE-SYNC] Falha ao renovar token:', JSON.stringify(refreshTokens));
+            return new Response(JSON.stringify({ success: false, error: 'Token do Google expirado. Reconecte a conta Google.' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
           }
+        } else {
+          return new Response(JSON.stringify({ success: false, error: 'Token do Google expirado e sem refresh token. Reconecte a conta Google.' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
       }
 
@@ -4322,54 +4331,86 @@ async function fetchAndStoreIncomingMedia(
       let pushed = 0;
       let failed = 0;
 
-      // Paralelizar em lotes para acelerar (Google People aguenta bem 10 req simultâneas)
-      const CONCURRENCY = 10;
-      const processOne = async (c: any) => {
+      // USAR BATCH API do Google People: até 200 contatos criados em UMA única
+      // requisição (evita estourar a cota de escrita de ~90 req/min que fazia
+      // os contatos ficarem presos como "pendentes" indefinidamente).
+      let lastError: string | null = null;
+
+      // 1) Apagar em lote os recursos antigos dos contatos "dirty" (renomeados)
+      const dirtyResources = list
+        .map((c: any) => c?.metadata?.google_resource_name)
+        .filter((r: any) => typeof r === 'string' && r.length > 0);
+      for (let i = 0; i < dirtyResources.length; i += 500) {
+        const chunk = dirtyResources.slice(i, i + 500);
         try {
-          // Overwrite: if it already exists on Google, delete the old entry first
-          const oldResource = (c as any)?.metadata?.google_resource_name;
-          if (oldResource) {
-            try {
-              await fetch(`https://people.googleapis.com/v1/${oldResource}:deleteContact`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${accessToken}` },
-              });
-            } catch (_) { /* ignore */ }
-          }
-          const resp = await fetch('https://people.googleapis.com/v1/people:createContact', {
+          const delResp = await fetch('https://people.googleapis.com/v1/people:batchDeleteContacts', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resourceNames: chunk }),
+          });
+          if (!delResp.ok) {
+            const t = await delResp.text().catch(() => '');
+            console.warn('[GOOGLE-SYNC] batchDelete falhou (segue com create):', delResp.status, t.slice(0, 300));
+          }
+        } catch (e) {
+          console.warn('[GOOGLE-SYNC] batchDelete erro:', e);
+        }
+      }
+
+      // 2) Criar em lote (200 por chamada) — resposta preserva a ordem enviada
+      for (let i = 0; i < list.length; i += 200) {
+        const chunk = list.slice(i, i + 200);
+        try {
+          const resp = await fetch('https://people.googleapis.com/v1/people:batchCreateContacts', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              names: [{ givenName: c.name || c.wa_id }],
-              phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
+              contacts: chunk.map((c: any) => ({
+                contactPerson: {
+                  names: [{ givenName: c.name || c.wa_id }],
+                  phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
+                },
+              })),
+              readMask: 'names,phoneNumbers',
             }),
           });
           if (resp.ok) {
-            const body = await resp.json().catch(() => ({}));
-            const nextMeta = { ...((c as any).metadata || {}), google_resource_name: body?.resourceName || (c as any)?.metadata?.google_resource_name || null };
-            delete nextMeta.google_dirty;
-            await supabase.from('crm_contacts').update({
-              google_sync_account_id: account.id,
-              google_synced_at: new Date().toISOString(),
-              metadata: nextMeta,
-            }).eq('id', c.id);
-            pushed++;
+            const body = await resp.json().catch(() => ({} as any));
+            const created: any[] = body?.createdPeople || [];
+            const nowIso = new Date().toISOString();
+            // Atualiza o banco em paralelo (ordem da resposta = ordem do envio)
+            await Promise.all(chunk.map(async (c: any, idx: number) => {
+              const resourceName = created[idx]?.person?.resourceName || null;
+              const nextMeta = { ...((c as any).metadata || {}), google_resource_name: resourceName };
+              delete nextMeta.google_dirty;
+              const { error: upErr } = await supabase.from('crm_contacts').update({
+                google_sync_account_id: account.id,
+                google_synced_at: nowIso,
+                metadata: nextMeta,
+              }).eq('id', c.id);
+              if (upErr) {
+                console.error('[GOOGLE-SYNC] Erro ao marcar contato como sincronizado:', c.id, upErr.message);
+                failed++;
+              } else {
+                pushed++;
+              }
+            }));
           } else {
-            failed++;
+            const t = await resp.text().catch(() => '');
+            lastError = `HTTP ${resp.status}: ${t.slice(0, 300)}`;
+            console.error('[GOOGLE-SYNC] batchCreate falhou:', lastError);
+            failed += chunk.length;
           }
-        } catch (_e) {
-          failed++;
+        } catch (e: any) {
+          lastError = e?.message || String(e);
+          console.error('[GOOGLE-SYNC] batchCreate erro:', lastError);
+          failed += chunk.length;
         }
-      };
-      for (let i = 0; i < list.length; i += CONCURRENCY) {
-        const slice = list.slice(i, i + CONCURRENCY);
-        await Promise.all(slice.map(processOne));
       }
 
-      return new Response(JSON.stringify({ success: true, pushed, failed, pending: list.length }), {
+      console.log(`[GOOGLE-SYNC] Batch concluído: ${pushed} enviados, ${failed} falharam de ${list.length} pendentes.`);
+
+      return new Response(JSON.stringify({ success: true, pushed, failed, pending: list.length, lastError }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
