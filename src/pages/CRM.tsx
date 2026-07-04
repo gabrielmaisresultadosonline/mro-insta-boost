@@ -359,6 +359,20 @@ const CRM = () => {
   }, [flowBarPrefs]);
   const [flowBarSettingsOpen, setFlowBarSettingsOpen] = useState(false);
 
+  // Kanban view prefs (column width + font scale)
+  const KANBAN_PREFS_KEY = 'crm_kanban_prefs_v1';
+  const [kanbanPrefs, setKanbanPrefs] = useState<{ colWidth: number; fontScale: number }>(() => {
+    try {
+      const raw = localStorage.getItem(KANBAN_PREFS_KEY);
+      if (raw) return { colWidth: 288, fontScale: 100, ...JSON.parse(raw) };
+    } catch {}
+    return { colWidth: 288, fontScale: 100 };
+  });
+  useEffect(() => {
+    try { localStorage.setItem(KANBAN_PREFS_KEY, JSON.stringify(kanbanPrefs)); } catch {}
+  }, [kanbanPrefs]);
+  const [kanbanSettingsOpen, setKanbanSettingsOpen] = useState(false);
+
   const [metrics, setMetrics] = useState<any>({
     sent_count: 0,
     responded_count: 0,
@@ -4442,6 +4456,15 @@ const CRM = () => {
                     {kanbanSearch && (
                       <Button size="sm" variant="ghost" onClick={() => setKanbanSearch('')}>Limpar</Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="ml-auto h-9 w-9 p-0"
+                      onClick={() => setKanbanSettingsOpen(true)}
+                      title="Configurar visualização"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
                   </div>
                   <div
                     ref={kanbanScrollRef}
@@ -4449,7 +4472,8 @@ const CRM = () => {
                     onDragLeave={stopKanbanAutoScroll}
                     onDrop={stopKanbanAutoScroll}
                     onDragEnd={stopKanbanAutoScroll}
-                    className="flex-1 overflow-x-auto p-3 md:p-4 flex gap-3 md:gap-4 bg-muted/5 snap-x relative group/kanban"
+                    className="flex-1 overflow-x-auto overflow-y-hidden p-3 md:p-4 flex gap-3 md:gap-4 bg-muted/5 snap-x relative group/kanban [scrollbar-width:thin]"
+                    style={{ fontSize: `${kanbanPrefs.fontScale}%` }}
                   >
                     <div className="absolute top-0 left-0 p-2 z-10 opacity-0 group-hover/kanban:opacity-100 transition-opacity">
                       <Button 
@@ -4482,7 +4506,8 @@ const CRM = () => {
                         return (
                           <div
                             key="__geral__"
-                            className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden"
+                            className="shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden"
+                            style={{ width: kanbanPrefs.colWidth }}
                             onDragOver={e => e.preventDefault()}
                             onDrop={() => handleDrop('new')}
                           >
@@ -4533,7 +4558,8 @@ const CRM = () => {
                       {kanbanStatuses.filter(s => s.value !== 'human' && s.value !== 'new').map(status => (
                       <div 
                         key={status.value} 
-                        className="w-72 md:w-80 shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden" 
+                        className="shrink-0 flex flex-col bg-[#f0f2f5] dark:bg-[#111b21] rounded-2xl border-none shadow-md group/column transition-all hover:shadow-xl snap-center overflow-hidden" 
+                        style={{ width: kanbanPrefs.colWidth }}
                         onDragOver={e => e.preventDefault()} 
                         onDrop={() => handleDrop(status.value)}
                       >
@@ -9077,6 +9103,52 @@ const CRM = () => {
         </DialogContent>
       </Dialog>
       {/* Configurações da barra de fluxos */}
+      {/* Configurações do CRM (Kanban) */}
+      <Dialog open={kanbanSettingsOpen} onOpenChange={setKanbanSettingsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Settings className="w-4 h-4" /> Configurar CRM
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Ajuste a largura das colunas e o tamanho da fonte do Kanban.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span>Largura das colunas</span>
+                <span className="text-muted-foreground">{kanbanPrefs.colWidth}px</span>
+              </div>
+              <input
+                type="range" min={180} max={480} step={10}
+                value={kanbanPrefs.colWidth}
+                onChange={e => setKanbanPrefs(p => ({ ...p, colWidth: Number(e.target.value) }))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span>Tamanho da fonte</span>
+                <span className="text-muted-foreground">{kanbanPrefs.fontScale}%</span>
+              </div>
+              <input
+                type="range" min={75} max={160} step={5}
+                value={kanbanPrefs.fontScale}
+                onChange={e => setKanbanPrefs(p => ({ ...p, fontScale: Number(e.target.value) }))}
+                className="w-full"
+              />
+            </div>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setKanbanPrefs({ colWidth: 288, fontScale: 100 })}
+              className="w-full"
+            >
+              Restaurar padrão
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={flowBarSettingsOpen} onOpenChange={setFlowBarSettingsOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
