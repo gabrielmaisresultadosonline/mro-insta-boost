@@ -9104,6 +9104,55 @@ const CRM = () => {
       </Dialog>
       {/* Configurações da barra de fluxos */}
       <Dialog open={flowBarSettingsOpen} onOpenChange={setFlowBarSettingsOpen}>
+        {/* placeholder */}
+      </Dialog>
+      {/* Configurações do CRM (Kanban) */}
+      <Dialog open={kanbanSettingsOpen} onOpenChange={setKanbanSettingsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Settings className="w-4 h-4" /> Configurar CRM
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Ajuste a largura das colunas e o tamanho da fonte do Kanban.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span>Largura das colunas</span>
+                <span className="text-muted-foreground">{kanbanPrefs.colWidth}px</span>
+              </div>
+              <input
+                type="range" min={180} max={480} step={10}
+                value={kanbanPrefs.colWidth}
+                onChange={e => setKanbanPrefs(p => ({ ...p, colWidth: Number(e.target.value) }))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span>Tamanho da fonte</span>
+                <span className="text-muted-foreground">{kanbanPrefs.fontScale}%</span>
+              </div>
+              <input
+                type="range" min={75} max={160} step={5}
+                value={kanbanPrefs.fontScale}
+                onChange={e => setKanbanPrefs(p => ({ ...p, fontScale: Number(e.target.value) }))}
+                className="w-full"
+              />
+            </div>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setKanbanPrefs({ colWidth: 288, fontScale: 100 })}
+              className="w-full"
+            >
+              Restaurar padrão
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={false} onOpenChange={() => {}}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
