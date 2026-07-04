@@ -4442,7 +4442,7 @@ const CRM = () => {
                     </div>
                   </div>
                 ) : kanbanView ? (
-                  <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full overflow-hidden">
                   <div className="p-3 border-b border-border/30 bg-white dark:bg-[#111b21] flex items-center gap-2 shrink-0">
                     <div className="relative flex-1 max-w-md">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
