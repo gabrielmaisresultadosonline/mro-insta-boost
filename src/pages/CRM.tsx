@@ -1925,6 +1925,8 @@ const CRM = () => {
 
   // Sincronização automática em tempo real com Google Contatos
   // Executa silenciosamente a cada 2 minutos quando ativado, e uma vez ao montar.
+  const [googleAccountFull, setGoogleAccountFull] = useState(false);
+  const googleAccountFullRef = useRef(false);
   useEffect(() => {
     if (!googleContactsEnabled) return;
     if (!metaSettings.google_auto_sync) return;
@@ -1932,12 +1934,28 @@ const CRM = () => {
     let cancelled = false;
 
     const silentSync = async () => {
+      // Conta Google cheia: não adianta insistir a cada 5s — pausa as tentativas
+      if (googleAccountFullRef.current) return;
       try {
         const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
           body: { action: 'syncPendingToGoogle' }
         });
         if (cancelled) return;
+        if (data?.accountFull) {
+          googleAccountFullRef.current = true;
+          setGoogleAccountFull(true);
+          toast({
+            title: "Conta Google cheia (limite de 25.000 contatos)",
+            description: "O Google não aceita mais contatos nesta conta. Exclua contatos em contacts.google.com ou conecte outra conta Google.",
+            variant: "destructive",
+          });
+          return;
+        }
         if (!error && data?.success) {
+          if (googleAccountFull) {
+            googleAccountFullRef.current = false;
+            setGoogleAccountFull(false);
+          }
           await fetchContacts();
         }
       } catch (e) {
@@ -7402,6 +7420,26 @@ const CRM = () => {
                               <h3 className="text-sm font-bold">Pendentes — aguardando subir ao Google</h3>
                               <span className="ml-auto text-[10px] uppercase font-bold text-orange-500">{pendingNamed.length}</span>
                             </div>
+                            {googleAccountFull && (
+                              <div className="px-4 md:px-6 py-3 border-b bg-destructive/10 flex flex-wrap items-center gap-2">
+                                <p className="text-xs font-semibold text-destructive flex-1 min-w-[200px]">
+                                  ⚠️ Conta Google cheia — o Google limita cada conta a 25.000 contatos e está recusando novos envios.
+                                  Exclua contatos em <a href="https://contacts.google.com" target="_blank" rel="noreferrer" className="underline">contacts.google.com</a> ou conecte outra conta Google.
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs shrink-0"
+                                  onClick={() => {
+                                    googleAccountFullRef.current = false;
+                                    setGoogleAccountFull(false);
+                                    supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'syncPendingToGoogle' } }).catch(() => {});
+                                  }}
+                                >
+                                  Tentar novamente
+                                </Button>
+                              </div>
+                            )}
                             <div className="divide-y divide-border max-h-72 overflow-auto">
                               {pendingNamed.slice(0, 100).map((contact) => (
                                 <div key={contact.id} className="px-4 md:px-6 py-3 flex items-center justify-between gap-3 hover:bg-muted/30">
