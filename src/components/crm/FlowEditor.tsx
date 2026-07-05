@@ -1010,6 +1010,75 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                         <p className="text-[9px] text-muted-foreground italic">Deixe vazio para enviar apenas texto + botão.</p>
                       </div>
                     )}
+
+                    {!(selectedNode.data.buttons as any[]).some((b: any) => b.url) && (
+                      <div className="space-y-2 p-3 border rounded-md bg-emerald-50/50 border-emerald-100">
+                        <Label className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3" /> Mídia no topo (opcional) — imagem ou vídeo
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Imagem</Label>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              disabled={uploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  updateNodeData(selectedNode.id, { videoUrl: '' });
+                                  handleFileUpload(file, selectedNode.id, 'image');
+                                }
+                              }}
+                              className="text-xs h-8"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Vídeo</Label>
+                            <Input
+                              type="file"
+                              accept="video/*"
+                              disabled={uploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  updateNodeData(selectedNode.id, { imageUrl: '' });
+                                  handleFileUpload(file, selectedNode.id, 'video');
+                                }
+                              }}
+                              className="text-xs h-8"
+                            />
+                          </div>
+                        </div>
+                        {selectedNode.data.imageUrl && (
+                          <div className="flex items-center gap-2">
+                            <img src={selectedNode.data.imageUrl as string} className="w-16 h-16 object-cover rounded border" alt="Preview" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[10px] h-7 text-red-500"
+                              onClick={() => updateNodeData(selectedNode.id, { imageUrl: '', fileName: '' })}
+                            >
+                              Remover imagem
+                            </Button>
+                          </div>
+                        )}
+                        {selectedNode.data.videoUrl && (
+                          <div className="flex items-center gap-2">
+                            <video src={selectedNode.data.videoUrl as string} className="w-24 h-16 object-cover rounded border" muted />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[10px] h-7 text-red-500"
+                              onClick={() => updateNodeData(selectedNode.id, { videoUrl: '', fileName: '' })}
+                            >
+                              Remover vídeo
+                            </Button>
+                          </div>
+                        )}
+                        <p className="text-[9px] text-muted-foreground italic">A mídia aparece acima do texto e dos botões de resposta (formato tipo template Meta).</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
