@@ -787,6 +787,41 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
               <Button variant="outline" className="justify-start gap-2 border-emerald-500/20 hover:bg-emerald-500/10" onClick={() => addNode('question')}>
                 <HelpCircle className="w-4 h-4 text-emerald-500" /> Pergunta/Botões
               </Button>
+              <Button
+                variant="outline"
+                className="justify-start gap-2 border-teal-500 bg-teal-50 hover:bg-teal-100 group transition-all h-auto py-2.5 shadow-sm"
+                onClick={() => {
+                  const id = `question_${Date.now()}`;
+                  let position = { x: 100, y: 100 };
+                  try {
+                    const wrapper = document.querySelector('.react-flow') as HTMLElement | null;
+                    if (wrapper && screenToFlowPosition) {
+                      const rect = wrapper.getBoundingClientRect();
+                      const flowPos = screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                      position = { x: flowPos.x - 110, y: flowPos.y - 60 };
+                    }
+                  } catch {}
+                  const newNode: Node = {
+                    id,
+                    type: 'question',
+                    position,
+                    data: {
+                      text: 'Escreva sua mensagem aqui...',
+                      buttons: [{ text: 'Opção 1', id: `opt_${Date.now()}` }],
+                      anyResponse: false,
+                      imageUrl: '',
+                      videoUrl: '',
+                    },
+                  };
+                  setNodes((nds) => nds.concat(newNode));
+                }}
+              >
+                <ImageIcon className="w-5 h-5 text-teal-600 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-teal-800 font-bold text-xs">Mídia + Texto + Botões</span>
+                  <span className="text-[9px] text-teal-600 font-medium uppercase tracking-wider">Estilo Template Meta</span>
+                </div>
+              </Button>
               <Button variant="outline" className="justify-start gap-2 border-purple-500/20 hover:bg-purple-500/10" onClick={() => addNode('audio')}>
                 <Mic className="w-4 h-4 text-purple-500" /> Áudio
               </Button>
@@ -1008,6 +1043,75 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                           </div>
                         )}
                         <p className="text-[9px] text-muted-foreground italic">Deixe vazio para enviar apenas texto + botão.</p>
+                      </div>
+                    )}
+
+                    {!(selectedNode.data.buttons as any[]).some((b: any) => b.url) && (
+                      <div className="space-y-2 p-3 border rounded-md bg-emerald-50/50 border-emerald-100">
+                        <Label className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3" /> Mídia no topo (opcional) — imagem ou vídeo
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Imagem</Label>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              disabled={uploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  updateNodeData(selectedNode.id, { videoUrl: '' });
+                                  handleFileUpload(file, selectedNode.id, 'image');
+                                }
+                              }}
+                              className="text-xs h-8"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Vídeo</Label>
+                            <Input
+                              type="file"
+                              accept="video/*"
+                              disabled={uploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  updateNodeData(selectedNode.id, { imageUrl: '' });
+                                  handleFileUpload(file, selectedNode.id, 'video');
+                                }
+                              }}
+                              className="text-xs h-8"
+                            />
+                          </div>
+                        </div>
+                        {selectedNode.data.imageUrl && (
+                          <div className="flex items-center gap-2">
+                            <img src={selectedNode.data.imageUrl as string} className="w-16 h-16 object-cover rounded border" alt="Preview" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[10px] h-7 text-red-500"
+                              onClick={() => updateNodeData(selectedNode.id, { imageUrl: '', fileName: '' })}
+                            >
+                              Remover imagem
+                            </Button>
+                          </div>
+                        )}
+                        {selectedNode.data.videoUrl && (
+                          <div className="flex items-center gap-2">
+                            <video src={selectedNode.data.videoUrl as string} className="w-24 h-16 object-cover rounded border" muted />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[10px] h-7 text-red-500"
+                              onClick={() => updateNodeData(selectedNode.id, { videoUrl: '', fileName: '' })}
+                            >
+                              Remover vídeo
+                            </Button>
+                          </div>
+                        )}
+                        <p className="text-[9px] text-muted-foreground italic">A mídia aparece acima do texto e dos botões de resposta (formato tipo template Meta).</p>
                       </div>
                     )}
                   </div>
