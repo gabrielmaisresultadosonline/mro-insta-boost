@@ -1925,6 +1925,8 @@ const CRM = () => {
 
   // Sincronização automática em tempo real com Google Contatos
   // Executa silenciosamente a cada 2 minutos quando ativado, e uma vez ao montar.
+  const [googleAccountFull, setGoogleAccountFull] = useState(false);
+  const googleAccountFullRef = useRef(false);
   useEffect(() => {
     if (!googleContactsEnabled) return;
     if (!metaSettings.google_auto_sync) return;
