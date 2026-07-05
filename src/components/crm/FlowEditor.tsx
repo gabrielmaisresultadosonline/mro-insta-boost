@@ -787,6 +787,41 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
               <Button variant="outline" className="justify-start gap-2 border-emerald-500/20 hover:bg-emerald-500/10" onClick={() => addNode('question')}>
                 <HelpCircle className="w-4 h-4 text-emerald-500" /> Pergunta/Botões
               </Button>
+              <Button
+                variant="outline"
+                className="justify-start gap-2 border-teal-500 bg-teal-50 hover:bg-teal-100 group transition-all h-auto py-2.5 shadow-sm"
+                onClick={() => {
+                  const id = `question_${Date.now()}`;
+                  let position = { x: 100, y: 100 };
+                  try {
+                    const wrapper = document.querySelector('.react-flow') as HTMLElement | null;
+                    if (wrapper && screenToFlowPosition) {
+                      const rect = wrapper.getBoundingClientRect();
+                      const flowPos = screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                      position = { x: flowPos.x - 110, y: flowPos.y - 60 };
+                    }
+                  } catch {}
+                  const newNode: Node = {
+                    id,
+                    type: 'question',
+                    position,
+                    data: {
+                      text: 'Escreva sua mensagem aqui...',
+                      buttons: [{ text: 'Opção 1', id: `opt_${Date.now()}` }],
+                      anyResponse: false,
+                      imageUrl: '',
+                      videoUrl: '',
+                    },
+                  };
+                  setNodes((nds) => nds.concat(newNode));
+                }}
+              >
+                <ImageIcon className="w-5 h-5 text-teal-600 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-teal-800 font-bold text-xs">Mídia + Texto + Botões</span>
+                  <span className="text-[9px] text-teal-600 font-medium uppercase tracking-wider">Estilo Template Meta</span>
+                </div>
+              </Button>
               <Button variant="outline" className="justify-start gap-2 border-purple-500/20 hover:bg-purple-500/10" onClick={() => addNode('audio')}>
                 <Mic className="w-4 h-4 text-purple-500" /> Áudio
               </Button>
