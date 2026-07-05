@@ -4335,6 +4335,7 @@ async function fetchAndStoreIncomingMedia(
       // requisição (evita estourar a cota de escrita de ~90 req/min que fazia
       // os contatos ficarem presos como "pendentes" indefinidamente).
       let lastError: string | null = null;
+      let accountFull = false;
 
       // 1) Apagar em lote os recursos antigos dos contatos "dirty" (renomeados)
       const dirtyResources = list
@@ -4400,6 +4401,13 @@ async function fetchAndStoreIncomingMedia(
             lastError = `HTTP ${resp.status}: ${t.slice(0, 300)}`;
             console.error('[GOOGLE-SYNC] batchCreate falhou:', lastError);
             failed += chunk.length;
+            // Conta Google cheia (limite de ~25.000 contatos) — não adianta insistir
+            if (t.includes('MY_CONTACTS_OVERFLOW_COUNT')) {
+              accountFull = true;
+              lastError = 'Conta Google cheia: limite de 25.000 contatos atingido. Exclua contatos em contacts.google.com ou conecte outra conta Google.';
+              console.error('[GOOGLE-SYNC] Conta Google atingiu o limite de 25.000 contatos. Interrompendo tentativas.');
+              break;
+            }
           }
         } catch (e: any) {
           lastError = e?.message || String(e);
@@ -4410,7 +4418,7 @@ async function fetchAndStoreIncomingMedia(
 
       console.log(`[GOOGLE-SYNC] Batch concluído: ${pushed} enviados, ${failed} falharam de ${list.length} pendentes.`);
 
-      return new Response(JSON.stringify({ success: true, pushed, failed, pending: list.length, lastError }), {
+      return new Response(JSON.stringify({ success: true, pushed, failed, pending: list.length, lastError, accountFull }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
