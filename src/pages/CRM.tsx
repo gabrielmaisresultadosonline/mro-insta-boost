@@ -1932,12 +1932,28 @@ const CRM = () => {
     let cancelled = false;
 
     const silentSync = async () => {
+      // Conta Google cheia: não adianta insistir a cada 5s — pausa as tentativas
+      if (googleAccountFullRef.current) return;
       try {
         const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
           body: { action: 'syncPendingToGoogle' }
         });
         if (cancelled) return;
+        if (data?.accountFull) {
+          googleAccountFullRef.current = true;
+          setGoogleAccountFull(true);
+          toast({
+            title: "Conta Google cheia (limite de 25.000 contatos)",
+            description: "O Google não aceita mais contatos nesta conta. Exclua contatos em contacts.google.com ou conecte outra conta Google.",
+            variant: "destructive",
+          });
+          return;
+        }
         if (!error && data?.success) {
+          if (googleAccountFull) {
+            googleAccountFullRef.current = false;
+            setGoogleAccountFull(false);
+          }
           await fetchContacts();
         }
       } catch (e) {
