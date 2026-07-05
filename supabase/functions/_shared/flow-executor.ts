@@ -586,7 +586,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           return await executeVisualNode(supabase, flow, nextNode, contactId, waId);
         }
       }
-    } else if (isQuestionNode || (hasButtons && outgoingEdgesAll.length > 0)) {
+    } else if ((isQuestionNode && outgoingEdgesAll.length > 0) || (hasButtons && outgoingEdgesAll.length > 0)) {
        console.log(`[EXECUTOR] Node ${node.id} has buttons or is question. Stopped to wait for interaction.`);
        // Certifica que o estado está correto
        await supabase.from('crm_contacts').update({
@@ -594,7 +594,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
          current_node_id: node.id
        }).eq('id', contactId);
        return { success: true, message: 'Wait for interaction' };
-    } else if (hasButtons && outgoingEdgesAll.length === 0) {
+    } else if ((hasButtons || isQuestionNode) && outgoingEdgesAll.length === 0) {
        console.log(`[EXECUTOR] Node ${node.id} has buttons but no outgoing edges. Closing flow.`);
        await supabase.from('crm_contacts').update({
          flow_state: 'idle',
