@@ -178,6 +178,21 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       const hasFollowups = outgoingEdges.length > 0;
 
       if (isExplicitWait || (hasButtons && hasFollowups)) {
+        // Se o nó espera resposta mas NÃO tem nenhuma aresta de saída (nenhum botão ligado,
+        // sem "qualquer resposta", sem timeout), não faz sentido travar o contato aguardando
+        // eternamente — encerra o fluxo imediatamente após enviar a mensagem.
+        if (isExplicitWait && !hasFollowups) {
+          console.log(`[FLOW-LOG] Node ${node.id} (${node.type}) is a wait/question but has NO outgoing edges. Closing flow.`);
+          await supabase.from('crm_contacts').update({
+            flow_state: 'idle',
+            current_flow_id: null,
+            current_node_id: null,
+            next_execution_time: null,
+            flow_timeout_minutes: null,
+            flow_timeout_node_id: null
+          }).eq('id', contactId);
+          return { success: true, message: 'Wait node without outgoing edges — flow closed' };
+        }
         const linkedWaitEdge = outgoingEdges.find((e: any) => {
           const handle = e.sourceHandle;
           if (handle && handle !== 'any_response' && handle !== 'responded' && handle !== 'next') return false;
@@ -571,7 +586,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           return await executeVisualNode(supabase, flow, nextNode, contactId, waId);
         }
       }
-    } else if (isQuestionNode || (hasButtons && outgoingEdgesAll.length > 0)) {
+    } else if ((isQuestionNode && outgoingEdgesAll.length > 0) || (hasButtons && outgoingEdgesAll.length > 0)) {
        console.log(`[EXECUTOR] Node ${node.id} has buttons or is question. Stopped to wait for interaction.`);
        // Certifica que o estado está correto
        await supabase.from('crm_contacts').update({
@@ -579,7 +594,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
          current_node_id: node.id
        }).eq('id', contactId);
        return { success: true, message: 'Wait for interaction' };
-    } else if (hasButtons && outgoingEdgesAll.length === 0) {
+    } else if ((hasButtons || isQuestionNode) && outgoingEdgesAll.length === 0) {
        console.log(`[EXECUTOR] Node ${node.id} has buttons but no outgoing edges. Closing flow.`);
        await supabase.from('crm_contacts').update({
          flow_state: 'idle',
