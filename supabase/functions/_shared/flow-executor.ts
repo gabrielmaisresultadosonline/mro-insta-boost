@@ -45,7 +45,30 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
 
         // 1) Envia botões de resposta normais (se houver)
         if (replyButtons.length > 0) {
-        
+        const headerImageUrl = (node.data?.imageUrl || '').toString();
+        const headerVideoUrl = (node.data?.videoUrl || '').toString();
+        const interactivePayload: any = {
+          type: 'button',
+          body: { text: text || "Escolha uma opção:" },
+          action: {
+            buttons: replyButtons.slice(0, 3).map((btn: any, index: number) => {
+              const rawTitle = btn.label || btn.text || `Opção ${index + 1}`;
+              const title = rawTitle.length > 20 ? rawTitle.substring(0, 17) + "..." : rawTitle;
+              return {
+                type: 'reply',
+                reply: {
+                  id: btn.id || `btn_${index}`,
+                  title: title
+                }
+              };
+            })
+          }
+        };
+        if (headerImageUrl.startsWith('http')) {
+          interactivePayload.header = { type: 'image', image: { link: headerImageUrl } };
+        } else if (headerVideoUrl.startsWith('http')) {
+          interactivePayload.header = { type: 'video', video: { link: headerVideoUrl } };
+        }
         console.log(`[EXECUTOR] Invoking meta-whatsapp-crm action=sendMessage for interactive buttons. ReplyButtons: ${replyButtons.length}`);
         const { data: result, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', {
           headers: {
@@ -58,24 +81,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             nodeId: node.id,
             meta_phone_number_id: settings?.meta_phone_number_id,
             meta_access_token: settings?.meta_access_token,
-            interactive: {
-              type: 'button',
-              body: { text: text || "Escolha uma opção:" },
-              action: {
-                buttons: replyButtons.slice(0, 3).map((btn: any, index: number) => {
-                  const rawTitle = btn.label || btn.text || `Opção ${index + 1}`;
-                  // Meta exige limite de 20 caracteres no título do botão
-                  const title = rawTitle.length > 20 ? rawTitle.substring(0, 17) + "..." : rawTitle;
-                  return {
-                    type: 'reply',
-                    reply: {
-                      id: btn.id || `btn_${index}`,
-                      title: title
-                    }
-                  };
-                })
-              }
-            }
+            interactive: interactivePayload
           }
         });
 
