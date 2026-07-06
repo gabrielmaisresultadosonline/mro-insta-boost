@@ -1552,6 +1552,20 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
   for (const account of accounts) {
     if (remaining.length === 0) break;
 
+    // Only push to THIS account: new contacts (no account yet) OR dirty contacts
+    // that already belong to THIS account. Never migrate a synced contact from
+    // one Google account to another.
+    const forThisAccount = remaining.filter((c: any) =>
+      !c.google_sync_account_id || c.google_sync_account_id === account.id
+    );
+    const skippedForOtherAccounts = remaining.filter((c: any) =>
+      c.google_sync_account_id && c.google_sync_account_id !== account.id
+    );
+    if (forThisAccount.length === 0) {
+      remaining = skippedForOtherAccounts;
+      continue;
+    }
+
     let accessToken = account.access_token;
     if (Date.now() >= (account.expiry_date || 0)) {
       const { clientId: googleClientId, clientSecret: googleClientSecret } = getGoogleOAuthCredentials(settings);
@@ -1587,7 +1601,8 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
       }
     }
 
-    const dirtyResources = remaining
+    const dirtyResources = forThisAccount
+      .filter((c: any) => c.google_sync_account_id === account.id)
       .map((c: any) => c?.metadata?.google_resource_name)
       .filter((r: any) => typeof r === 'string' && r.length > 0);
     for (let i = 0; i < dirtyResources.length; i += 500) {
@@ -1609,8 +1624,8 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
 
     const stillPending: any[] = [];
     let skipCurrentAccount = false;
-    for (let i = 0; i < remaining.length; i += 200) {
-      const chunk = remaining.slice(i, i + 200);
+    for (let i = 0; i < forThisAccount.length; i += 200) {
+      const chunk = forThisAccount.slice(i, i + 200);
       if (skipCurrentAccount) {
         stillPending.push(...chunk);
         continue;
@@ -1671,7 +1686,7 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
         stillPending.push(...chunk);
       }
     }
-    remaining = stillPending;
+    remaining = [...stillPending, ...skippedForOtherAccounts];
   }
 
   const accountFull = fullAccounts.length > 0 && remaining.length > 0;
