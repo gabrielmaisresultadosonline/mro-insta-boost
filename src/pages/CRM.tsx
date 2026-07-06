@@ -7329,8 +7329,13 @@ const CRM = () => {
                                   
                                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                                     <div className="flex gap-1.5 flex-wrap">
-                                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 uppercase font-bold tracking-tight">
-                                        {contact.source_type === 'imported' ? 'Importado' : 'Sistema'}
+                                      <Badge variant="secondary" className={cn(
+                                        "text-[9px] px-1.5 py-0 uppercase font-bold tracking-tight",
+                                        (contact.google_sync_account_id || contact.metadata?.google_resource_name) && "bg-blue-500/15 text-blue-600 border-blue-500/30"
+                                      )}>
+                                        {(contact.google_sync_account_id || contact.metadata?.google_resource_name)
+                                          ? 'Google'
+                                          : contact.source_type === 'imported' ? 'Importado' : 'Sistema'}
                                       </Badge>
                                       <Badge variant="outline" className={cn("capitalize text-[9px] px-1.5 py-0 font-bold", getStatusColor(contact.status))}>
                                         {contact.status}
