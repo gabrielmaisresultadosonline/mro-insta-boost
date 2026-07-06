@@ -63,6 +63,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { compressVideoForWhatsApp, WHATSAPP_VIDEO_MAX_BYTES } from "@/lib/videoCompress";
 import { VideoCompressDialog } from "./VideoCompressDialog";
+import WhatsAppFlowPreview from "./WhatsAppFlowPreview";
+import { Smartphone } from "lucide-react";
 
 // Custom Node Types
 const PixNode = ({ data }: any) => (
@@ -473,6 +475,8 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
   const [expandedTextOpen, setExpandedTextOpen] = useState(false);
   const [expandedTextValue, setExpandedTextValue] = useState('');
   const [carouselDialogOpen, setCarouselDialogOpen] = useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewNodeId, setPreviewNodeId] = useState<string | null>(null);
   const [flowName, setFlowName] = useState(flow?.name || 'Novo Fluxo');
   const [triggerType, setTriggerType] = useState(flow?.trigger_type || 'manual');
   const [triggerKeywords, setTriggerKeywords] = useState(
@@ -1751,6 +1755,13 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             onNodeClick={(_, node) => setSelectedNode(node)}
+            onNodeDoubleClick={(_, node) => {
+              if (['question', 'pix', 'mediaCarousel'].includes(node.type as string)) {
+                setSelectedNode(node);
+                setPreviewNodeId(node.id);
+                setPreviewDialogOpen(true);
+              }
+            }}
             fitView
           >
             <Background />
