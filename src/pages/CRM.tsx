@@ -7275,7 +7275,14 @@ const CRM = () => {
                             const matchesSearch = contactListSearch === 'all' || 
                               c.name?.toLowerCase().includes(contactListSearch.toLowerCase()) || 
                               c.wa_id?.includes(contactListSearch);
-                            const matchesSource = sourceFilter === 'all' || c.source_type === sourceFilter;
+                            const isUnnamed = !c.name || !c.name.trim() || c.name.trim() === c.wa_id;
+                            const matchesSource = sourceFilter === 'all'
+                              ? true
+                              : sourceFilter === 'unnamed'
+                                ? isUnnamed
+                                : sourceFilter === 'system'
+                                  ? (c.source_type || 'system') === 'system'
+                                  : c.source_type === sourceFilter;
                             return matchesSearch && matchesSource;
                           });
                           
@@ -7360,7 +7367,14 @@ const CRM = () => {
                               const matchesSearch = contactListSearch === 'all' || 
                                 c.name?.toLowerCase().includes(contactListSearch.toLowerCase()) || 
                                 c.wa_id?.includes(contactListSearch);
-                              const matchesSource = sourceFilter === 'all' || c.source_type === sourceFilter;
+                              const isUnnamed = !c.name || !c.name.trim() || c.name.trim() === c.wa_id;
+                              const matchesSource = sourceFilter === 'all'
+                                ? true
+                                : sourceFilter === 'unnamed'
+                                  ? isUnnamed
+                                  : sourceFilter === 'system'
+                                    ? (c.source_type || 'system') === 'system'
+                                    : c.source_type === sourceFilter;
                               return matchesSearch && matchesSource;
                             });
                             
