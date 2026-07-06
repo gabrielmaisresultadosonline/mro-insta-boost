@@ -4255,55 +4255,17 @@ async function fetchAndStoreIncomingMedia(
     if (action === 'syncPendingToGoogle') {
       // Push contacts that are NOT yet on Google up to the user's Google account.
       // Does NOT pull from Google (avoid duplication caused by re-importing).
-      const { data: account } = await supabase
+      const { data: accounts } = await supabase
         .from('crm_google_accounts')
         .select('*')
         .eq('user_id', userId)
         .eq('auto_sync', true)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
+        .order('updated_at', { ascending: false });
 
-      if (!account) {
+      if (!accounts || accounts.length === 0) {
         return new Response(JSON.stringify({ success: false, error: 'Nenhuma conta Google conectada' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      }
-
-      // Refresh token if expired
-      let accessToken = account.access_token;
-      if (Date.now() >= (account.expiry_date || 0)) {
-        const { clientId: googleClientId, clientSecret: googleClientSecret } = getGoogleOAuthCredentials(settings);
-        if (googleClientSecret && account.refresh_token) {
-          const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              client_id: googleClientId,
-              client_secret: googleClientSecret,
-              refresh_token: account.refresh_token,
-              grant_type: 'refresh_token',
-            }),
-          });
-          const refreshTokens = await refreshResponse.json();
-          if (refreshResponse.ok) {
-            accessToken = refreshTokens.access_token;
-            await supabase.from('crm_google_accounts').update({
-              access_token: accessToken,
-              expiry_date: Date.now() + (refreshTokens.expires_in * 1000),
-              updated_at: new Date().toISOString()
-            }).eq('id', account.id);
-          } else {
-            console.error('[GOOGLE-SYNC] Falha ao renovar token:', JSON.stringify(refreshTokens));
-            return new Response(JSON.stringify({ success: false, error: 'Token do Google expirado. Reconecte a conta Google.' }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-        } else {
-          return new Response(JSON.stringify({ success: false, error: 'Token do Google expirado e sem refresh token. Reconecte a conta Google.' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
       }
 
       // Fetch only PENDING contacts (not yet synced) that have a real name set
@@ -4323,103 +4285,151 @@ async function fetchAndStoreIncomingMedia(
         .eq('metadata->>google_dirty', 'true')
         .limit(500);
 
-      const list = ([...(pendingNew || []), ...(pendingDirty || [])]).filter((c: any) => {
+      let remaining = ([...(pendingNew || []), ...(pendingDirty || [])]).filter((c: any) => {
         const name = (c.name || '').trim();
         if (!name) return false;
         if (name === (c.wa_id || '').trim()) return false;
         return true;
       });
+      const totalPending = remaining.length;
       let pushed = 0;
       let failed = 0;
-
-      // USAR BATCH API do Google People: até 200 contatos criados em UMA única
-      // requisição (evita estourar a cota de escrita de ~90 req/min que fazia
-      // os contatos ficarem presos como "pendentes" indefinidamente).
       let lastError: string | null = null;
-      let accountFull = false;
+      const fullAccounts: string[] = [];
 
-      // 1) Apagar em lote os recursos antigos dos contatos "dirty" (renomeados)
-      const dirtyResources = list
-        .map((c: any) => c?.metadata?.google_resource_name)
-        .filter((r: any) => typeof r === 'string' && r.length > 0);
-      for (let i = 0; i < dirtyResources.length; i += 500) {
-        const chunk = dirtyResources.slice(i, i + 500);
-        try {
-          const delResp = await fetch('https://people.googleapis.com/v1/people:batchDeleteContacts', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ resourceNames: chunk }),
-          });
-          if (!delResp.ok) {
-            const t = await delResp.text().catch(() => '');
-            console.warn('[GOOGLE-SYNC] batchDelete falhou (segue com create):', delResp.status, t.slice(0, 300));
-          }
-        } catch (e) {
-          console.warn('[GOOGLE-SYNC] batchDelete erro:', e);
-        }
-      }
+      // Iterar sobre as contas Google ativas — se uma estiver cheia/falhar,
+      // pular para a próxima automaticamente. Assim contatos não ficam presos.
+      for (const account of accounts) {
+        if (remaining.length === 0) break;
 
-      // 2) Criar em lote (200 por chamada) — resposta preserva a ordem enviada
-      for (let i = 0; i < list.length; i += 200) {
-        const chunk = list.slice(i, i + 200);
-        try {
-          const resp = await fetch('https://people.googleapis.com/v1/people:batchCreateContacts', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contacts: chunk.map((c: any) => ({
-                contactPerson: {
-                  names: [{ givenName: c.name || c.wa_id }],
-                  phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
-                },
-              })),
-              readMask: 'names,phoneNumbers',
-            }),
-          });
-          if (resp.ok) {
-            const body = await resp.json().catch(() => ({} as any));
-            const created: any[] = body?.createdPeople || [];
-            const nowIso = new Date().toISOString();
-            // Atualiza o banco em paralelo (ordem da resposta = ordem do envio)
-            await Promise.all(chunk.map(async (c: any, idx: number) => {
-              const resourceName = created[idx]?.person?.resourceName || null;
-              const nextMeta = { ...((c as any).metadata || {}), google_resource_name: resourceName };
-              delete nextMeta.google_dirty;
-              const { error: upErr } = await supabase.from('crm_contacts').update({
-                google_sync_account_id: account.id,
-                google_synced_at: nowIso,
-                metadata: nextMeta,
-              }).eq('id', c.id);
-              if (upErr) {
-                console.error('[GOOGLE-SYNC] Erro ao marcar contato como sincronizado:', c.id, upErr.message);
-                failed++;
-              } else {
-                pushed++;
-              }
-            }));
-          } else {
-            const t = await resp.text().catch(() => '');
-            lastError = `HTTP ${resp.status}: ${t.slice(0, 300)}`;
-            console.error('[GOOGLE-SYNC] batchCreate falhou:', lastError);
-            failed += chunk.length;
-            // Conta Google cheia (limite de ~25.000 contatos) — não adianta insistir
-            if (t.includes('MY_CONTACTS_OVERFLOW_COUNT')) {
-              accountFull = true;
-              lastError = 'Conta Google cheia: limite de 25.000 contatos atingido. Exclua contatos em contacts.google.com ou conecte outra conta Google.';
-              console.error('[GOOGLE-SYNC] Conta Google atingiu o limite de 25.000 contatos. Interrompendo tentativas.');
-              break;
+        // Refresh token if expired
+        let accessToken = account.access_token;
+        if (Date.now() >= (account.expiry_date || 0)) {
+          const { clientId: googleClientId, clientSecret: googleClientSecret } = getGoogleOAuthCredentials(settings);
+          if (googleClientSecret && account.refresh_token) {
+            const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                client_id: googleClientId,
+                client_secret: googleClientSecret,
+                refresh_token: account.refresh_token,
+                grant_type: 'refresh_token',
+              }),
+            });
+            const refreshTokens = await refreshResponse.json();
+            if (refreshResponse.ok) {
+              accessToken = refreshTokens.access_token;
+              await supabase.from('crm_google_accounts').update({
+                access_token: accessToken,
+                expiry_date: Date.now() + (refreshTokens.expires_in * 1000),
+                updated_at: new Date().toISOString()
+              }).eq('id', account.id);
+            } else {
+              console.error(`[GOOGLE-SYNC] Falha ao renovar token da conta ${account.email}:`, JSON.stringify(refreshTokens));
+              lastError = `Token expirado (${account.email}). Reconecte esta conta.`;
+              continue;
             }
+          } else {
+            lastError = `Sem refresh token (${account.email}). Reconecte esta conta.`;
+            continue;
           }
-        } catch (e: any) {
-          lastError = e?.message || String(e);
-          console.error('[GOOGLE-SYNC] batchCreate erro:', lastError);
-          failed += chunk.length;
         }
+
+        // 1) Apagar recursos antigos dos "dirty" desta conta
+        const dirtyResources = remaining
+          .map((c: any) => c?.metadata?.google_resource_name)
+          .filter((r: any) => typeof r === 'string' && r.length > 0);
+        for (let i = 0; i < dirtyResources.length; i += 500) {
+          const chunk = dirtyResources.slice(i, i + 500);
+          try {
+            const delResp = await fetch('https://people.googleapis.com/v1/people:batchDeleteContacts', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ resourceNames: chunk }),
+            });
+            if (!delResp.ok) {
+              const t = await delResp.text().catch(() => '');
+              console.warn('[GOOGLE-SYNC] batchDelete falhou (segue com create):', delResp.status, t.slice(0, 300));
+            }
+          } catch (e) {
+            console.warn('[GOOGLE-SYNC] batchDelete erro:', e);
+          }
+        }
+
+        // 2) Criar em lote (200 por chamada) — pula para próxima conta se esta encher
+        const stillPending: any[] = [];
+        let thisAccountFull = false;
+        for (let i = 0; i < remaining.length; i += 200) {
+          const chunk = remaining.slice(i, i + 200);
+          if (thisAccountFull) {
+            stillPending.push(...chunk);
+            continue;
+          }
+          try {
+            const resp = await fetch('https://people.googleapis.com/v1/people:batchCreateContacts', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contacts: chunk.map((c: any) => ({
+                  contactPerson: {
+                    names: [{ givenName: c.name || c.wa_id }],
+                    phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
+                  },
+                })),
+                readMask: 'names,phoneNumbers',
+              }),
+            });
+            if (resp.ok) {
+              const body = await resp.json().catch(() => ({} as any));
+              const created: any[] = body?.createdPeople || [];
+              const nowIso = new Date().toISOString();
+              await Promise.all(chunk.map(async (c: any, idx: number) => {
+                const resourceName = created[idx]?.person?.resourceName || null;
+                const nextMeta = { ...((c as any).metadata || {}), google_resource_name: resourceName };
+                delete nextMeta.google_dirty;
+                const { error: upErr } = await supabase.from('crm_contacts').update({
+                  google_sync_account_id: account.id,
+                  google_synced_at: nowIso,
+                  metadata: nextMeta,
+                }).eq('id', c.id);
+                if (upErr) {
+                  console.error('[GOOGLE-SYNC] Erro ao marcar contato como sincronizado:', c.id, upErr.message);
+                  failed++;
+                } else {
+                  pushed++;
+                }
+              }));
+            } else {
+              const t = await resp.text().catch(() => '');
+              lastError = `HTTP ${resp.status} (${account.email}): ${t.slice(0, 200)}`;
+              console.error('[GOOGLE-SYNC] batchCreate falhou:', lastError);
+              if (t.includes('MY_CONTACTS_OVERFLOW_COUNT')) {
+                thisAccountFull = true;
+                fullAccounts.push(account.email);
+                console.warn(`[GOOGLE-SYNC] Conta ${account.email} cheia (25k). Pulando para próxima conta.`);
+                stillPending.push(...chunk);
+              } else {
+                stillPending.push(...chunk);
+              }
+            }
+          } catch (e: any) {
+            lastError = e?.message || String(e);
+            console.error('[GOOGLE-SYNC] batchCreate erro:', lastError);
+            stillPending.push(...chunk);
+          }
+        }
+        remaining = stillPending;
       }
 
-      console.log(`[GOOGLE-SYNC] Batch concluído: ${pushed} enviados, ${failed} falharam de ${list.length} pendentes.`);
+      const accountFull = fullAccounts.length > 0 && remaining.length > 0;
+      if (accountFull) {
+        lastError = `Contas cheias: ${fullAccounts.join(', ')}. Conecte outra conta Google para continuar.`;
+      }
 
-      return new Response(JSON.stringify({ success: true, pushed, failed, pending: list.length, lastError, accountFull }), {
+      console.log(`[GOOGLE-SYNC] Concluído: ${pushed} enviados, ${remaining.length} ainda pendentes de ${totalPending}.`);
+
+      return new Response(JSON.stringify({ success: true, pushed, failed, pending: totalPending, remaining: remaining.length, lastError, accountFull, fullAccounts }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
