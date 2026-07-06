@@ -7107,7 +7107,7 @@ const CRM = () => {
                                 variant="outline"
                                 size="sm"
                                 className="h-8 text-[10px] font-bold rounded-lg px-3"
-                                onClick={handleSyncGoogleContacts}
+                                onClick={handleSyncPendingGoogleContacts}
                               >
                                 <RefreshCcw className={cn("w-3 h-3 mr-1", "animate-spin-slow")} />
                                 SINCRONIZAR
@@ -7430,7 +7430,7 @@ const CRM = () => {
                         variant="default"
                         size="sm"
                         className="h-10 rounded-xl text-xs font-bold whitespace-nowrap"
-                        onClick={handleSyncGoogleContacts}
+                        onClick={handleSyncPendingGoogleContacts}
                       >
                         <RefreshCcw className="w-3.5 h-3.5 mr-2" />
                         Sincronizar
