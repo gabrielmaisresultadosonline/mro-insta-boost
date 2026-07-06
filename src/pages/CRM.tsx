@@ -7291,7 +7291,7 @@ const CRM = () => {
                                 : sourceFilter === 'google'
                                   ? isFromGoogle
                                   : sourceFilter === 'system'
-                                    ? (!isFromGoogle && (c.source_type || 'system') === 'system')
+                                    ? (c.source_type !== 'imported' && c.source_type !== 'google')
                                     : c.source_type === sourceFilter;
                             return matchesSearch && matchesSource;
                           });
@@ -7391,7 +7391,7 @@ const CRM = () => {
                                   : sourceFilter === 'google'
                                     ? isFromGoogle
                                     : sourceFilter === 'system'
-                                      ? (!isFromGoogle && (c.source_type || 'system') === 'system')
+                                      ? (c.source_type !== 'imported' && c.source_type !== 'google')
                                       : c.source_type === sourceFilter;
                               return matchesSearch && matchesSource;
                             });
