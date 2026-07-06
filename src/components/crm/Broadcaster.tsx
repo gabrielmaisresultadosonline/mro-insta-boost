@@ -181,8 +181,10 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
         const last = new Date(c.last_message_received_at).getTime();
         if (Number.isNaN(last)) return false;
         const msLeft = DAY - (now - last);
-        // Ainda dentro da janela e faltando <= threshold para expirar
-        return msLeft > 0 && msLeft <= thresholdMs;
+        // Mostra todos os contatos ainda dentro da janela de 24h que se
+        // encaixam nas etiquetas selecionadas. Os que já estão dentro do
+        // `threshold` serão disparados primeiro pelo agendador.
+        return msLeft > 0;
       })
       .map((c: any) => {
         const last = new Date(c.last_message_received_at).getTime();
