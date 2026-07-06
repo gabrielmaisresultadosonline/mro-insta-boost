@@ -7195,9 +7195,13 @@ const CRM = () => {
                         <span className="text-[10px] font-bold text-muted-foreground uppercase">Filtrar Origem:</span>
                         {(() => {
                           const isUnnamed = (c: any) => !c.name || !c.name.trim() || c.name.trim() === c.wa_id;
+                          // "Google" = contato que já está sincronizado com uma conta Google (subiu ou veio do Google).
                           const isFromGoogle = (c: any) => !!(c.google_sync_account_id || c.metadata?.google_resource_name || c.source_type === 'google');
+                          // "Sistema" = QUALQUER contato criado pelo próprio CRM (recebido no WhatsApp, salvo manualmente, etc.).
+                          // Não inclui apenas os importados via CSV/vCard. Pode estar sincronizado com Google também.
+                          const isSystem = (c: any) => c.source_type !== 'imported' && c.source_type !== 'google';
                           const cAll = contacts.length;
-                          const cSystem = contacts.filter(c => !isFromGoogle(c) && (c.source_type || 'system') === 'system').length;
+                          const cSystem = contacts.filter(isSystem).length;
                           const cImported = contacts.filter(c => c.source_type === 'imported').length;
                           const cGoogle = contacts.filter(isFromGoogle).length;
                           const cUnnamed = contacts.filter(isUnnamed).length;
@@ -7287,7 +7291,7 @@ const CRM = () => {
                                 : sourceFilter === 'google'
                                   ? isFromGoogle
                                   : sourceFilter === 'system'
-                                    ? (!isFromGoogle && (c.source_type || 'system') === 'system')
+                                    ? (c.source_type !== 'imported' && c.source_type !== 'google')
                                     : c.source_type === sourceFilter;
                             return matchesSearch && matchesSource;
                           });
@@ -7387,7 +7391,7 @@ const CRM = () => {
                                   : sourceFilter === 'google'
                                     ? isFromGoogle
                                     : sourceFilter === 'system'
-                                      ? (!isFromGoogle && (c.source_type || 'system') === 'system')
+                                      ? (c.source_type !== 'imported' && c.source_type !== 'google')
                                       : c.source_type === sourceFilter;
                               return matchesSearch && matchesSource;
                             });
