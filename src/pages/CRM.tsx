@@ -1846,9 +1846,9 @@ const CRM = () => {
     const redirectUri = encodeURIComponent('https://zapmro.com.br/google-callback');
     console.log('[OAUTH] Initiating Google login with Redirect URI: https://zapmro.com.br/google-callback');
     
-    // Escopos necessários para ler contatos
+    // Escopos necessários para ler e enviar contatos ao Google
     const scopes = [
-      'https://www.googleapis.com/auth/contacts.readonly',
+      'https://www.googleapis.com/auth/contacts',
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile'
     ].join(' ');
@@ -1886,6 +1886,22 @@ const CRM = () => {
         .eq('id', accountId);
       if (error) throw error;
       toast({ title: checked ? "Auto Sync ativado nesta conta" : "Auto Sync desativado nesta conta" });
+      if (checked) {
+        googleAccountFullRef.current = false;
+        setGoogleAccountFull(false);
+        supabase.functions.invoke('meta-whatsapp-crm', {
+          body: { action: 'syncPendingToGoogle' }
+        }).then(({ data }) => {
+          if (data?.requiresReconnect) {
+            toast({
+              title: 'Reconecte a conta Google',
+              description: data.lastError || 'A conta conectada ainda está com permissão antiga somente leitura.',
+              variant: 'destructive',
+            });
+          }
+          fetchContacts();
+        }).catch(() => {});
+      }
     } catch (err: any) {
       // revert on error
       setGoogleAccounts(prev => prev.map(a => a.id === accountId ? { ...a, auto_sync: !checked } : a));
@@ -1943,6 +1959,53 @@ const CRM = () => {
     }
   };
 
+  const handleSyncPendingGoogleContacts = async () => {
+    if (!googleContactsEnabled) {
+      handleConnectGoogle();
+      return;
+    }
+
+    setIsSyncingContacts(true);
+    try {
+      googleAccountFullRef.current = false;
+      setGoogleAccountFull(false);
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: { action: 'syncPendingToGoogle' }
+      });
+      if (error) throw error;
+
+      if (data?.requiresReconnect) {
+        toast({
+          title: 'Reconecte a conta Google',
+          description: data.lastError || 'A conta conectada precisa autorizar permissão de envio de contatos.',
+          variant: 'destructive',
+        });
+      } else if (data?.accountFull) {
+        googleAccountFullRef.current = true;
+        setGoogleAccountFull(true);
+        toast({
+          title: 'Conta Google cheia',
+          description: data.lastError || 'Conecte outra conta Google com Auto Sync ativo para continuar.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Sincronização enviada!',
+          description: `${data?.pushed || 0} contatos subiram. ${data?.remaining || 0} ainda pendentes.`,
+        });
+      }
+      await fetchContacts();
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao subir contatos',
+        description: err.message || 'Não foi possível enviar os pendentes ao Google.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncingContacts(false);
+    }
+  };
+
   // Sincronização automática em tempo real com Google Contatos
   // Executa silenciosamente a cada 2 minutos quando ativado, e uma vez ao montar.
   const [googleAccountFull, setGoogleAccountFull] = useState(false);
@@ -1967,6 +2030,14 @@ const CRM = () => {
           toast({
             title: "Conta Google cheia (limite de 25.000 contatos)",
             description: "O Google não aceita mais contatos nesta conta. Exclua contatos em contacts.google.com ou conecte outra conta Google.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (data?.requiresReconnect) {
+          toast({
+            title: "Reconecte a conta Google",
+            description: data.lastError || "O Google recusou o envio porque a conta foi conectada com permissão antiga somente leitura.",
             variant: "destructive",
           });
           return;
@@ -7036,7 +7107,7 @@ const CRM = () => {
                                 variant="outline"
                                 size="sm"
                                 className="h-8 text-[10px] font-bold rounded-lg px-3"
-                                onClick={handleSyncGoogleContacts}
+                                onClick={handleSyncPendingGoogleContacts}
                               >
                                 <RefreshCcw className={cn("w-3 h-3 mr-1", "animate-spin-slow")} />
                                 SINCRONIZAR
@@ -7359,7 +7430,7 @@ const CRM = () => {
                         variant="default"
                         size="sm"
                         className="h-10 rounded-xl text-xs font-bold whitespace-nowrap"
-                        onClick={handleSyncGoogleContacts}
+                        onClick={handleSyncPendingGoogleContacts}
                       >
                         <RefreshCcw className="w-3.5 h-3.5 mr-2" />
                         Sincronizar

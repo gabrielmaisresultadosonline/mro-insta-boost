@@ -1455,6 +1455,19 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
 })
 
 const DEFAULT_GOOGLE_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
+const GOOGLE_CONTACTS_SCOPES = [
+  'https://www.googleapis.com/auth/contacts',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+].join(' ');
+
+function isGoogleContactsFullError(errorBody: string) {
+  return /MY_CONTACTS_OVERFLOW_COUNT|contact limit|too many contacts/i.test(errorBody);
+}
+
+function isGoogleInsufficientScopeError(errorBody: string) {
+  return /insufficient authentication scopes|ACCESS_TOKEN_SCOPE_INSUFFICIENT|PERMISSION_DENIED/i.test(errorBody);
+}
 
 function normalizeMetaSendError(result: any, fallback = 'Erro ao enviar mensagem pela Meta') {
   const metaError = result?.error || {};
@@ -1506,114 +1519,207 @@ function getGoogleOAuthCredentials(settings?: any) {
   };
 }
 
-// Push named (renamed by user) CRM contacts up to the user's connected Google account.
-// Runs in background — one call iterates over every connected Google account so the
-// minute cron keeps Google in sync without depending on any open browser tab.
+async function pushPendingContactsToGoogle(supabase: any, userId: string, settings: any, accounts: any[], limit = 500) {
+  const { data: pendingNew } = await supabase
+    .from('crm_contacts')
+    .select('id, name, wa_id, google_sync_account_id, metadata')
+    .eq('user_id', userId)
+    .is('google_sync_account_id', null)
+    .limit(limit);
+
+  const { data: pendingDirty } = await supabase
+    .from('crm_contacts')
+    .select('id, name, wa_id, google_sync_account_id, metadata')
+    .eq('user_id', userId)
+    .not('google_sync_account_id', 'is', null)
+    .eq('metadata->>google_dirty', 'true')
+    .limit(limit);
+
+  let remaining = ([...(pendingNew || []), ...(pendingDirty || [])]).filter((c: any) => {
+    const name = (c.name || '').trim();
+    if (!name) return false;
+    if (name === (c.wa_id || '').trim()) return false;
+    return true;
+  });
+
+  const totalPending = remaining.length;
+  let pushed = 0;
+  let failed = 0;
+  let lastError: string | null = null;
+  const fullAccounts: string[] = [];
+  const reconnectAccounts: string[] = [];
+
+  for (const account of accounts) {
+    if (remaining.length === 0) break;
+
+    let accessToken = account.access_token;
+    if (Date.now() >= (account.expiry_date || 0)) {
+      const { clientId: googleClientId, clientSecret: googleClientSecret } = getGoogleOAuthCredentials(settings);
+      if (googleClientSecret && account.refresh_token) {
+        const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: googleClientId,
+            client_secret: googleClientSecret,
+            refresh_token: account.refresh_token,
+            grant_type: 'refresh_token',
+          }),
+        });
+        const refreshTokens = await refreshResponse.json();
+        if (refreshResponse.ok) {
+          accessToken = refreshTokens.access_token;
+          await supabase.from('crm_google_accounts').update({
+            access_token: accessToken,
+            expiry_date: Date.now() + (refreshTokens.expires_in * 1000),
+            updated_at: new Date().toISOString()
+          }).eq('id', account.id);
+        } else {
+          console.error(`[GOOGLE-SYNC] Falha ao renovar token da conta ${account.email}:`, JSON.stringify(refreshTokens));
+          lastError = `Token expirado (${account.email}). Reconecte esta conta.`;
+          reconnectAccounts.push(account.email);
+          continue;
+        }
+      } else {
+        lastError = `Sem refresh token (${account.email}). Reconecte esta conta.`;
+        reconnectAccounts.push(account.email);
+        continue;
+      }
+    }
+
+    const dirtyResources = remaining
+      .map((c: any) => c?.metadata?.google_resource_name)
+      .filter((r: any) => typeof r === 'string' && r.length > 0);
+    for (let i = 0; i < dirtyResources.length; i += 500) {
+      const chunk = dirtyResources.slice(i, i + 500);
+      try {
+        const delResp = await fetch('https://people.googleapis.com/v1/people:batchDeleteContacts', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resourceNames: chunk }),
+        });
+        if (!delResp.ok) {
+          const t = await delResp.text().catch(() => '');
+          console.warn('[GOOGLE-SYNC] batchDelete falhou (segue com create):', delResp.status, t.slice(0, 300));
+        }
+      } catch (e) {
+        console.warn('[GOOGLE-SYNC] batchDelete erro:', e);
+      }
+    }
+
+    const stillPending: any[] = [];
+    let skipCurrentAccount = false;
+    for (let i = 0; i < remaining.length; i += 200) {
+      const chunk = remaining.slice(i, i + 200);
+      if (skipCurrentAccount) {
+        stillPending.push(...chunk);
+        continue;
+      }
+      try {
+        const resp = await fetch('https://people.googleapis.com/v1/people:batchCreateContacts', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contacts: chunk.map((c: any) => ({
+              contactPerson: {
+                names: [{ givenName: c.name || c.wa_id }],
+                phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
+              },
+            })),
+            readMask: 'names,phoneNumbers',
+          }),
+        });
+        if (resp.ok) {
+          const body = await resp.json().catch(() => ({} as any));
+          const created: any[] = body?.createdPeople || [];
+          const nowIso = new Date().toISOString();
+          await Promise.all(chunk.map(async (c: any, idx: number) => {
+            const resourceName = created[idx]?.person?.resourceName || null;
+            const nextMeta = { ...((c as any).metadata || {}), google_resource_name: resourceName };
+            delete nextMeta.google_dirty;
+            const { error: upErr } = await supabase.from('crm_contacts').update({
+              google_sync_account_id: account.id,
+              google_synced_at: nowIso,
+              metadata: nextMeta,
+            }).eq('id', c.id);
+            if (upErr) {
+              console.error('[GOOGLE-SYNC] Erro ao marcar contato como sincronizado:', c.id, upErr.message);
+              failed++;
+            } else {
+              pushed++;
+            }
+          }));
+        } else {
+          const t = await resp.text().catch(() => '');
+          lastError = `HTTP ${resp.status} (${account.email}): ${t.slice(0, 200)}`;
+          console.error('[GOOGLE-SYNC] batchCreate falhou:', lastError);
+          stillPending.push(...chunk);
+          if (isGoogleContactsFullError(t)) {
+            skipCurrentAccount = true;
+            fullAccounts.push(account.email);
+            console.warn(`[GOOGLE-SYNC] Conta ${account.email} cheia (25k). Pulando para próxima conta.`);
+          } else if (isGoogleInsufficientScopeError(t)) {
+            skipCurrentAccount = true;
+            reconnectAccounts.push(account.email);
+            lastError = `Permissão insuficiente (${account.email}). Reconecte esta conta Google para liberar envio de contatos.`;
+            console.warn(`[GOOGLE-SYNC] Conta ${account.email} sem escopo de escrita. Reconexão necessária.`);
+          }
+        }
+      } catch (e: any) {
+        lastError = e?.message || String(e);
+        console.error('[GOOGLE-SYNC] batchCreate erro:', lastError);
+        stillPending.push(...chunk);
+      }
+    }
+    remaining = stillPending;
+  }
+
+  const accountFull = fullAccounts.length > 0 && remaining.length > 0;
+  const requiresReconnect = reconnectAccounts.length > 0 && remaining.length > 0;
+  if (accountFull) {
+    lastError = `Contas cheias: ${fullAccounts.join(', ')}. Conecte outra conta Google para continuar.`;
+  } else if (requiresReconnect) {
+    lastError = `Reconecte a(s) conta(s) Google: ${[...new Set(reconnectAccounts)].join(', ')}. A permissão antiga era somente leitura.`;
+  }
+
+  console.log(`[GOOGLE-SYNC] Concluído: ${pushed} enviados, ${remaining.length} ainda pendentes de ${totalPending}.`);
+
+  return {
+    success: true,
+    pushed,
+    failed,
+    pending: totalPending,
+    remaining: remaining.length,
+    lastError,
+    accountFull,
+    fullAccounts: [...new Set(fullAccounts)],
+    requiresReconnect,
+    reconnectAccounts: [...new Set(reconnectAccounts)],
+  };
+}
+
+// Push named (renamed by user) CRM contacts up to active Google accounts.
+// Runs in background so Google sync does not depend on an open browser tab.
 async function autoPushGoogleContactsForAllUsers(supabase: any) {
   try {
     const { data: accounts } = await supabase
       .from('crm_google_accounts')
       .select('*')
+      .eq('auto_sync', true)
       .order('updated_at', { ascending: false });
     if (!accounts || accounts.length === 0) return;
 
-    // Keep one (most recent) account per user
-    const byUser = new Map<string, any>();
-    for (const a of accounts) if (!byUser.has(a.user_id)) byUser.set(a.user_id, a);
+    const byUser = new Map<string, any[]>();
+    for (const account of accounts) {
+      const userAccounts = byUser.get(account.user_id) || [];
+      userAccounts.push(account);
+      byUser.set(account.user_id, userAccounts);
+    }
 
-    for (const [userId, account] of byUser.entries()) {
+    for (const [userId, userAccounts] of byUser.entries()) {
       try {
-        // Find pending named contacts for this user
-        const { data: pendingNew } = await supabase
-          .from('crm_contacts')
-          .select('id, name, wa_id, google_sync_account_id, metadata')
-          .eq('user_id', userId)
-          .is('google_sync_account_id', null)
-          .limit(100);
-        // Also fetch contacts already synced but marked dirty (name/phone edited after sync)
-        const { data: pendingDirty } = await supabase
-          .from('crm_contacts')
-          .select('id, name, wa_id, google_sync_account_id, metadata')
-          .eq('user_id', userId)
-          .not('google_sync_account_id', 'is', null)
-          .eq('metadata->>google_dirty', 'true')
-          .limit(100);
-
-        const list = ([...(pendingNew || []), ...(pendingDirty || [])]).filter((c: any) => {
-          const name = (c.name || '').trim();
-          if (!name) return false;
-          if (name === (c.wa_id || '').trim()) return false;
-          return true;
-        });
-        if (list.length === 0) continue;
-
-        // Refresh token if needed
-        let accessToken = account.access_token;
-        if (Date.now() >= (account.expiry_date || 0)) {
-          const settings = await getCrmSettings(supabase, userId);
-          const { clientId, clientSecret } = getGoogleOAuthCredentials(settings);
-          if (clientSecret && account.refresh_token) {
-            const r = await fetch('https://oauth2.googleapis.com/token', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: new URLSearchParams({
-                client_id: clientId,
-                client_secret: clientSecret,
-                refresh_token: account.refresh_token,
-                grant_type: 'refresh_token',
-              }),
-            });
-            const t = await r.json();
-            if (r.ok && t.access_token) {
-              accessToken = t.access_token;
-              await supabase.from('crm_google_accounts').update({
-                access_token: accessToken,
-                expiry_date: Date.now() + ((t.expires_in || 3600) * 1000),
-                updated_at: new Date().toISOString(),
-              }).eq('id', account.id);
-            } else {
-              continue; // can't push without valid token
-            }
-          } else {
-            continue;
-          }
-        }
-
-        for (const c of list) {
-          try {
-            // If this contact was already on Google (dirty edit), delete the old entry first
-            const oldResource = (c as any)?.metadata?.google_resource_name;
-            if (oldResource) {
-              try {
-                await fetch(`https://people.googleapis.com/v1/${oldResource}:deleteContact`, {
-                  method: 'DELETE',
-                  headers: { 'Authorization': `Bearer ${accessToken}` },
-                });
-              } catch (_) { /* ignore */ }
-            }
-            const resp = await fetch('https://people.googleapis.com/v1/people:createContact', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                names: [{ givenName: c.name || c.wa_id }],
-                phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
-              }),
-            });
-            if (resp.ok) {
-              const body = await resp.json().catch(() => ({}));
-              const nextMeta = { ...((c as any).metadata || {}), google_resource_name: body?.resourceName || (c as any)?.metadata?.google_resource_name || null };
-              delete nextMeta.google_dirty;
-              await supabase.from('crm_contacts').update({
-                google_sync_account_id: account.id,
-                google_synced_at: new Date().toISOString(),
-                metadata: nextMeta,
-              }).eq('id', c.id);
-            }
-          } catch (_) { /* skip */ }
-        }
+        const settings = await getCrmSettings(supabase, userId);
+        await pushPendingContactsToGoogle(supabase, userId, settings, userAccounts, 100);
       } catch (e) {
         console.warn('[auto-google-push] user error', userId, (e as any)?.message);
       }
@@ -3985,7 +4091,7 @@ async function fetchAndStoreIncomingMedia(
        const origin = req.headers.get('origin') || 'https://zapmro.com.br';
        // Usamos sempre zapmro.com.br/google-callback para consistência SaaS
        const redirectUri = 'https://zapmro.com.br/google-callback';
-      const scope = 'https://www.googleapis.com/auth/contacts.readonly';
+      const scope = GOOGLE_CONTACTS_SCOPES;
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${google_client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
 
       return new Response(JSON.stringify({ success: true, authUrl }), {
@@ -4044,16 +4150,25 @@ async function fetchAndStoreIncomingMedia(
       const email = userInfo.email;
       console.log(`[OAUTH] Connected email: ${email}`);
 
-       // Store in crm_google_accounts
+       const { data: existingAccount } = await supabase
+         .from('crm_google_accounts')
+         .select('refresh_token, auto_sync')
+         .eq('user_id', userId)
+         .eq('email', email)
+         .maybeSingle();
+
+       // Store in crm_google_accounts. Google may omit refresh_token on repeated consent,
+       // so preserve the previous one instead of overwriting it with null/undefined.
        const { data: account, error: accError } = await supabase
          .from('crm_google_accounts')
          .upsert({
            email,
            access_token: tokens.access_token,
-           refresh_token: tokens.refresh_token,
+           refresh_token: tokens.refresh_token || existingAccount?.refresh_token || null,
            expiry_date: Date.now() + (tokens.expires_in * 1000),
            updated_at: new Date().toISOString(),
-           user_id: userId
+           user_id: userId,
+           auto_sync: existingAccount?.auto_sync ?? true,
          }, { onConflict: 'user_id, email' })
          .select()
          .single();
@@ -4253,7 +4368,7 @@ async function fetchAndStoreIncomingMedia(
     }
 
     if (action === 'syncPendingToGoogle') {
-      // Push contacts that are NOT yet on Google up to the user's Google account.
+      // Push contacts that are NOT yet on Google up to active Google accounts.
       // Does NOT pull from Google (avoid duplication caused by re-importing).
       const { data: accounts } = await supabase
         .from('crm_google_accounts')
@@ -4263,175 +4378,11 @@ async function fetchAndStoreIncomingMedia(
         .order('updated_at', { ascending: false });
 
       if (!accounts || accounts.length === 0) {
-        return new Response(JSON.stringify({ success: false, error: 'Nenhuma conta Google conectada' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ success: false, error: 'Nenhuma conta Google com Auto Sync ativo' });
       }
 
-      // Fetch only PENDING contacts (not yet synced) that have a real name set
-      // (skip contacts whose name is empty or equal to the wa_id — those weren't named by the user)
-      const { data: pendingNew } = await supabase
-        .from('crm_contacts')
-        .select('id, name, wa_id, google_sync_account_id, metadata')
-        .eq('user_id', userId)
-        .is('google_sync_account_id', null)
-        .limit(500);
-      // Also include contacts already synced but flagged dirty (renamed/edited after sync)
-      const { data: pendingDirty } = await supabase
-        .from('crm_contacts')
-        .select('id, name, wa_id, google_sync_account_id, metadata')
-        .eq('user_id', userId)
-        .not('google_sync_account_id', 'is', null)
-        .eq('metadata->>google_dirty', 'true')
-        .limit(500);
-
-      let remaining = ([...(pendingNew || []), ...(pendingDirty || [])]).filter((c: any) => {
-        const name = (c.name || '').trim();
-        if (!name) return false;
-        if (name === (c.wa_id || '').trim()) return false;
-        return true;
-      });
-      const totalPending = remaining.length;
-      let pushed = 0;
-      let failed = 0;
-      let lastError: string | null = null;
-      const fullAccounts: string[] = [];
-
-      // Iterar sobre as contas Google ativas — se uma estiver cheia/falhar,
-      // pular para a próxima automaticamente. Assim contatos não ficam presos.
-      for (const account of accounts) {
-        if (remaining.length === 0) break;
-
-        // Refresh token if expired
-        let accessToken = account.access_token;
-        if (Date.now() >= (account.expiry_date || 0)) {
-          const { clientId: googleClientId, clientSecret: googleClientSecret } = getGoogleOAuthCredentials(settings);
-          if (googleClientSecret && account.refresh_token) {
-            const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: new URLSearchParams({
-                client_id: googleClientId,
-                client_secret: googleClientSecret,
-                refresh_token: account.refresh_token,
-                grant_type: 'refresh_token',
-              }),
-            });
-            const refreshTokens = await refreshResponse.json();
-            if (refreshResponse.ok) {
-              accessToken = refreshTokens.access_token;
-              await supabase.from('crm_google_accounts').update({
-                access_token: accessToken,
-                expiry_date: Date.now() + (refreshTokens.expires_in * 1000),
-                updated_at: new Date().toISOString()
-              }).eq('id', account.id);
-            } else {
-              console.error(`[GOOGLE-SYNC] Falha ao renovar token da conta ${account.email}:`, JSON.stringify(refreshTokens));
-              lastError = `Token expirado (${account.email}). Reconecte esta conta.`;
-              continue;
-            }
-          } else {
-            lastError = `Sem refresh token (${account.email}). Reconecte esta conta.`;
-            continue;
-          }
-        }
-
-        // 1) Apagar recursos antigos dos "dirty" desta conta
-        const dirtyResources = remaining
-          .map((c: any) => c?.metadata?.google_resource_name)
-          .filter((r: any) => typeof r === 'string' && r.length > 0);
-        for (let i = 0; i < dirtyResources.length; i += 500) {
-          const chunk = dirtyResources.slice(i, i + 500);
-          try {
-            const delResp = await fetch('https://people.googleapis.com/v1/people:batchDeleteContacts', {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ resourceNames: chunk }),
-            });
-            if (!delResp.ok) {
-              const t = await delResp.text().catch(() => '');
-              console.warn('[GOOGLE-SYNC] batchDelete falhou (segue com create):', delResp.status, t.slice(0, 300));
-            }
-          } catch (e) {
-            console.warn('[GOOGLE-SYNC] batchDelete erro:', e);
-          }
-        }
-
-        // 2) Criar em lote (200 por chamada) — pula para próxima conta se esta encher
-        const stillPending: any[] = [];
-        let thisAccountFull = false;
-        for (let i = 0; i < remaining.length; i += 200) {
-          const chunk = remaining.slice(i, i + 200);
-          if (thisAccountFull) {
-            stillPending.push(...chunk);
-            continue;
-          }
-          try {
-            const resp = await fetch('https://people.googleapis.com/v1/people:batchCreateContacts', {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contacts: chunk.map((c: any) => ({
-                  contactPerson: {
-                    names: [{ givenName: c.name || c.wa_id }],
-                    phoneNumbers: [{ value: c.wa_id, type: 'mobile' }],
-                  },
-                })),
-                readMask: 'names,phoneNumbers',
-              }),
-            });
-            if (resp.ok) {
-              const body = await resp.json().catch(() => ({} as any));
-              const created: any[] = body?.createdPeople || [];
-              const nowIso = new Date().toISOString();
-              await Promise.all(chunk.map(async (c: any, idx: number) => {
-                const resourceName = created[idx]?.person?.resourceName || null;
-                const nextMeta = { ...((c as any).metadata || {}), google_resource_name: resourceName };
-                delete nextMeta.google_dirty;
-                const { error: upErr } = await supabase.from('crm_contacts').update({
-                  google_sync_account_id: account.id,
-                  google_synced_at: nowIso,
-                  metadata: nextMeta,
-                }).eq('id', c.id);
-                if (upErr) {
-                  console.error('[GOOGLE-SYNC] Erro ao marcar contato como sincronizado:', c.id, upErr.message);
-                  failed++;
-                } else {
-                  pushed++;
-                }
-              }));
-            } else {
-              const t = await resp.text().catch(() => '');
-              lastError = `HTTP ${resp.status} (${account.email}): ${t.slice(0, 200)}`;
-              console.error('[GOOGLE-SYNC] batchCreate falhou:', lastError);
-              if (t.includes('MY_CONTACTS_OVERFLOW_COUNT')) {
-                thisAccountFull = true;
-                fullAccounts.push(account.email);
-                console.warn(`[GOOGLE-SYNC] Conta ${account.email} cheia (25k). Pulando para próxima conta.`);
-                stillPending.push(...chunk);
-              } else {
-                stillPending.push(...chunk);
-              }
-            }
-          } catch (e: any) {
-            lastError = e?.message || String(e);
-            console.error('[GOOGLE-SYNC] batchCreate erro:', lastError);
-            stillPending.push(...chunk);
-          }
-        }
-        remaining = stillPending;
-      }
-
-      const accountFull = fullAccounts.length > 0 && remaining.length > 0;
-      if (accountFull) {
-        lastError = `Contas cheias: ${fullAccounts.join(', ')}. Conecte outra conta Google para continuar.`;
-      }
-
-      console.log(`[GOOGLE-SYNC] Concluído: ${pushed} enviados, ${remaining.length} ainda pendentes de ${totalPending}.`);
-
-      return new Response(JSON.stringify({ success: true, pushed, failed, pending: totalPending, remaining: remaining.length, lastError, accountFull, fullAccounts }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const result = await pushPendingContactsToGoogle(supabase, userId, settings, accounts, 500);
+      return jsonResponse(result);
     }
     // Legacy action block removed to prevent duplication with main processScheduled at line 332
 
