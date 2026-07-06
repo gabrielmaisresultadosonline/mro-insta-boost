@@ -895,6 +895,21 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                 </Button>
               </div>
 
+              {['question', 'pix', 'mediaCarousel'].includes(selectedNode.type as string) && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-8 text-xs gap-1.5 mb-3 border-emerald-500 bg-emerald-50 hover:bg-emerald-100 text-emerald-700"
+                  onClick={() => {
+                    setPreviewNodeId(selectedNode.id);
+                    setPreviewDialogOpen(true);
+                  }}
+                >
+                  <Smartphone className="w-3.5 h-3.5" /> Abrir Preview Mobile
+                </Button>
+              )}
+
               <div className="space-y-4">
                 {(selectedNode.type === 'message' || selectedNode.type === 'question') && (
                   <div className="space-y-2">
