@@ -2010,6 +2010,207 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Preview Mobile Dialog — editor + preview lado a lado para question/pix/mediaCarousel */}
+      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-hidden p-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <Smartphone className="w-4 h-4 text-emerald-600" /> Preview Mobile — como o cliente verá
+            </DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const node = nodes.find((n) => n.id === previewNodeId);
+            if (!node) return <div className="p-6 text-sm text-muted-foreground">Selecione um bloco.</div>;
+            const nType = node.type as string;
+            const nData: any = node.data || {};
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 max-h-[75vh] overflow-hidden">
+                {/* Editor rápido */}
+                <div className="p-4 space-y-3 overflow-y-auto border-r bg-slate-50/50">
+                  <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                    Configuração
+                  </p>
+
+                  {nType === 'question' && (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Texto da mensagem</Label>
+                        <Textarea
+                          rows={4}
+                          value={(nData.text as string) || ''}
+                          onChange={(e) => updateNodeData(node.id, { text: e.target.value })}
+                          className="text-xs"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Imagem (opcional)</Label>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            className="text-[10px] h-8"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) {
+                                updateNodeData(node.id, { videoUrl: '' });
+                                handleFileUpload(f, node.id, 'image');
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Vídeo (opcional)</Label>
+                          <Input
+                            type="file"
+                            accept="video/*"
+                            className="text-[10px] h-8"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) {
+                                updateNodeData(node.id, { imageUrl: '' });
+                                handleFileUpload(f, node.id, 'video');
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Botões (máx 3)</Label>
+                        {((nData.buttons as any[]) || []).map((btn: any, idx: number) => (
+                          <div key={btn.id || idx} className="p-2 bg-white border rounded-md space-y-1.5">
+                            <div className="flex gap-1.5">
+                              <Input
+                                value={btn.text || ''}
+                                placeholder="Texto do botão"
+                                maxLength={20}
+                                className="text-xs h-7"
+                                onChange={(e) => {
+                                  const next = [...(nData.buttons as any[])];
+                                  next[idx] = { ...next[idx], text: e.target.value };
+                                  updateNodeData(node.id, { buttons: next });
+                                }}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-red-500 shrink-0"
+                                onClick={() => {
+                                  const next = (nData.buttons as any[]).filter((_, i) => i !== idx);
+                                  updateNodeData(node.id, { buttons: next });
+                                }}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            <Input
+                              value={btn.url || ''}
+                              placeholder="URL (opcional — deixe vazio p/ botão de resposta)"
+                              className="text-[10px] h-7"
+                              onChange={(e) => {
+                                const next = [...(nData.buttons as any[])];
+                                next[idx] = { ...next[idx], url: e.target.value };
+                                updateNodeData(node.id, { buttons: next });
+                              }}
+                            />
+                          </div>
+                        ))}
+                        {((nData.buttons as any[]) || []).length < 3 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full h-7 text-xs"
+                            onClick={() => {
+                              const next = [...((nData.buttons as any[]) || []), { text: 'Novo Botão', id: `btn_${Date.now()}`, url: '' }];
+                              updateNodeData(node.id, { buttons: next });
+                            }}
+                          >
+                            <Plus className="w-3 h-3 mr-1" /> Botão
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {nType === 'pix' && (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Chave PIX</Label>
+                        <Input
+                          value={(nData.pixKey as string) || ''}
+                          placeholder="ex: financeiro@empresa.com"
+                          className="text-xs h-8"
+                          onChange={(e) => updateNodeData(node.id, { pixKey: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Valor (R$)</Label>
+                        <Input
+                          type="number"
+                          value={(nData.amount as string) || ''}
+                          placeholder="47.00"
+                          className="text-xs h-8"
+                          onChange={(e) => updateNodeData(node.id, { amount: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Descrição</Label>
+                        <Input
+                          value={(nData.description as string) || ''}
+                          placeholder="Ex: Curso Cabeleireira"
+                          className="text-xs h-8"
+                          onChange={(e) => updateNodeData(node.id, { description: e.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {nType === 'mediaCarousel' && (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Texto de abertura (opcional)</Label>
+                        <Textarea
+                          rows={2}
+                          value={(nData.headerText as string) || ''}
+                          placeholder="Ex.: Confira nossos destaques 👇"
+                          className="text-xs"
+                          onChange={(e) => updateNodeData(node.id, { headerText: e.target.value })}
+                        />
+                      </div>
+                      <div className="p-2 rounded-md bg-pink-50 border border-pink-100">
+                        <p className="text-[11px] text-pink-700 font-semibold mb-1">
+                          {((nData.cards as any[]) || []).length} card(s)
+                        </p>
+                        <Button
+                          size="sm"
+                          className="w-full h-8 text-xs bg-pink-600 hover:bg-pink-700 text-white gap-1"
+                          onClick={() => {
+                            setPreviewDialogOpen(false);
+                            setCarouselDialogOpen(true);
+                          }}
+                        >
+                          <Maximize2 className="w-3 h-3" /> Editar cards
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="pt-2 text-[10px] text-muted-foreground italic border-t">
+                    Você pode continuar editando na barra lateral. As alterações aparecem no preview em tempo real.
+                  </div>
+                </div>
+
+                {/* Preview mobile */}
+                <div className="p-4 bg-slate-100 overflow-y-auto flex items-start justify-center">
+                  <WhatsAppFlowPreview nodeType={nType} data={nData} />
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter className="p-3 border-t">
+            <Button onClick={() => setPreviewDialogOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
