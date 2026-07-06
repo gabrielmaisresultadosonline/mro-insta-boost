@@ -769,23 +769,27 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                   </Badge>
                 </div>
                 <p className="text-[10px] text-white/40">
-                  Contatos que terão o disparo automático nos próximos <b>{countdownThreshold} min</b>
-                  {countdownStatusFilter.length > 0 ? <> (etiquetas: <b>{countdownStatusFilter.join(', ')}</b>)</> : ' (todas as etiquetas)'}.
-                  Ordenados do que expira primeiro para o último.
+                  Contatos com janela de 24h ativa
+                  {countdownStatusFilter.length > 0 ? <> nas etiquetas <b>{countdownStatusFilter.join(', ')}</b></> : ' (todas as etiquetas)'}.
+                  Os destacados em verde entram no disparo automático nos próximos <b>{countdownThreshold} min</b>. Ordenados do que expira primeiro para o último.
                 </p>
                 {countdownQueue.length === 0 ? (
                   <div className="text-[11px] text-white/40 italic py-3 text-center">
-                    Nenhum contato na fila no momento. Assim que alguma conversa entrar nos {countdownThreshold} min finais, aparecerá aqui.
+                    Nenhum contato com janela de 24h ativa nas etiquetas selecionadas.
                   </div>
                 ) : (
                   <ScrollArea className="h-52 pr-2">
                     <div className="space-y-1.5">
                       {countdownQueue.slice(0, 200).map((r, idx) => {
                         const st = statuses.find((s: any) => (s.value || s.name) === r.status);
+                        const willFire = r.minutesLeft <= countdownThreshold;
                         return (
                           <div
                             key={r.wa_id + idx}
-                            className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[#111b21] border border-white/5"
+                            className={cn(
+                              "flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[#111b21] border",
+                              willFire ? "border-[#00a884]/50" : "border-white/5"
+                            )}
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="text-[10px] text-white/40 w-5 shrink-0">#{idx + 1}</span>
@@ -803,8 +807,11 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                                   {st.label || st.name || r.status}
                                 </span>
                               )}
-                              <span className="text-[10px] text-[#00a884] font-medium tabular-nums">
-                                {r.minutesLeft}m
+                              <span className={cn(
+                                "text-[10px] font-medium tabular-nums",
+                                willFire ? "text-[#00a884]" : "text-white/50"
+                              )}>
+                                {r.minutesLeft < 60 ? `${r.minutesLeft}m` : `${Math.floor(r.minutesLeft/60)}h${r.minutesLeft%60 ? ` ${r.minutesLeft%60}m` : ''}`}
                               </span>
                             </div>
                           </div>
