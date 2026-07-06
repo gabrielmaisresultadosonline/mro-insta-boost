@@ -532,8 +532,10 @@ const CRM = () => {
   const [webhooks, setWebhooks] = useState<any[]>([]);
   const [isNewWebhookDialogOpen, setIsNewWebhookDialogOpen] = useState(false);
   const [newWebhook, setNewWebhook] = useState({ name: '', response_type: 'text' as 'text' | 'template', template_id: '', secret_token: '', is_active: true, default_status: 'new' });
-  const [googleContactsEnabled, setGoogleContactsEnabled] = useState(localStorage.getItem('google_contacts_connected') === 'true');
-  const [googleAccountInfo, setGoogleAccountInfo] = useState<{ email: string } | null>(null);
+  const [googleAccounts, setGoogleAccounts] = useState<Array<{ id: string; email: string; auto_sync: boolean }>>([]);
+  const googleContactsEnabled = googleAccounts.length > 0;
+  const anyAutoSync = googleAccounts.some(a => a.auto_sync);
+  const MAX_GOOGLE_ACCOUNTS = 3;
   const [showUnnamedContacts, setShowUnnamedContacts] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [bulkName, setBulkName] = useState('');
