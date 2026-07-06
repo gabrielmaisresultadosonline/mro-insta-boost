@@ -1949,7 +1949,7 @@ const CRM = () => {
   const googleAccountFullRef = useRef(false);
   useEffect(() => {
     if (!googleContactsEnabled) return;
-    if (!metaSettings.google_auto_sync) return;
+    if (!anyAutoSync) return;
 
     let cancelled = false;
 
@@ -1992,7 +1992,7 @@ const CRM = () => {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [googleContactsEnabled, metaSettings.google_auto_sync]);
+  }, [googleContactsEnabled, anyAutoSync]);
 
   const handleImprovePrompt = async () => {
     if (!metaSettings.ai_system_prompt?.trim() || improvingPrompt) {
