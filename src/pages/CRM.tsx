@@ -7020,79 +7020,68 @@ const CRM = () => {
                     </div>
                     
                     <div className="flex flex-col xl:flex-row w-full lg:w-auto gap-4 items-stretch xl:items-center">
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-3 py-3 md:px-4 md:py-2 bg-primary/5 rounded-2xl border border-primary/20 shadow-sm flex-1">
-                        <div className="flex items-center justify-between sm:justify-start gap-3 sm:pr-4 sm:border-r border-primary/10">
-                          <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-3 px-3 py-3 md:px-4 md:py-3 bg-primary/5 rounded-2xl border border-primary/20 shadow-sm flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm flex-shrink-0">
                               <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-bold uppercase text-primary leading-none mb-1">Google Contatos</span>
-                              {googleAccountInfo ? (
-                                <div className="flex flex-col">
-                                  <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{googleAccountInfo.email}</span>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Switch
-                                      id="google-sync-list-connected"
-                                      checked={metaSettings.google_auto_sync}
-                                      onCheckedChange={async (checked) => {
-                                        setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
-                                        try {
-                                          const { data: { user } } = await supabase.auth.getUser();
-                                          if (user) {
-                                            await supabase.from('crm_settings')
-                                              .update({ google_auto_sync: checked, updated_at: new Date().toISOString() })
-                                              .eq('user_id', user.id);
-                                          }
-                                        } catch {}
-                                        toast({ title: checked ? "Auto Sync ativado" : "Auto Sync desativado" });
-                                      }}
-                                    />
-                                    <Label htmlFor="google-sync-list-connected" className="text-[10px] font-bold cursor-pointer whitespace-nowrap">Auto Sync</Label>
-                                  </div>
+                            <span className="text-[10px] font-bold uppercase text-primary leading-none">
+                              Google Contatos {googleAccounts.length > 0 && `(${googleAccounts.length}/${MAX_GOOGLE_ACCOUNTS})`}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            {googleContactsEnabled && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-[10px] font-bold rounded-lg px-3"
+                                onClick={handleSyncGoogleContacts}
+                              >
+                                <RefreshCcw className={cn("w-3 h-3 mr-1", "animate-spin-slow")} />
+                                SINCRONIZAR
+                              </Button>
+                            )}
+                            {googleAccounts.length < MAX_GOOGLE_ACCOUNTS && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="h-8 text-[10px] font-bold rounded-lg px-3 bg-primary/90 text-white"
+                                onClick={handleConnectGoogle}
+                              >
+                                + {googleContactsEnabled ? 'ADICIONAR CONTA' : 'CONECTAR GOOGLE'}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {googleAccounts.length > 0 && (
+                          <div className="flex flex-col gap-2">
+                            {googleAccounts.map((acc) => (
+                              <div key={acc.id} className="flex items-center justify-between gap-2 px-3 py-2 bg-background rounded-lg border">
+                                <span className="text-[11px] font-medium truncate flex-1 min-w-0" title={acc.email}>
+                                  {acc.email}
+                                </span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <Switch
+                                    id={`gsync-${acc.id}`}
+                                    checked={acc.auto_sync}
+                                    onCheckedChange={(checked) => handleToggleAccountAutoSync(acc.id, checked)}
+                                  />
+                                  <Label htmlFor={`gsync-${acc.id}`} className="text-[10px] font-bold cursor-pointer whitespace-nowrap">
+                                    Auto Sync
+                                  </Label>
                                   <button
-                                    onClick={handleDisconnectGoogle}
-                                    className="text-[10px] text-destructive hover:underline text-left font-bold mt-1"
+                                    onClick={() => handleDisconnectGoogle(acc.id)}
+                                    className="text-[10px] text-destructive hover:underline font-bold ml-1"
                                   >
                                     SAIR
                                   </button>
                                 </div>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <Switch 
-                                    id="google-sync-list" 
-                                    checked={metaSettings.google_auto_sync} 
-                                    onCheckedChange={async (checked) => {
-                                      setMetaSettings(prev => ({ ...prev, google_auto_sync: checked }));
-                                      try {
-                                        const { data: { user } } = await supabase.auth.getUser();
-                                        if (user) {
-                                          await supabase.from('crm_settings')
-                                            .update({ google_auto_sync: checked, updated_at: new Date().toISOString() })
-                                            .eq('user_id', user.id);
-                                        }
-                                      } catch {}
-                                      toast({ title: checked ? "Sincronização automática ativada" : "Sincronização automática desativada" });
-                                    }}
-                                  />
-                                  <Label htmlFor="google-sync-list" className="text-[11px] font-bold cursor-pointer whitespace-nowrap">Sincronizar automático</Label>
-                                </div>
-                              )}
-                            </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          className={cn(
-                            "h-9 text-[10px] md:text-xs font-bold rounded-xl px-5 shadow-sm w-full sm:w-auto",
-                            googleContactsEnabled ? "bg-white text-primary border border-primary/20 hover:bg-primary/5" : "bg-primary/90 text-white"
-                          )}
-                          onClick={handleSyncGoogleContacts}
-                        >
-                          <RefreshCcw className={cn("w-3.5 h-3.5 mr-2", googleContactsEnabled && "animate-spin-slow")} />
-                          {googleContactsEnabled ? 'SINCRONIZAR AGORA' : 'CONECTAR GOOGLE'}
-                        </Button>
+                        )}
                       </div>
                       
                       <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full lg:w-auto">
