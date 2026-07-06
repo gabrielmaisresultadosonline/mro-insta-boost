@@ -2052,7 +2052,7 @@ const CRM = () => {
       fetchData(false);
 
       // Dispara sync imediato para o Google quando ativado (não espera o intervalo)
-      if (googleContactsEnabled && metaSettings.google_auto_sync) {
+      if (googleContactsEnabled && anyAutoSync) {
         supabase.functions.invoke('meta-whatsapp-crm', {
           body: { action: 'syncPendingToGoogle' }
         }).catch(() => {});
@@ -4890,7 +4890,7 @@ const CRM = () => {
                                           setSelectedContactIds([]);
                                           setBulkName('');
                                           // Dispara sync imediato para o Google (não espera o intervalo)
-                                          if (googleContactsEnabled && metaSettings.google_auto_sync) {
+                                          if (googleContactsEnabled && anyAutoSync) {
                                             supabase.functions.invoke('meta-whatsapp-crm', {
                                               body: { action: 'syncPendingToGoogle' }
                                             }).then(() => fetchContacts()).catch(() => {});
@@ -8518,7 +8518,7 @@ const CRM = () => {
                     updated_at: new Date().toISOString(),
                   }).eq('id', id);
                   // Trigger an immediate silent push so Google is updated in <1min.
-                  if (isSyncedToGoogle && (nameChanged || phoneChanged) && metaSettings.google_auto_sync) {
+                  if (isSyncedToGoogle && (nameChanged || phoneChanged) && anyAutoSync) {
                     supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'syncPendingToGoogle' } }).catch(() => {});
                   }
                 } else {
