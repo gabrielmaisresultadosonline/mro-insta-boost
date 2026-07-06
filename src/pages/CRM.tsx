@@ -7195,9 +7195,11 @@ const CRM = () => {
                         <span className="text-[10px] font-bold text-muted-foreground uppercase">Filtrar Origem:</span>
                         {(() => {
                           const isUnnamed = (c: any) => !c.name || !c.name.trim() || c.name.trim() === c.wa_id;
+                          const isFromGoogle = (c: any) => !!(c.google_sync_account_id || c.metadata?.google_resource_name || c.source_type === 'google');
                           const cAll = contacts.length;
-                          const cSystem = contacts.filter(c => (c.source_type || 'system') === 'system').length;
+                          const cSystem = contacts.filter(c => !isFromGoogle(c) && (c.source_type || 'system') === 'system').length;
                           const cImported = contacts.filter(c => c.source_type === 'imported').length;
+                          const cGoogle = contacts.filter(isFromGoogle).length;
                           const cUnnamed = contacts.filter(isUnnamed).length;
                           const btn = (key: string, label: string, n: number) => (
                             <Button
@@ -7214,6 +7216,7 @@ const CRM = () => {
                             <div className="flex bg-muted p-1 rounded-lg w-full sm:w-auto flex-wrap">
                               {btn('all', 'Todos', cAll)}
                               {btn('system', 'Sistema', cSystem)}
+                              {btn('google', 'Google', cGoogle)}
                               {btn('imported', 'Importados', cImported)}
                               {btn('unnamed', 'Sem Nome', cUnnamed)}
                             </div>
