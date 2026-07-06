@@ -7193,30 +7193,75 @@ const CRM = () => {
                       
                       <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase">Filtrar Origem:</span>
-                        <div className="flex bg-muted p-1 rounded-lg w-full sm:w-auto">
-                          <Button 
-                            variant={sourceFilter === 'all' ? 'secondary' : 'ghost'} 
-                            size="sm" 
-                            className="text-[9px] h-7 px-3 flex-1 sm:flex-none"
-                            onClick={() => setSourceFilter('all')}
+                        {(() => {
+                          const isUnnamed = (c: any) => !c.name || !c.name.trim() || c.name.trim() === c.wa_id;
+                          const cAll = contacts.length;
+                          const cSystem = contacts.filter(c => (c.source_type || 'system') === 'system').length;
+                          const cImported = contacts.filter(c => c.source_type === 'imported').length;
+                          const cUnnamed = contacts.filter(isUnnamed).length;
+                          const btn = (key: string, label: string, n: number) => (
+                            <Button
+                              key={key}
+                              variant={sourceFilter === key ? 'secondary' : 'ghost'}
+                              size="sm"
+                              className="text-[9px] h-7 px-3 flex-1 sm:flex-none gap-1"
+                              onClick={() => setSourceFilter(key)}
+                            >
+                              {label} <span className="opacity-70">({n})</span>
+                            </Button>
+                          );
+                          return (
+                            <div className="flex bg-muted p-1 rounded-lg w-full sm:w-auto flex-wrap">
+                              {btn('all', 'Todos', cAll)}
+                              {btn('system', 'Sistema', cSystem)}
+                              {btn('imported', 'Importados', cImported)}
+                              {btn('unnamed', 'Sem Nome', cUnnamed)}
+                            </div>
+                          );
+                        })()}
+                        <div className="flex gap-1 w-full sm:w-auto">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[9px] h-7 px-3"
+                            disabled={bulkNameBusy}
+                            onClick={() => setBulkNameOpen(true)}
+                            title="Dar nome sequencial (ex: Contato 1, Contato 2...) a todos os contatos sem nome e subir para o Google"
                           >
-                            Todos
+                            Nomear em massa
                           </Button>
-                          <Button 
-                            variant={sourceFilter === 'system' ? 'secondary' : 'ghost'} 
-                            size="sm" 
-                            className="text-[9px] h-7 px-3 flex-1 sm:flex-none"
-                            onClick={() => setSourceFilter('system')}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[9px] h-7 px-3"
+                            disabled={bulkResendBusy || !googleContactsEnabled}
+                            onClick={async () => {
+                              if (!confirm('Reenviar TODOS os contatos ao Google conectado? Isso marca os contatos para subirem novamente.')) return;
+                              setBulkResendBusy(true);
+                              try {
+                                const targets = contacts.filter(c => c.name && c.name.trim() && c.name.trim() !== c.wa_id);
+                                for (let i = 0; i < targets.length; i += 200) {
+                                  const chunk = targets.slice(i, i + 200);
+                                  await Promise.all(chunk.map(c =>
+                                    supabase.from('crm_contacts').update({
+                                      google_sync_account_id: null,
+                                      google_synced_at: null,
+                                      metadata: { ...(c.metadata || {}), google_dirty: true, google_resource_name: undefined },
+                                    }).eq('id', c.id)
+                                  ));
+                                }
+                                toast({ title: 'Reenvio iniciado', description: `${targets.length} contatos marcados. Subindo em segundo plano...` });
+                                await supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'syncPendingToGoogle' } });
+                                await fetchContacts();
+                              } catch (e: any) {
+                                toast({ title: 'Erro ao reenviar', description: e?.message || 'Falha', variant: 'destructive' });
+                              } finally {
+                                setBulkResendBusy(false);
+                              }
+                            }}
+                            title="Marca todos os contatos como pendentes para subir novamente ao Google (útil ao conectar uma nova conta)"
                           >
-                            Sistema
-                          </Button>
-                          <Button 
-                            variant={sourceFilter === 'imported' ? 'secondary' : 'ghost'} 
-                            size="sm" 
-                            className="text-[9px] h-7 px-3 flex-1 sm:flex-none"
-                            onClick={() => setSourceFilter('imported')}
-                          >
-                            Importados
+                            {bulkResendBusy ? 'Reenviando...' : 'Reenviar ao Google'}
                           </Button>
                         </div>
                       </div>
