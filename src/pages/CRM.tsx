@@ -8674,6 +8674,76 @@ const CRM = () => {
       </Dialog>
 
       <Dialog open={isImportExportOpen} onOpenChange={setIsImportExportOpen}>
+      </Dialog>
+      <Dialog open={bulkNameOpen} onOpenChange={setBulkNameOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nomear contatos em massa</DialogTitle>
+            <DialogDescription>
+              Cada contato sem nome recebe: <strong>Prefixo + número</strong> (ex: Contato 1, Contato 2, ...).
+              Após nomear, eles são marcados para subir automaticamente ao Google.
+            </DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const unnamed = contacts.filter((c: any) => !c.name || !c.name.trim() || c.name.trim() === c.wa_id);
+            return (
+              <div className="space-y-3 py-2">
+                <div className="text-xs text-muted-foreground">
+                  <strong>{unnamed.length}</strong> contatos sem nome serão renomeados.
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Prefixo do nome</Label>
+                  <Input value={bulkNamePrefix} onChange={e => setBulkNamePrefix(e.target.value)} placeholder="Ex: Contato" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Começar numeração em</Label>
+                  <Input type="number" min={1} value={bulkNameStart} onChange={e => setBulkNameStart(Math.max(1, parseInt(e.target.value) || 1))} />
+                </div>
+                <div className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
+                  Prévia: <strong>{(bulkNamePrefix || 'Contato').trim()} {bulkNameStart}</strong>, {(bulkNamePrefix || 'Contato').trim()} {bulkNameStart + 1}, {(bulkNamePrefix || 'Contato').trim()} {bulkNameStart + 2}...
+                </div>
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setBulkNameOpen(false)} disabled={bulkNameBusy}>Cancelar</Button>
+                  <Button
+                    size="sm"
+                    disabled={bulkNameBusy || unnamed.length === 0 || !bulkNamePrefix.trim()}
+                    onClick={async () => {
+                      setBulkNameBusy(true);
+                      try {
+                        const prefix = bulkNamePrefix.trim();
+                        let idx = bulkNameStart;
+                        for (let i = 0; i < unnamed.length; i += 100) {
+                          const chunk = unnamed.slice(i, i + 100);
+                          await Promise.all(chunk.map((c: any) => {
+                            const newName = `${prefix} ${idx++}`;
+                            return supabase.from('crm_contacts').update({
+                              name: newName,
+                              metadata: { ...(c.metadata || {}), google_dirty: true },
+                            } as any).eq('id', c.id);
+                          }));
+                        }
+                        toast({ title: 'Contatos renomeados', description: `${unnamed.length} contatos ganharam nome e serão enviados ao Google.` });
+                        setBulkNameOpen(false);
+                        await fetchContacts();
+                        if (googleContactsEnabled) {
+                          supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'syncPendingToGoogle' } }).catch(() => {});
+                        }
+                      } catch (e: any) {
+                        toast({ title: 'Erro ao renomear', description: e?.message || 'Falha', variant: 'destructive' });
+                      } finally {
+                        setBulkNameBusy(false);
+                      }
+                    }}
+                  >
+                    {bulkNameBusy ? 'Renomeando...' : `Renomear ${unnamed.length} contatos`}
+                  </Button>
+                </DialogFooter>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={false} onOpenChange={() => {}}>
         <DialogContent className="max-w-md rounded-3xl p-6 border-none shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
