@@ -166,6 +166,37 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     ).length;
   }, [contacts, selectedTags24h, targetType]);
 
+  // Próximos contatos na fila do disparo automático de 24h.
+  // Considera contatos cujo janela de 24h esteja terminando nos próximos
+  // `countdownThreshold` minutos (ou já expirada há pouco), filtrando pelas
+  // etiquetas selecionadas em `countdownStatusFilter` quando houver.
+  const countdownQueue = useMemo(() => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const thresholdMs = Math.max(1, countdownThreshold || 0) * 60 * 1000;
+    return contacts
+      .filter((c: any) => {
+        if (!c?.last_message_received_at) return false;
+        if (countdownStatusFilter.length > 0 && !countdownStatusFilter.includes(c.status)) return false;
+        const last = new Date(c.last_message_received_at).getTime();
+        if (Number.isNaN(last)) return false;
+        const msLeft = DAY - (now - last);
+        // Ainda dentro da janela e faltando <= threshold para expirar
+        return msLeft > 0 && msLeft <= thresholdMs;
+      })
+      .map((c: any) => {
+        const last = new Date(c.last_message_received_at).getTime();
+        const msLeft = DAY - (now - last);
+        return {
+          wa_id: c.wa_id,
+          name: c.name || c.wa_id,
+          status: c.status,
+          minutesLeft: Math.max(0, Math.round(msLeft / 60000)),
+        };
+      })
+      .sort((a, b) => a.minutesLeft - b.minutesLeft);
+  }, [contacts, countdownStatusFilter, countdownThreshold]);
+
   const finalRecipients = useMemo(
     () => {
       const DAY = 24 * 60 * 60 * 1000;
@@ -722,6 +753,73 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                   >
                     Limpar seleção ({countdownStatusFilter.length})
                   </button>
+                )}
+              </div>
+
+              {/* Fila: próximos contatos que serão disparados dentro da janela */}
+              <div className="space-y-2 p-3 bg-[#202c33] rounded-xl border border-white/5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs md:text-sm flex items-center gap-2 text-white">
+                    <History className="w-3.5 h-3.5 text-[#00a884]" /> Próximos na fila (24h)
+                  </Label>
+                  <Badge variant="outline" className="text-[10px] bg-[#00a884]/10 text-[#00a884] border-[#00a884]/30">
+                    {countdownQueue.length} contato(s)
+                  </Badge>
+                </div>
+                <p className="text-[10px] text-white/40">
+                  Contatos que terão o disparo automático nos próximos <b>{countdownThreshold} min</b>
+                  {countdownStatusFilter.length > 0 ? <> (etiquetas: <b>{countdownStatusFilter.join(', ')}</b>)</> : ' (todas as etiquetas)'}.
+                  Ordenados do que expira primeiro para o último.
+                </p>
+                {countdownQueue.length === 0 ? (
+                  <div className="text-[11px] text-white/40 italic py-3 text-center">
+                    Nenhum contato na fila no momento. Assim que alguma conversa entrar nos {countdownThreshold} min finais, aparecerá aqui.
+                  </div>
+                ) : (
+                  <ScrollArea className="h-52 pr-2">
+                    <div className="space-y-1.5">
+                      {countdownQueue.slice(0, 200).map((r, idx) => {
+                        const st = statuses.find((s: any) => (s.value || s.name) === r.status);
+                        return (
+                          <div
+                            key={r.wa_id + idx}
+                            className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[#111b21] border border-white/5"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] text-white/40 w-5 shrink-0">#{idx + 1}</span>
+                              <div className="min-w-0">
+                                <div className="text-xs text-[#e9edef] truncate">{r.name}</div>
+                                <div className="text-[10px] text-white/40 truncate">{r.wa_id}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {st && (
+                                <span
+                                  className="text-[9px] px-1.5 py-0.5 rounded-full border border-white/10 text-white/80"
+                                  style={st.color ? { backgroundColor: `${st.color}33`, borderColor: st.color } : undefined}
+                                >
+                                  {st.label || st.name || r.status}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-[#00a884] font-medium tabular-nums">
+                                {r.minutesLeft}m
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {countdownQueue.length > 200 && (
+                        <div className="text-[10px] text-white/40 italic text-center pt-1">
+                          + {countdownQueue.length - 200} contatos adicionais na fila…
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                )}
+                {!countdownEnabled && (
+                  <p className="text-[10px] text-yellow-500/80 pt-1">
+                    ⚠ A automação está <b>desativada</b>. Ative o status acima e salve para começar a disparar para esta fila.
+                  </p>
                 )}
               </div>
 
