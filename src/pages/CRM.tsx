@@ -7279,13 +7279,16 @@ const CRM = () => {
                               c.name?.toLowerCase().includes(contactListSearch.toLowerCase()) || 
                               c.wa_id?.includes(contactListSearch);
                             const isUnnamed = !c.name || !c.name.trim() || c.name.trim() === c.wa_id;
+                            const isFromGoogle = !!(c.google_sync_account_id || c.metadata?.google_resource_name || c.source_type === 'google');
                             const matchesSource = sourceFilter === 'all'
                               ? true
                               : sourceFilter === 'unnamed'
                                 ? isUnnamed
-                                : sourceFilter === 'system'
-                                  ? (c.source_type || 'system') === 'system'
-                                  : c.source_type === sourceFilter;
+                                : sourceFilter === 'google'
+                                  ? isFromGoogle
+                                  : sourceFilter === 'system'
+                                    ? (!isFromGoogle && (c.source_type || 'system') === 'system')
+                                    : c.source_type === sourceFilter;
                             return matchesSearch && matchesSource;
                           });
                           
