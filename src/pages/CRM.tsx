@@ -1741,14 +1741,19 @@ const CRM = () => {
       await fetchStatuses();
       await fetchAllScheduledMessages();
 
-      // Busca informações da conta Google se estiver conectado
-      if (localStorage.getItem('google_contacts_connected') === 'true') {
-        const { data: googleAcc } = await supabase
-          .from('crm_google_accounts')
-          .select('email')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (googleAcc) setGoogleAccountInfo({ email: googleAcc.email });
+      // Busca todas as contas Google conectadas (até 3)
+      const { data: googleAccs } = await supabase
+        .from('crm_google_accounts')
+        .select('id, email, auto_sync')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      if (googleAccs) {
+        setGoogleAccounts(googleAccs as any);
+        if (googleAccs.length > 0) {
+          localStorage.setItem('google_contacts_connected', 'true');
+        } else {
+          localStorage.removeItem('google_contacts_connected');
+        }
       }
     } catch (error) {
       console.error(error);
