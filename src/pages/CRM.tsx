@@ -1859,24 +1859,37 @@ const CRM = () => {
     window.location.href = url;
   };
 
-  const handleDisconnectGoogle = async () => {
+  const handleDisconnectGoogle = async (accountId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      
-      const { error } = await supabase
-        .from('crm_google_accounts')
-        .delete()
-        .eq('user_id', user.id);
-        
+
+      const query = supabase.from('crm_google_accounts').delete().eq('user_id', user.id);
+      const { error } = accountId ? await query.eq('id', accountId) : await query;
       if (error) throw error;
-      
-      localStorage.removeItem('google_contacts_connected');
-      setGoogleContactsEnabled(false);
-      setGoogleAccountInfo(null);
-      toast({ title: "Google desconectado" });
+
+      const remaining = accountId ? googleAccounts.filter(a => a.id !== accountId) : [];
+      setGoogleAccounts(remaining);
+      if (remaining.length === 0) localStorage.removeItem('google_contacts_connected');
+      toast({ title: "Conta Google desconectada" });
     } catch (err: any) {
       toast({ title: "Erro ao desconectar", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleToggleAccountAutoSync = async (accountId: string, checked: boolean) => {
+    setGoogleAccounts(prev => prev.map(a => a.id === accountId ? { ...a, auto_sync: checked } : a));
+    try {
+      const { error } = await supabase
+        .from('crm_google_accounts')
+        .update({ auto_sync: checked, updated_at: new Date().toISOString() })
+        .eq('id', accountId);
+      if (error) throw error;
+      toast({ title: checked ? "Auto Sync ativado nesta conta" : "Auto Sync desativado nesta conta" });
+    } catch (err: any) {
+      // revert on error
+      setGoogleAccounts(prev => prev.map(a => a.id === accountId ? { ...a, auto_sync: !checked } : a));
+      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
     }
   };
 
