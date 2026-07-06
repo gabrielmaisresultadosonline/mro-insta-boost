@@ -7246,8 +7246,8 @@ const CRM = () => {
                                     supabase.from('crm_contacts').update({
                                       google_sync_account_id: null,
                                       google_synced_at: null,
-                                      metadata: { ...(c.metadata || {}), google_dirty: true, google_resource_name: undefined },
-                                    }).eq('id', c.id)
+                                      metadata: { ...(c.metadata || {}), google_dirty: true, google_resource_name: null },
+                                    } as any).eq('id', c.id)
                                   ));
                                 }
                                 toast({ title: 'Reenvio iniciado', description: `${targets.length} contatos marcados. Subindo em segundo plano...` });
