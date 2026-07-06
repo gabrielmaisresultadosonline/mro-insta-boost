@@ -436,6 +436,12 @@ const CRM = () => {
   const realtimeFallbackInFlightRef = useRef<boolean>(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
+  // Bulk-rename dialog state (nomear em massa os contatos "Sem Nome")
+  const [bulkNameOpen, setBulkNameOpen] = useState(false);
+  const [bulkNamePrefix, setBulkNamePrefix] = useState('Contato');
+  const [bulkNameStart, setBulkNameStart] = useState(1);
+  const [bulkNameBusy, setBulkNameBusy] = useState(false);
+  const [bulkResendBusy, setBulkResendBusy] = useState(false);
   // Dedicated search state for the Contatos and Sincronizados Google tabs.
   // Keeping it separate from `statusFilter` ensures that searching/filtering
   // there does NOT silently filter the Conversas list (which uses
