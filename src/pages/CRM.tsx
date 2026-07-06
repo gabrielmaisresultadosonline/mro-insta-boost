@@ -8673,8 +8673,6 @@ const CRM = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isImportExportOpen} onOpenChange={setIsImportExportOpen}>
-      </Dialog>
       <Dialog open={bulkNameOpen} onOpenChange={setBulkNameOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -8743,7 +8741,7 @@ const CRM = () => {
           })()}
         </DialogContent>
       </Dialog>
-      <Dialog open={false} onOpenChange={() => {}}>
+      <Dialog open={isImportExportOpen} onOpenChange={setIsImportExportOpen}>
         <DialogContent className="max-w-md rounded-3xl p-6 border-none shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
