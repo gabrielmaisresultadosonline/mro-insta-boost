@@ -166,6 +166,37 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     ).length;
   }, [contacts, selectedTags24h, targetType]);
 
+  // Próximos contatos na fila do disparo automático de 24h.
+  // Considera contatos cujo janela de 24h esteja terminando nos próximos
+  // `countdownThreshold` minutos (ou já expirada há pouco), filtrando pelas
+  // etiquetas selecionadas em `countdownStatusFilter` quando houver.
+  const countdownQueue = useMemo(() => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const thresholdMs = Math.max(1, countdownThreshold || 0) * 60 * 1000;
+    return contacts
+      .filter((c: any) => {
+        if (!c?.last_message_received_at) return false;
+        if (countdownStatusFilter.length > 0 && !countdownStatusFilter.includes(c.status)) return false;
+        const last = new Date(c.last_message_received_at).getTime();
+        if (Number.isNaN(last)) return false;
+        const msLeft = DAY - (now - last);
+        // Ainda dentro da janela e faltando <= threshold para expirar
+        return msLeft > 0 && msLeft <= thresholdMs;
+      })
+      .map((c: any) => {
+        const last = new Date(c.last_message_received_at).getTime();
+        const msLeft = DAY - (now - last);
+        return {
+          wa_id: c.wa_id,
+          name: c.name || c.wa_id,
+          status: c.status,
+          minutesLeft: Math.max(0, Math.round(msLeft / 60000)),
+        };
+      })
+      .sort((a, b) => a.minutesLeft - b.minutesLeft);
+  }, [contacts, countdownStatusFilter, countdownThreshold]);
+
   const finalRecipients = useMemo(
     () => {
       const DAY = 24 * 60 * 60 * 1000;
