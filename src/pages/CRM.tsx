@@ -7410,8 +7410,13 @@ const CRM = () => {
                                     </td>
                                     <td className="px-6 py-4 text-sm text-muted-foreground font-mono">{contact.wa_id}</td>
                                     <td className="px-6 py-4">
-                                      <Badge variant="secondary" className="text-[9px] uppercase font-bold">
-                                        {contact.source_type === 'imported' ? 'Importado' : 'Sistema'}
+                                      <Badge variant="secondary" className={cn(
+                                        "text-[9px] uppercase font-bold",
+                                        (contact.google_sync_account_id || contact.metadata?.google_resource_name) && "bg-blue-500/15 text-blue-600 border-blue-500/30"
+                                      )}>
+                                        {(contact.google_sync_account_id || contact.metadata?.google_resource_name)
+                                          ? 'Google'
+                                          : contact.source_type === 'imported' ? 'Importado' : 'Sistema'}
                                       </Badge>
                                     </td>
                                     <td className="px-6 py-4">
