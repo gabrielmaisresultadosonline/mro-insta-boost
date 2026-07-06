@@ -4259,6 +4259,7 @@ async function fetchAndStoreIncomingMedia(
         .from('crm_google_accounts')
         .select('*')
         .eq('user_id', userId)
+        .eq('auto_sync', true)
         .order('updated_at', { ascending: false })
         .limit(1)
         .single();

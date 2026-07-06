@@ -1116,6 +1116,7 @@ export type Database = {
       crm_google_accounts: {
         Row: {
           access_token: string
+          auto_sync: boolean
           created_at: string | null
           email: string
           expiry_date: number | null
@@ -1126,6 +1127,7 @@ export type Database = {
         }
         Insert: {
           access_token: string
+          auto_sync?: boolean
           created_at?: string | null
           email: string
           expiry_date?: number | null
@@ -1136,6 +1138,7 @@ export type Database = {
         }
         Update: {
           access_token?: string
+          auto_sync?: boolean
           created_at?: string | null
           email?: string
           expiry_date?: number | null
