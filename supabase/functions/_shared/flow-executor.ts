@@ -113,7 +113,7 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             action: {
               name: "cta_url",
               parameters: {
-                display_text: linkBtn.label || linkBtn.text || "Acessar",
+              display_text: ((linkBtn.label || linkBtn.text || "Acessar").toString()).substring(0, 20),
                 url: linkBtn.url
               }
             }
