@@ -1213,16 +1213,19 @@ else if (message.type === "unsupported") {
     return jsonResponse(result);
   }
 
-  // NOVO: Se o contato está em um fluxo aguardando resposta e recebeu TEXTO (não botão), tenta continuar o fluxo
-  if (contact && hasActiveFlow && isWaitingResponse && text) {
-    console.log(`[FLOW-LOG] WEBHOOK: Received TEXT for flow ${contact.current_flow_id} node ${contact.current_node_id} from ${waId}`);
+  // NOVO: Se o contato está em um fluxo aguardando resposta e recebeu QUALQUER mensagem
+  // (texto, áudio, imagem, vídeo, documento, sticker etc.), tenta continuar o fluxo.
+  // Antes exigíamos `text`, o que travava o "Qualquer resposta" quando o cliente respondia
+  // com áudio ou mídia — o fluxo ficava parado indefinidamente.
+  if (contact && hasActiveFlow && isWaitingResponse && message?.type !== 'interactive') {
+    console.log(`[FLOW-LOG] WEBHOOK: Received ${message?.type || 'message'} for flow ${contact.current_flow_id} node ${contact.current_node_id} from ${waId} (text="${(text || '').slice(0,60)}")`);
     const { data: result, error: flowErr } = await supabase.functions.invoke('meta-whatsapp-crm', {
       headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
       body: { 
         action: 'continueFlow', 
         contactId: contact.id, 
         waId, 
-        text, 
+        text: text || '', 
         sourceMessageId: message.id 
       }
     });
