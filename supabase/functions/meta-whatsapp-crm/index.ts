@@ -1598,6 +1598,36 @@ function isGoogleContactsFullError(errorBody: string) {
   return /MY_CONTACTS_OVERFLOW_COUNT|contact limit|too many contacts/i.test(errorBody);
 }
 
+// Google People API sometimes returns MY_CONTACTS_OVERFLOW_COUNT even when the
+// account is NOT actually full (e.g. contacts recently deleted but still in
+// Trash, or transient API state). Before we tell the UI the account is full
+// we verify the real contact count. If it's clearly below the 25k limit we
+// treat the overflow error as transient and DO NOT mark the account as full.
+async function isGoogleAccountReallyFull(accessToken: string): Promise<boolean> {
+  try {
+    const resp = await fetch(
+      'https://people.googleapis.com/v1/people/me/connections?personFields=names&pageSize=1',
+      { headers: { 'Authorization': `Bearer ${accessToken}` } },
+    );
+    if (!resp.ok) {
+      // If we can't verify, assume NOT full so we don't stick the UI on a
+      // false positive. The next sync attempt will surface the real error.
+      const t = await resp.text().catch(() => '');
+      console.warn('[GOOGLE-SYNC] Falha ao verificar total de contatos:', resp.status, t.slice(0, 200));
+      return false;
+    }
+    const body = await resp.json().catch(() => ({} as any));
+    const total = Number(body?.totalItems ?? body?.totalPeople ?? 0);
+    console.log(`[GOOGLE-SYNC] Verificação de capacidade: totalItems=${total}`);
+    // Google's hard limit is 25,000. Only treat as full when we're actually
+    // near it (leave headroom for Trash-count skew).
+    return total >= 24500;
+  } catch (e) {
+    console.warn('[GOOGLE-SYNC] Erro ao verificar total de contatos:', e);
+    return false;
+  }
+}
+
 function isGoogleInsufficientScopeError(errorBody: string) {
   return /insufficient authentication scopes|ACCESS_TOKEN_SCOPE_INSUFFICIENT|PERMISSION_DENIED/i.test(errorBody);
 }
@@ -1813,9 +1843,21 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
           console.error('[GOOGLE-SYNC] batchCreate falhou:', lastError);
           stillPending.push(...chunk);
           if (isGoogleContactsFullError(t)) {
-            skipCurrentAccount = true;
-            fullAccounts.push(account.email);
-            console.warn(`[GOOGLE-SYNC] Conta ${account.email} cheia (25k). Pulando para próxima conta.`);
+            // Verify against the real contact count before marking as full —
+            // Google sometimes returns MY_CONTACTS_OVERFLOW_COUNT even when
+            // the account is nowhere near the 25k limit (Trash skew, etc.).
+            const reallyFull = await isGoogleAccountReallyFull(accessToken);
+            if (reallyFull) {
+              skipCurrentAccount = true;
+              fullAccounts.push(account.email);
+              console.warn(`[GOOGLE-SYNC] Conta ${account.email} cheia (25k). Pulando para próxima conta.`);
+            } else {
+              // Transient / false-positive overflow. Do not stick the UI as
+              // "full"; just skip this account for now and retry on the next
+              // cycle so real pending contacts continue to sync.
+              skipCurrentAccount = true;
+              console.warn(`[GOOGLE-SYNC] Conta ${account.email} respondeu OVERFLOW mas total de contatos está abaixo do limite. Ignorando falso positivo.`);
+            }
           } else if (isGoogleInsufficientScopeError(t)) {
             skipCurrentAccount = true;
             reconnectAccounts.push(account.email);
