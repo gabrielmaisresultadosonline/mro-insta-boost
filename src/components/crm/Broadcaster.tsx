@@ -90,14 +90,22 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [countdownFlow, setCountdownFlow] = useState('');
   const [savingCountdown, setSavingCountdown] = useState(false);
   const [countdownStatusFilter, setCountdownStatusFilter] = useState<string[]>([]);
+  const [countdownHistory, setCountdownHistory] = useState<any[]>([]);
 
   useEffect(() => {
     fetchBroadcasts();
     fetchCountdownSettings();
+    fetchCountdownHistory();
     try {
       const raw = localStorage.getItem(SAVED_LISTS_KEY);
       if (raw) setSavedLists(JSON.parse(raw));
     } catch {}
+  }, []);
+
+  // Poll countdown history every 10s so users see contacts fired in near real time
+  useEffect(() => {
+    const id = setInterval(fetchCountdownHistory, 10000);
+    return () => clearInterval(id);
   }, []);
 
   // Poll while any campaign is running so progress + Stop stay live
