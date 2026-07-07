@@ -1535,10 +1535,16 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
     .eq('metadata->>google_dirty', 'true')
     .limit(limit);
 
+  // Only accounts passed into this function are allowed to receive/update
+  // Google contacts. A contact already linked to another Google account must
+  // never be migrated to a newly connected Auto Sync account automatically.
+  const activeAccountIds = new Set<string>((accounts || []).map((a: any) => a.id));
+
   let remaining = ([...(pendingNew || []), ...(pendingDirty || [])]).filter((c: any) => {
     const name = (c.name || '').trim();
     if (!name) return false;
     if (name === (c.wa_id || '').trim()) return false;
+    if (c.google_sync_account_id && !activeAccountIds.has(c.google_sync_account_id)) return false;
     return true;
   });
 
@@ -1549,29 +1555,21 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
   const fullAccounts: string[] = [];
   const reconnectAccounts: string[] = [];
 
-  // IDs of accounts currently receiving auto-sync. Contacts stuck on accounts
-  // outside this set are treated as orphan-pending and re-routed to an active
-  // account (user explicitly asked for this so pending never gets stuck).
-  const activeAccountIds = new Set<string>((accounts || []).map((a: any) => a.id));
-
   for (const account of accounts) {
     if (remaining.length === 0) break;
 
     // Push to THIS account:
     // - contacts with no google_sync_account_id (new)
     // - dirty contacts already on THIS account (re-upload)
-    // - orphan pending: contacts stuck on an account that is NOT in the active
-    //   auto_sync list (owner turned auto_sync off there). Re-route them here
-    //   so pending never accumulates indefinitely.
+    // Contacts linked to a different Google account stay with that account;
+    // they are never migrated to the current account by Auto Sync.
     const forThisAccount = remaining.filter((c: any) =>
       !c.google_sync_account_id
         || c.google_sync_account_id === account.id
-        || !activeAccountIds.has(c.google_sync_account_id)
     );
     const skippedForOtherAccounts = remaining.filter((c: any) =>
       c.google_sync_account_id
         && c.google_sync_account_id !== account.id
-        && activeAccountIds.has(c.google_sync_account_id)
     );
     if (forThisAccount.length === 0) {
       remaining = skippedForOtherAccounts;
