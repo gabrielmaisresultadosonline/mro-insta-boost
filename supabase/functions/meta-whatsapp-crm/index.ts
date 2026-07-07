@@ -1843,9 +1843,21 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
           console.error('[GOOGLE-SYNC] batchCreate falhou:', lastError);
           stillPending.push(...chunk);
           if (isGoogleContactsFullError(t)) {
-            skipCurrentAccount = true;
-            fullAccounts.push(account.email);
-            console.warn(`[GOOGLE-SYNC] Conta ${account.email} cheia (25k). Pulando para próxima conta.`);
+            // Verify against the real contact count before marking as full —
+            // Google sometimes returns MY_CONTACTS_OVERFLOW_COUNT even when
+            // the account is nowhere near the 25k limit (Trash skew, etc.).
+            const reallyFull = await isGoogleAccountReallyFull(accessToken);
+            if (reallyFull) {
+              skipCurrentAccount = true;
+              fullAccounts.push(account.email);
+              console.warn(`[GOOGLE-SYNC] Conta ${account.email} cheia (25k). Pulando para próxima conta.`);
+            } else {
+              // Transient / false-positive overflow. Do not stick the UI as
+              // "full"; just skip this account for now and retry on the next
+              // cycle so real pending contacts continue to sync.
+              skipCurrentAccount = true;
+              console.warn(`[GOOGLE-SYNC] Conta ${account.email} respondeu OVERFLOW mas total de contatos está abaixo do limite. Ignorando falso positivo.`);
+            }
           } else if (isGoogleInsufficientScopeError(t)) {
             skipCurrentAccount = true;
             reconnectAccounts.push(account.email);
