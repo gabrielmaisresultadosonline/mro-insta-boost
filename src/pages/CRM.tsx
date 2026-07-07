@@ -435,6 +435,10 @@ const CRM = () => {
   const realtimeFallbackCursorRef = useRef<string | null>(null);
   const realtimeFallbackInFlightRef = useRef<boolean>(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  // Texto visível do campo de busca da lista de Conversas. Mantido em sincronia
+  // com `statusFilter`: quando o usuário apaga o texto, voltamos automaticamente
+  // para "Todos"; ao clicar em uma etiqueta, o campo é limpo.
+  const [conversationSearch, setConversationSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   // Bulk-rename dialog state (nomear em massa os contatos "Sem Nome")
   const [bulkNameOpen, setBulkNameOpen] = useState(false);
