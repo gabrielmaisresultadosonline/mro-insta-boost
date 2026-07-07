@@ -4885,7 +4885,13 @@ const CRM = () => {
                             <Input 
                               placeholder="Pesquisar ou começar uma nova conversa" 
                               className="bg-[#f0f2f5] dark:bg-[#202c33] border-none h-9 pl-10 rounded-lg text-sm focus-visible:ring-1 focus-visible:ring-[#00a884]"
-                              onChange={e => setStatusFilter(e.target.value || 'all')} 
+                              value={conversationSearch}
+                              onChange={e => {
+                                const v = e.target.value;
+                                setConversationSearch(v);
+                                const trimmed = v.trim();
+                                setStatusFilter(trimmed === '' ? 'all' : trimmed);
+                              }}
                             />
                           </div>
                         </div>
