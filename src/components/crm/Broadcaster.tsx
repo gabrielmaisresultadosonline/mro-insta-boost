@@ -284,6 +284,16 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     }
   };
 
+  const fetchCountdownHistory = async () => {
+    const { data } = await supabase
+      .from('crm_contacts')
+      .select('wa_id, name, status, countdown_trigger_sent_at')
+      .not('countdown_trigger_sent_at', 'is', null)
+      .order('countdown_trigger_sent_at', { ascending: false })
+      .limit(100);
+    setCountdownHistory(data || []);
+  };
+
   const handleSaveCountdown = async () => {
     setSavingCountdown(true);
     try {
