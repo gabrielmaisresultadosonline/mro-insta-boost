@@ -4921,7 +4921,7 @@ const CRM = () => {
                                         "cursor-pointer capitalize whitespace-nowrap px-3 font-bold transition-all rounded-full shrink-0",
                                         statusFilter === s ? "text-white shadow-md scale-105" : "hover:bg-muted"
                                       )}
-                                      onClick={() => setStatusFilter(s)}
+                                      onClick={() => { setStatusFilter(s); setConversationSearch(''); }}
                                     >
                                       {label}
                                     </Badge>
