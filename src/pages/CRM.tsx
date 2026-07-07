@@ -7100,78 +7100,91 @@ const CRM = () => {
             {activeTab === 'contact-list' && (
               <ScrollArea className="flex-1 p-3 sm:p-4 md:p-8 bg-muted/5">
                 <div className="max-w-7xl mx-auto space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 md:pb-20">
-                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-card p-4 md:p-6 rounded-2xl border shadow-sm gap-6">
-                    <div className="w-full lg:w-auto">
-                      <h2 className="text-xl md:text-2xl font-bold tracking-tight">Lista de Contatos</h2>
-                      <p className="text-muted-foreground text-xs md:text-sm">Gerencie todos os seus contatos salvos e importados.</p>
+                  <div className="flex flex-col bg-card p-4 md:p-6 rounded-2xl border shadow-sm gap-5">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                      <div>
+                        <h2 className="text-xl md:text-2xl font-bold tracking-tight">Lista de Contatos</h2>
+                        <p className="text-muted-foreground text-xs md:text-sm">Gerencie todos os seus contatos salvos e importados.</p>
+                      </div>
                     </div>
-                    
-                    <div className="flex flex-col xl:flex-row w-full lg:w-auto gap-4 items-stretch xl:items-center">
-                      <div className="flex flex-col gap-3 px-3 py-3 md:px-4 md:py-3 bg-primary/5 rounded-2xl border border-primary/20 shadow-sm flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm flex-shrink-0">
-                              <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-                            </div>
-                            <span className="text-[10px] font-bold uppercase text-primary leading-none">
-                              Google Contatos {googleAccounts.length > 0 && `(${googleAccounts.length}/${MAX_GOOGLE_ACCOUNTS})`}
-                            </span>
+
+                    <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.03] to-transparent p-4 md:p-5 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow ring-1 ring-border flex-shrink-0">
+                            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
                           </div>
-                          <div className="flex gap-2">
-                            {googleContactsEnabled && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-[10px] font-bold rounded-lg px-3"
-                                onClick={handleSyncPendingGoogleContacts}
-                              >
-                                <RefreshCcw className={cn("w-3 h-3 mr-1", "animate-spin-slow")} />
-                                SINCRONIZAR
-                              </Button>
-                            )}
-                            {googleAccounts.length < MAX_GOOGLE_ACCOUNTS && (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                className="h-8 text-[10px] font-bold rounded-lg px-3 bg-primary/90 text-white"
-                                onClick={handleConnectGoogle}
-                              >
-                                + {googleContactsEnabled ? 'ADICIONAR CONTA' : 'CONECTAR GOOGLE'}
-                              </Button>
-                            )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold leading-tight">Google Contatos</p>
+                            <p className="text-[11px] text-muted-foreground leading-tight">
+                              {googleAccounts.length > 0
+                                ? `${googleAccounts.length} de ${MAX_GOOGLE_ACCOUNTS} contas conectadas`
+                                : 'Conecte sua conta para sincronizar'}
+                            </p>
                           </div>
                         </div>
+                        <div className="flex gap-2 flex-wrap">
+                          {googleContactsEnabled && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 text-[11px] font-semibold rounded-lg px-3 flex-1 sm:flex-none"
+                              onClick={handleSyncPendingGoogleContacts}
+                            >
+                              <RefreshCcw className="w-3.5 h-3.5 mr-1.5" />
+                              Sincronizar
+                            </Button>
+                          )}
+                          {googleAccounts.length < MAX_GOOGLE_ACCOUNTS && (
+                            <Button
+                              size="sm"
+                              className="h-9 text-[11px] font-semibold rounded-lg px-3 bg-primary text-primary-foreground flex-1 sm:flex-none"
+                              onClick={handleConnectGoogle}
+                            >
+                              + {googleContactsEnabled ? 'Adicionar' : 'Conectar'}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
 
-                        {googleAccounts.length > 0 && (
-                          <div className="flex flex-col gap-2">
-                            {googleAccounts.map((acc) => (
-                              <div key={acc.id} className="flex items-center justify-between gap-2 px-3 py-2 bg-background rounded-lg border">
-                                <span className="text-[11px] font-medium truncate flex-1 min-w-0" title={acc.email}>
+                      {googleAccounts.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {googleAccounts.map((acc) => (
+                            <div key={acc.id} className="flex items-center justify-between gap-3 px-3 py-2.5 bg-background rounded-xl border hover:border-primary/40 transition-colors">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                  <LucideIcons.Mail className="w-3.5 h-3.5 text-primary" />
+                                </div>
+                                <span className="text-xs font-medium truncate" title={acc.email}>
                                   {acc.email}
                                 </span>
-                                <div className="flex items-center gap-2 flex-shrink-0">
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="flex items-center gap-1.5">
                                   <Switch
                                     id={`gsync-${acc.id}`}
                                     checked={acc.auto_sync}
                                     onCheckedChange={(checked) => handleToggleAccountAutoSync(acc.id, checked)}
                                   />
-                                  <Label htmlFor={`gsync-${acc.id}`} className="text-[10px] font-bold cursor-pointer whitespace-nowrap">
-                                    Auto Sync
+                                  <Label htmlFor={`gsync-${acc.id}`} className="text-[10px] font-bold cursor-pointer whitespace-nowrap hidden sm:inline">
+                                    Auto
                                   </Label>
-                                  <button
-                                    onClick={() => handleDisconnectGoogle(acc.id)}
-                                    className="text-[10px] text-destructive hover:underline font-bold ml-1"
-                                  >
-                                    SAIR
-                                  </button>
                                 </div>
+                                <button
+                                  onClick={() => handleDisconnectGoogle(acc.id)}
+                                  className="text-[10px] text-destructive hover:underline font-bold"
+                                  title="Desconectar"
+                                >
+                                  SAIR
+                                </button>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full lg:w-auto">
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full">
                         <Button 
                           variant="outline" 
                           onClick={() => setActiveTab('google-synced')} 
@@ -7185,8 +7198,7 @@ const CRM = () => {
                         <Button onClick={() => { setContactToView({ name: '', wa_id: '', metadata: {} }); setIsContactInfoOpen(true); }} className="bg-primary h-10 md:h-11 rounded-xl shadow-lg shadow-primary/20 text-[11px] md:text-xs flex-1 sm:flex-none sm:px-4">
                           <UserPlus className="w-4 h-4 sm:mr-2 flex-shrink-0" /> <span className="hidden xs:inline">Novo Contato</span><span className="xs:hidden">Novo</span>
                         </Button>
-                      </div>
-                    </div>
+                  </div>
                   </div>
 
                   <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
@@ -7237,49 +7249,6 @@ const CRM = () => {
                           );
                         })()}
                         <div className="flex gap-1 w-full sm:w-auto">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-[9px] h-7 px-3"
-                            disabled={bulkNameBusy}
-                            onClick={() => setBulkNameOpen(true)}
-                            title="Dar nome sequencial (ex: Contato 1, Contato 2...) a todos os contatos sem nome e subir para o Google"
-                          >
-                            Nomear em massa
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-[9px] h-7 px-3"
-                            disabled={bulkResendBusy || !googleContactsEnabled}
-                            onClick={async () => {
-                              if (!confirm('Reenviar TODOS os contatos ao Google conectado? Isso marca os contatos para subirem novamente.')) return;
-                              setBulkResendBusy(true);
-                              try {
-                                const targets = contacts.filter(c => c.name && c.name.trim() && c.name.trim() !== c.wa_id);
-                                for (let i = 0; i < targets.length; i += 200) {
-                                  const chunk = targets.slice(i, i + 200);
-                                  await Promise.all(chunk.map(c =>
-                                    supabase.from('crm_contacts').update({
-                                      google_sync_account_id: null,
-                                      google_synced_at: null,
-                                      metadata: { ...(c.metadata || {}), google_dirty: true, google_resource_name: null },
-                                    } as any).eq('id', c.id)
-                                  ));
-                                }
-                                toast({ title: 'Reenvio iniciado', description: `${targets.length} contatos marcados. Subindo em segundo plano...` });
-                                await supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'syncPendingToGoogle' } });
-                                await fetchContacts();
-                              } catch (e: any) {
-                                toast({ title: 'Erro ao reenviar', description: e?.message || 'Falha', variant: 'destructive' });
-                              } finally {
-                                setBulkResendBusy(false);
-                              }
-                            }}
-                            title="Marca todos os contatos como pendentes para subir novamente ao Google (útil ao conectar uma nova conta)"
-                          >
-                            {bulkResendBusy ? 'Reenviando...' : 'Reenviar ao Google'}
-                          </Button>
                         </div>
                       </div>
                     </div>
