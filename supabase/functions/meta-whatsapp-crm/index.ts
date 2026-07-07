@@ -1011,6 +1011,7 @@ else if (message.type === "unsupported") {
       last_message_received_at: new Date().toISOString(),
       total_messages_received: (contactForSave.total_messages_received || 0) + 1,
       updated_at: new Date().toISOString(),
+      countdown_trigger_sent_at: null,
       last_read_at: null // Reset last_read_at when new message arrives so it shows as unread
     }).eq('id', contactForSave.id);
     console.log('[WEBHOOK] Saved inbound message and reset last_read_at', { waId, userId, contact_id: contactForSave.id, meta_message_id: message.id });
