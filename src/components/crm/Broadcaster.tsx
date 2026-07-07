@@ -90,14 +90,22 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [countdownFlow, setCountdownFlow] = useState('');
   const [savingCountdown, setSavingCountdown] = useState(false);
   const [countdownStatusFilter, setCountdownStatusFilter] = useState<string[]>([]);
+  const [countdownHistory, setCountdownHistory] = useState<any[]>([]);
 
   useEffect(() => {
     fetchBroadcasts();
     fetchCountdownSettings();
+    fetchCountdownHistory();
     try {
       const raw = localStorage.getItem(SAVED_LISTS_KEY);
       if (raw) setSavedLists(JSON.parse(raw));
     } catch {}
+  }, []);
+
+  // Poll countdown history every 10s so users see contacts fired in near real time
+  useEffect(() => {
+    const id = setInterval(fetchCountdownHistory, 10000);
+    return () => clearInterval(id);
   }, []);
 
   // Poll while any campaign is running so progress + Stop stay live
@@ -274,6 +282,16 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       setCountdownFlow(settings.countdown_trigger_flow_id || '');
       setCountdownStatusFilter(Array.isArray((settings as any).countdown_trigger_status_filter) ? (settings as any).countdown_trigger_status_filter : []);
     }
+  };
+
+  const fetchCountdownHistory = async () => {
+    const { data } = await supabase
+      .from('crm_contacts')
+      .select('wa_id, name, status, countdown_trigger_sent_at')
+      .not('countdown_trigger_sent_at', 'is', null)
+      .order('countdown_trigger_sent_at', { ascending: false })
+      .limit(100);
+    setCountdownHistory(data || []);
   };
 
   const handleSaveCountdown = async () => {
@@ -829,6 +847,72 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                   <p className="text-[10px] text-yellow-500/80 pt-1">
                     ⚠ A automação está <b>desativada</b>. Ative o status acima e salve para começar a disparar para esta fila.
                   </p>
+                )}
+              </div>
+
+              {/* Histórico recente: contatos já disparados pela automação 24h */}
+              <div className="space-y-2 p-3 bg-[#202c33] rounded-xl border border-white/5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs md:text-sm flex items-center gap-2 text-white">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00a884]" /> Histórico recente (24h)
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] bg-[#00a884]/10 text-[#00a884] border-[#00a884]/30">
+                      {countdownHistory.length} enviado(s)
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[10px] text-white/60 hover:text-white"
+                      onClick={fetchCountdownHistory}
+                    >
+                      <RefreshCcw className="w-3 h-3 mr-1" /> Atualizar
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-[10px] text-white/40">
+                  Últimos contatos que receberam o disparo automático da janela de 24h. Atualiza automaticamente enquanto novos contatos entram nas etiquetas.
+                </p>
+                {countdownHistory.length === 0 ? (
+                  <div className="text-[11px] text-white/40 italic py-3 text-center">
+                    Nenhum disparo automático realizado ainda.
+                  </div>
+                ) : (
+                  <ScrollArea className="h-52 pr-2">
+                    <div className="space-y-1.5">
+                      {countdownHistory.map((h: any, idx: number) => {
+                        const st = statuses.find((s: any) => (s.value || s.name) === h.status);
+                        const sent = h.countdown_trigger_sent_at ? new Date(h.countdown_trigger_sent_at) : null;
+                        return (
+                          <div
+                            key={h.wa_id + idx}
+                            className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[#111b21] border border-white/5"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] text-white/40 w-5 shrink-0">#{idx + 1}</span>
+                              <div className="min-w-0">
+                                <div className="text-xs text-[#e9edef] truncate">{h.name || h.wa_id}</div>
+                                <div className="text-[10px] text-white/40 truncate">{h.wa_id}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {st && (
+                                <span
+                                  className="text-[9px] px-1.5 py-0.5 rounded-full border border-white/10 text-white/80"
+                                  style={st.color ? { backgroundColor: `${st.color}33`, borderColor: st.color } : undefined}
+                                >
+                                  {st.label || st.name || h.status}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-white/50 tabular-nums">
+                                {sent ? sent.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
                 )}
               </div>
 
