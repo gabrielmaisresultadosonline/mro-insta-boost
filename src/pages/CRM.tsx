@@ -435,6 +435,10 @@ const CRM = () => {
   const realtimeFallbackCursorRef = useRef<string | null>(null);
   const realtimeFallbackInFlightRef = useRef<boolean>(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  // Texto visível do campo de busca da lista de Conversas. Mantido em sincronia
+  // com `statusFilter`: quando o usuário apaga o texto, voltamos automaticamente
+  // para "Todos"; ao clicar em uma etiqueta, o campo é limpo.
+  const [conversationSearch, setConversationSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   // Bulk-rename dialog state (nomear em massa os contatos "Sem Nome")
   const [bulkNameOpen, setBulkNameOpen] = useState(false);
@@ -4881,7 +4885,13 @@ const CRM = () => {
                             <Input 
                               placeholder="Pesquisar ou começar uma nova conversa" 
                               className="bg-[#f0f2f5] dark:bg-[#202c33] border-none h-9 pl-10 rounded-lg text-sm focus-visible:ring-1 focus-visible:ring-[#00a884]"
-                              onChange={e => setStatusFilter(e.target.value || 'all')} 
+                              value={conversationSearch}
+                              onChange={e => {
+                                const v = e.target.value;
+                                setConversationSearch(v);
+                                const trimmed = v.trim();
+                                setStatusFilter(trimmed === '' ? 'all' : trimmed);
+                              }}
                             />
                           </div>
                         </div>
@@ -4911,7 +4921,7 @@ const CRM = () => {
                                         "cursor-pointer capitalize whitespace-nowrap px-3 font-bold transition-all rounded-full shrink-0",
                                         statusFilter === s ? "text-white shadow-md scale-105" : "hover:bg-muted"
                                       )}
-                                      onClick={() => setStatusFilter(s)}
+                                      onClick={() => { setStatusFilter(s); setConversationSearch(''); }}
                                     >
                                       {label}
                                     </Badge>
