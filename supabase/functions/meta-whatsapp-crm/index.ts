@@ -1549,17 +1549,29 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
   const fullAccounts: string[] = [];
   const reconnectAccounts: string[] = [];
 
+  // IDs of accounts currently receiving auto-sync. Contacts stuck on accounts
+  // outside this set are treated as orphan-pending and re-routed to an active
+  // account (user explicitly asked for this so pending never gets stuck).
+  const activeAccountIds = new Set<string>((accounts || []).map((a: any) => a.id));
+
   for (const account of accounts) {
     if (remaining.length === 0) break;
 
-    // Only push to THIS account: new contacts (no account yet) OR dirty contacts
-    // that already belong to THIS account. Never migrate a synced contact from
-    // one Google account to another.
+    // Push to THIS account:
+    // - contacts with no google_sync_account_id (new)
+    // - dirty contacts already on THIS account (re-upload)
+    // - orphan pending: contacts stuck on an account that is NOT in the active
+    //   auto_sync list (owner turned auto_sync off there). Re-route them here
+    //   so pending never accumulates indefinitely.
     const forThisAccount = remaining.filter((c: any) =>
-      !c.google_sync_account_id || c.google_sync_account_id === account.id
+      !c.google_sync_account_id
+        || c.google_sync_account_id === account.id
+        || !activeAccountIds.has(c.google_sync_account_id)
     );
     const skippedForOtherAccounts = remaining.filter((c: any) =>
-      c.google_sync_account_id && c.google_sync_account_id !== account.id
+      c.google_sync_account_id
+        && c.google_sync_account_id !== account.id
+        && activeAccountIds.has(c.google_sync_account_id)
     );
     if (forThisAccount.length === 0) {
       remaining = skippedForOtherAccounts;
