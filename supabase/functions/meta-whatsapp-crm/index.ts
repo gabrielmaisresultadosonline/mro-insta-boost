@@ -1011,6 +1011,7 @@ else if (message.type === "unsupported") {
       last_message_received_at: new Date().toISOString(),
       total_messages_received: (contactForSave.total_messages_received || 0) + 1,
       updated_at: new Date().toISOString(),
+      countdown_trigger_sent_at: null,
       last_read_at: null // Reset last_read_at when new message arrives so it shows as unread
     }).eq('id', contactForSave.id);
     console.log('[WEBHOOK] Saved inbound message and reset last_read_at', { waId, userId, contact_id: contactForSave.id, meta_message_id: message.id });
@@ -1456,6 +1457,135 @@ const jsonResponse = (data: unknown, status = 200) => new Response(JSON.stringif
   status,
   headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 })
+
+async function processCountdownTriggers(supabase: any) {
+  console.log('[COUNTDOWN] Checking for contacts near the 24h window limit...');
+  const summary = { activeSettings: 0, eligibleContacts: 0, sent: 0, failed: 0 };
+
+  const { data: activeSettings, error: settingsError } = await supabase
+    .from('crm_settings')
+    .select('*')
+    .eq('countdown_trigger_enabled', true);
+
+  if (settingsError) {
+    console.error('[COUNTDOWN] Failed to load active settings:', settingsError.message);
+    throw settingsError;
+  }
+
+  if (!activeSettings || activeSettings.length === 0) {
+    console.log('[COUNTDOWN] No active countdown triggers');
+    return summary;
+  }
+
+  summary.activeSettings = activeSettings.length;
+
+  for (const settings of activeSettings) {
+    const thresholdMinutes = Number(settings.countdown_trigger_threshold_minutes) || 60;
+    const now = new Date();
+    const windowLimitDate = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+    const triggerThresholdDate = new Date(now.getTime() - ((24 * 60 - thresholdMinutes) * 60 * 1000));
+
+    let contactsQuery = supabase
+      .from('crm_contacts')
+      .select('*')
+      .eq('user_id', settings.user_id)
+      .gt('last_message_received_at', windowLimitDate.toISOString())
+      .lt('last_message_received_at', triggerThresholdDate.toISOString())
+      .is('countdown_trigger_sent_at', null);
+
+    const statusFilter: string[] = Array.isArray(settings.countdown_trigger_status_filter)
+      ? settings.countdown_trigger_status_filter
+      : [];
+    if (statusFilter.length > 0) {
+      contactsQuery = contactsQuery.in('status', statusFilter);
+    }
+
+    const { data: contacts, error: contactsError } = await contactsQuery;
+    if (contactsError) {
+      console.error('[COUNTDOWN] Failed to load eligible contacts:', {
+        userId: settings.user_id,
+        error: contactsError.message,
+      });
+      summary.failed += 1;
+      continue;
+    }
+
+    const eligibleContacts = contacts || [];
+    summary.eligibleContacts += eligibleContacts.length;
+
+    if (eligibleContacts.length === 0) {
+      console.log('[COUNTDOWN] No eligible contacts for user', settings.user_id);
+      continue;
+    }
+
+    console.log(`[COUNTDOWN] Found ${eligibleContacts.length} contacts for user ${settings.user_id}`);
+
+    for (const contact of eligibleContacts) {
+      console.log(`[COUNTDOWN] Sending trigger to ${contact.wa_id}`);
+
+      const payload: any = { to: contact.wa_id };
+      if (settings.countdown_trigger_message_type === 'message') {
+        payload.text = settings.countdown_trigger_content;
+      } else if (settings.countdown_trigger_message_type === 'template') {
+        payload.templateName = settings.countdown_trigger_template_id;
+        payload.language = 'pt_BR';
+      }
+
+      try {
+        if (settings.countdown_trigger_message_type === 'flow' && settings.countdown_trigger_flow_id) {
+          const { data: flow, error: flowError } = await supabase
+            .from('crm_flows')
+            .select('*')
+            .eq('id', settings.countdown_trigger_flow_id)
+            .eq('user_id', settings.user_id)
+            .single();
+
+          if (flowError || !flow) {
+            throw new Error(flowError?.message || 'Fluxo do disparador não encontrado');
+          }
+
+          if (!flow.nodes?.length) {
+            throw new Error('Fluxo do disparador não possui nós configurados');
+          }
+
+          const targetNodeIds = new Set((flow.edges || []).map((edge: any) => edge.target));
+          const startNode = flow.nodes.find((node: any) => node.type === 'start' || node.data?.isStartNode)
+            || flow.nodes.find((node: any) => !targetNodeIds.has(node.id))
+            || flow.nodes[0];
+
+          await supabase.from('crm_contacts').update({
+            current_flow_id: flow.id,
+            current_node_id: startNode.id,
+            flow_state: 'running',
+            countdown_trigger_sent_at: new Date().toISOString(),
+          }).eq('id', contact.id);
+
+          await executeVisualNode(supabase, flow, startNode, contact.id, contact.wa_id);
+        } else {
+          await handleInternalSendMessage(
+            supabase,
+            settings.meta_phone_number_id,
+            settings.meta_access_token,
+            payload,
+            contact,
+            settings.vps_transcoder_url,
+            settings.user_id,
+          );
+          await supabase.from('crm_contacts').update({
+            countdown_trigger_sent_at: new Date().toISOString(),
+          }).eq('id', contact.id);
+        }
+        summary.sent += 1;
+      } catch (err) {
+        summary.failed += 1;
+        console.error(`[COUNTDOWN] Error sending to ${contact.wa_id}:`, err);
+      }
+    }
+  }
+
+  console.log('[COUNTDOWN] Finished', summary);
+  return summary;
+}
 
 const DEFAULT_GOOGLE_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
 const GOOGLE_CONTACTS_SCOPES = [
@@ -3207,7 +3337,14 @@ async function fetchAndStoreIncomingMedia(
         }
       } catch (_) { /* ignore */ }
 
-      return jsonResponse({ success: true, processed: results.length });
+      let countdownResult = null;
+      try {
+        countdownResult = await processCountdownTriggers(supabase);
+      } catch (countdownError) {
+        console.error('[COUNTDOWN] processScheduled failed:', countdownError);
+      }
+
+      return jsonResponse({ success: true, processed: results.length, countdown: countdownResult });
     }
 
     if (action === 'updateSettings') {
@@ -4455,93 +4592,8 @@ async function fetchAndStoreIncomingMedia(
     }
 
     if (action === 'processCountdownTriggers') {
-      console.log('[COUNTDOWN] Checking for contacts near the 24h window limit...');
-      
-      const { data: activeSettings } = await supabase
-        .from('crm_settings')
-        .select('*')
-        .eq('countdown_trigger_enabled', true);
-
-      if (!activeSettings || activeSettings.length === 0) {
-        return jsonResponse({ success: true, message: 'No active countdown triggers' });
-      }
-
-      for (const settings of activeSettings) {
-        const thresholdMinutes = settings.countdown_trigger_threshold_minutes || 60;
-        const now = new Date();
-        
-        // Find contacts for this user who received a message in the last 24h,
-        // but it was more than (24h - threshold) ago, and we haven't sent the trigger yet.
-        const windowLimitDate = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-        const triggerThresholdDate = new Date(now.getTime() - ((24 * 60 - thresholdMinutes) * 60 * 1000));
-        
-        let contactsQuery = supabase
-          .from('crm_contacts')
-          .select('*')
-          .eq('user_id', settings.user_id)
-          .gt('last_message_received_at', windowLimitDate.toISOString())
-          .lt('last_message_received_at', triggerThresholdDate.toISOString())
-          .is('countdown_trigger_sent_at', null);
-
-        const statusFilter: string[] = Array.isArray(settings.countdown_trigger_status_filter)
-          ? settings.countdown_trigger_status_filter
-          : [];
-        if (statusFilter.length > 0) {
-          contactsQuery = contactsQuery.in('status', statusFilter);
-        }
-        const { data: contacts } = await contactsQuery;
-
-        if (contacts && contacts.length > 0) {
-          console.log(`[COUNTDOWN] Found ${contacts.length} contacts for user ${settings.user_id}`);
-          for (const contact of contacts) {
-            console.log(`[COUNTDOWN] Sending trigger to ${contact.wa_id}`);
-            
-            const payload: any = { to: contact.wa_id };
-            if (settings.countdown_trigger_message_type === 'message') {
-              payload.text = settings.countdown_trigger_content;
-            } else if (settings.countdown_trigger_message_type === 'template') {
-              // We need the template name, might need to fetch it or store it better
-              // For now assuming content stores the name or we fetch it
-              payload.templateName = settings.countdown_trigger_template_id;
-              payload.language = 'pt_BR';
-            }
-
-            try {
-              if (settings.countdown_trigger_message_type === 'flow' && settings.countdown_trigger_flow_id) {
-                // Logic to start flow
-                const { data: flow } = await supabase.from('crm_flows').select('*').eq('id', settings.countdown_trigger_flow_id).single();
-                if (flow && flow.nodes?.length > 0) {
-                  const startNode = flow.nodes.find((n: any) => n.type === 'start' || n.data?.isStartNode);
-                  if (startNode) {
-                    await supabase.from('crm_contacts').update({
-                      current_flow_id: flow.id,
-                      current_node_id: startNode.id,
-                      flow_state: 'running',
-                      countdown_trigger_sent_at: new Date().toISOString()
-                    }).eq('id', contact.id);
-                    await executeVisualNode(supabase, flow, startNode, contact.id, contact.wa_id);
-                  }
-                }
-              } else {
-                await handleInternalSendMessage(
-                  supabase,
-                  settings.meta_phone_number_id,
-                  settings.meta_access_token,
-                  payload,
-                  contact,
-                  settings.vps_transcoder_url
-                );
-                await supabase.from('crm_contacts').update({
-                  countdown_trigger_sent_at: new Date().toISOString()
-                }).eq('id', contact.id);
-              }
-            } catch (err) {
-              console.error(`[COUNTDOWN] Error sending to ${contact.wa_id}:`, err);
-            }
-          }
-        }
-      }
-      return jsonResponse({ success: true });
+      const countdownResult = await processCountdownTriggers(supabase);
+      return jsonResponse({ success: true, countdown: countdownResult });
     }
 
 
