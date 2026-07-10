@@ -1227,12 +1227,20 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     <TabsContent value="template" className="space-y-4 animate-in fade-in">
                       <div className="flex flex-col gap-2 mb-4">
                         <Label className="text-xs md:text-sm">Selecione o Template Aprovado</Label>
-                        <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                          <p className="text-[10px] md:text-xs text-amber-200/80 leading-relaxed italic">
-                            <strong className="text-amber-500">Atenção:</strong> Ao enviar templates aprovados pela Meta, será cobrado em média <strong className="text-white">R$ 0,33</strong> por envio (Marketing/Contato Frio).
-                          </p>
-                        </div>
+                        {(() => {
+                          const sel = templates.find(t => t.id === selectedTemplate);
+                          const cat = (sel?.category || 'MARKETING').toUpperCase();
+                          const unit = cat === 'MARKETING' ? 0.33 : 0.04;
+                          const label = cat === 'MARKETING' ? 'Marketing' : cat === 'UTILITY' ? 'Utility' : 'Autenticação';
+                          return (
+                            <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-start gap-2">
+                              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                              <p className="text-[10px] md:text-xs text-amber-200/80 leading-relaxed italic">
+                                <strong className="text-amber-500">Atenção:</strong> {sel ? <>Template <strong className="text-white">{label}</strong> — será cobrado <strong className="text-white">R$ {unit.toFixed(2).replace('.', ',')}</strong> por envio.</> : <>Marketing: <strong className="text-white">R$ 0,33</strong> · Utility: <strong className="text-white">R$ 0,04</strong> · Autenticação: <strong className="text-white">R$ 0,04</strong> por envio.</>}
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
