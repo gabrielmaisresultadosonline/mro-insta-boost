@@ -100,6 +100,7 @@ import FlowEditor from "@/components/crm/FlowEditor";
 import { MediaPopup } from "@/components/MediaPopup";
 import Broadcaster from "@/components/crm/Broadcaster";
 import { SwipeableContactRow } from "@/components/crm/SwipeableContactRow";
+import { ImageEditor } from "@/components/crm/ImageEditor";
 import ModuleManager from "@/components/admin/ModuleManager";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -518,6 +519,7 @@ const CRM = () => {
    const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
    const [pastedImage, setPastedImage] = useState<File | null>(null);
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
+  const [imageEditorOpen, setImageEditorOpen] = useState(false);
   const [showTemplates, setShowTemplates] = useState(true);
   const [showFlows, setShowFlows] = useState(true);
   const [isContactInfoOpen, setIsContactInfoOpen] = useState(false);
@@ -2854,6 +2856,14 @@ const CRM = () => {
       cancelPastedImage();
       await handleSendMedia(file, 'image', false, preview || undefined);
     }
+  };
+
+  const handleEditedImageSave = (blob: Blob, url: string) => {
+    const edited = new File([blob], `edited-${Date.now()}.png`, { type: 'image/png' });
+    if (pastedImagePreview) URL.revokeObjectURL(pastedImagePreview);
+    setPastedImage(edited);
+    setPastedImagePreview(url);
+    setImageEditorOpen(false);
   };
 
   const handleSendMedia = async (file: File | Blob, type: 'audio' | 'video' | 'image' | 'document', isVoice = false, previewUrl?: string) => {
@@ -5982,6 +5992,7 @@ const CRM = () => {
                                     </div>
                                     <div className="flex justify-center gap-2 mt-1">
                                       <Button variant="ghost" size="sm" onClick={cancelPastedImage} className="text-destructive h-8 px-3 hover:bg-destructive/10">Cancelar</Button>
+                                      <Button variant="outline" size="sm" onClick={() => setImageEditorOpen(true)} className="h-8 px-3">Editar</Button>
                                       <Button size="sm" onClick={sendPastedImage} className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white shadow-lg">Enviar Imagem</Button>
                                     </div>
                                     <p className="text-[9px] text-center text-muted-foreground font-medium uppercase tracking-tighter truncate mt-1">Imagem colada pronta para envio</p>
@@ -9333,6 +9344,13 @@ const CRM = () => {
       </Dialog>
 
       {/* Janela de 24h Expirada - aviso profissional */}
+      <ImageEditor
+        open={imageEditorOpen}
+        imageUrl={pastedImagePreview}
+        onCancel={() => setImageEditorOpen(false)}
+        onSave={handleEditedImageSave}
+      />
+
       <Dialog open={expiredWindowDialog} onOpenChange={setExpiredWindowDialog}>
         <DialogContent className="max-w-lg rounded-2xl border border-amber-500/30 bg-card">
           <DialogHeader>
