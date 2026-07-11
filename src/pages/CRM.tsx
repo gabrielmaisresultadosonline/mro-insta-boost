@@ -519,6 +519,7 @@ const CRM = () => {
    const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
    const [pastedImage, setPastedImage] = useState<File | null>(null);
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
+  const [imageEditorOpen, setImageEditorOpen] = useState(false);
   const [showTemplates, setShowTemplates] = useState(true);
   const [showFlows, setShowFlows] = useState(true);
   const [isContactInfoOpen, setIsContactInfoOpen] = useState(false);
