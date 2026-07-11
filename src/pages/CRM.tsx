@@ -9344,6 +9344,13 @@ const CRM = () => {
       </Dialog>
 
       {/* Janela de 24h Expirada - aviso profissional */}
+      <ImageEditor
+        open={imageEditorOpen}
+        imageUrl={pastedImagePreview}
+        onCancel={() => setImageEditorOpen(false)}
+        onSave={handleEditedImageSave}
+      />
+
       <Dialog open={expiredWindowDialog} onOpenChange={setExpiredWindowDialog}>
         <DialogContent className="max-w-lg rounded-2xl border border-amber-500/30 bg-card">
           <DialogHeader>
