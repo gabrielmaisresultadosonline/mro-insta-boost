@@ -2858,6 +2858,14 @@ const CRM = () => {
     }
   };
 
+  const handleEditedImageSave = (blob: Blob, url: string) => {
+    const edited = new File([blob], `edited-${Date.now()}.png`, { type: 'image/png' });
+    if (pastedImagePreview) URL.revokeObjectURL(pastedImagePreview);
+    setPastedImage(edited);
+    setPastedImagePreview(url);
+    setImageEditorOpen(false);
+  };
+
   const handleSendMedia = async (file: File | Blob, type: 'audio' | 'video' | 'image' | 'document', isVoice = false, previewUrl?: string) => {
     // IMPORTANTE: Se for áudio gravado aqui, isVoice deve ser true para que a Edge Function use o payload de voz da Meta
     const actuallyIsVoice = isVoice || type === 'audio';
