@@ -5992,6 +5992,7 @@ const CRM = () => {
                                     </div>
                                     <div className="flex justify-center gap-2 mt-1">
                                       <Button variant="ghost" size="sm" onClick={cancelPastedImage} className="text-destructive h-8 px-3 hover:bg-destructive/10">Cancelar</Button>
+                                      <Button variant="outline" size="sm" onClick={() => setImageEditorOpen(true)} className="h-8 px-3">Editar</Button>
                                       <Button size="sm" onClick={sendPastedImage} className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white shadow-lg">Enviar Imagem</Button>
                                     </div>
                                     <p className="text-[9px] text-center text-muted-foreground font-medium uppercase tracking-tighter truncate mt-1">Imagem colada pronta para envio</p>
