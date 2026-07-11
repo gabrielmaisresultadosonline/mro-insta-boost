@@ -100,6 +100,7 @@ import FlowEditor from "@/components/crm/FlowEditor";
 import { MediaPopup } from "@/components/MediaPopup";
 import Broadcaster from "@/components/crm/Broadcaster";
 import { SwipeableContactRow } from "@/components/crm/SwipeableContactRow";
+import { ImageEditor } from "@/components/crm/ImageEditor";
 import ModuleManager from "@/components/admin/ModuleManager";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
