@@ -1852,11 +1852,57 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
               fullAccounts.push(account.email);
               console.warn(`[GOOGLE-SYNC] Conta ${account.email} cheia (25k). Pulando para próxima conta.`);
             } else {
-              // Transient / false-positive overflow. Do not stick the UI as
-              // "full"; just skip this account for now and retry on the next
-              // cycle so real pending contacts continue to sync.
-              skipCurrentAccount = true;
-              console.warn(`[GOOGLE-SYNC] Conta ${account.email} respondeu OVERFLOW mas total de contatos está abaixo do limite. Ignorando falso positivo.`);
+              // False-positive overflow (usually caused by items in the
+              // Google Contacts Trash or "Other contacts" pushing the shared
+              // quota near the 25k limit). Batch create fails but Google
+              // often still accepts one-at-a-time createContact calls.
+              // Retry each pending contact individually as a fallback.
+              console.warn(`[GOOGLE-SYNC] Conta ${account.email} respondeu OVERFLOW (total real=baixo). Tentando createContact 1x1 como fallback.`);
+              const salvaged: any[] = [];
+              let singleOverflowStreak = 0;
+              for (const single of chunk) {
+                try {
+                  const singleResp = await fetch('https://people.googleapis.com/v1/people:createContact', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      names: [{ givenName: single.name || single.wa_id }],
+                      phoneNumbers: [{ value: single.wa_id, type: 'mobile' }],
+                    }),
+                  });
+                  if (singleResp.ok) {
+                    const person = await singleResp.json().catch(() => ({} as any));
+                    const resourceName = person?.resourceName || null;
+                    const nextMeta = { ...((single as any).metadata || {}), google_resource_name: resourceName };
+                    delete nextMeta.google_dirty;
+                    const { error: upErr } = await supabase.from('crm_contacts').update({
+                      google_sync_account_id: account.id,
+                      google_synced_at: new Date().toISOString(),
+                      metadata: nextMeta,
+                    }).eq('id', single.id);
+                    if (upErr) { failed++; } else { pushed++; }
+                    singleOverflowStreak = 0;
+                  } else {
+                    const singleErr = await singleResp.text().catch(() => '');
+                    salvaged.push(single);
+                    if (isGoogleContactsFullError(singleErr)) {
+                      singleOverflowStreak++;
+                      // If 5 in a row hit overflow, give up on this account this cycle.
+                      if (singleOverflowStreak >= 5) {
+                        lastError = `Google recusou novos contatos em ${account.email}. Esvazie a Lixeira e "Outros contatos" em contacts.google.com para liberar espaço.`;
+                        skipCurrentAccount = true;
+                        break;
+                      }
+                    }
+                  }
+                } catch (e) {
+                  salvaged.push(single);
+                }
+              }
+              // Replace the chunk entry we already pushed into stillPending
+              // with only the ones that still failed on the single-create path.
+              for (let k = 0; k < chunk.length; k++) stillPending.pop();
+              stillPending.push(...salvaged);
             }
           } else if (isGoogleInsufficientScopeError(t)) {
             skipCurrentAccount = true;
