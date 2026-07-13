@@ -3826,7 +3826,7 @@ async function fetchAndStoreIncomingMedia(
           if (mediaUrl && (mediaUrl.startsWith('http') || mediaUrl.startsWith('https'))) {
             console.log(`Processing media header example for ${name}...`);
             if (appId) {
-              const handle = await getMetaHeaderHandle(meta_access_token, appId, mediaUrl);
+              const handle = await getMetaHeaderHandle(meta_access_token, appId, mediaUrl, component.format);
               if (handle) {
                 console.log(`Generated Meta handle for ${name}: ${handle}`);
                 component.example.header_handle = [handle];
@@ -3851,7 +3851,7 @@ async function fetchAndStoreIncomingMedia(
               if (mediaUrl && (mediaUrl.startsWith('http') || mediaUrl.startsWith('https'))) {
                 console.log(`Processing carousel card media (${headerComp.format}) example for ${name}...`);
                 if (appId) {
-                  const handle = await getMetaHeaderHandle(meta_access_token, appId, mediaUrl);
+                  const handle = await getMetaHeaderHandle(meta_access_token, appId, mediaUrl, headerComp.format);
                   if (handle) {
                     console.log(`Generated Meta handle for carousel card: ${handle}`);
                     headerComp.example.header_handle = [handle];
