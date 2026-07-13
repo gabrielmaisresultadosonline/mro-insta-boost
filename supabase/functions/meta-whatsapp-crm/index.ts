@@ -3747,10 +3747,14 @@ async function fetchAndStoreIncomingMedia(
               if (handle) {
                 console.log(`Generated Meta handle for ${name}: ${handle}`);
                 component.example.header_handle = [handle];
+              } else {
+                throw new Error(`Falha ao gerar handle Meta para o cabeçalho ${component.format}. Verifique se a URL da mídia é acessível publicamente e tente novamente.`);
               }
             } else {
-              console.warn('Could not determine Meta App ID. Media upload might fail.');
+              throw new Error('Meta App ID não encontrado. Configure meta_app_id em crm_settings ou defina a secret FACEBOOK_APP_ID.');
             }
+          } else {
+            throw new Error(`Cabeçalho ${component.format} exige que você faça upload de uma mídia antes de enviar o template.`);
           }
         }
         
@@ -3768,8 +3772,14 @@ async function fetchAndStoreIncomingMedia(
                   if (handle) {
                     console.log(`Generated Meta handle for carousel card: ${handle}`);
                     headerComp.example.header_handle = [handle];
+                  } else {
+                    throw new Error(`Falha ao gerar handle Meta para o cartão do carrossel (${headerComp.format}). Verifique a URL da mídia.`);
                   }
+                } else {
+                  throw new Error('Meta App ID não encontrado para upload de mídia do carrossel.');
                 }
+              } else {
+                throw new Error(`Cada cartão do carrossel exige upload de uma mídia ${headerComp.format} antes de enviar.`);
               }
             }
           }
