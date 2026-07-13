@@ -3937,7 +3937,7 @@ async function fetchAndStoreIncomingMedia(
           error: friendly,
           details: result,
         }), {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
