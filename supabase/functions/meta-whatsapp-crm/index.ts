@@ -3730,6 +3730,10 @@ async function fetchAndStoreIncomingMedia(
         console.log('App ID not found in settings, attempting to debug token...');
         appId = await getAppId(meta_access_token);
       }
+      if (!appId) {
+        appId = Deno.env.get('FACEBOOK_APP_ID') || null;
+        if (appId) console.log('Using FACEBOOK_APP_ID env fallback for media upload:', appId);
+      }
 
       for (const component of processedComponents) {
         // Handle standard Header media
