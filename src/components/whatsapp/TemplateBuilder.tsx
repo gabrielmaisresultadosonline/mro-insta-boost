@@ -162,6 +162,28 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
   };
 
   const handleSubmit = () => {
+    if (templateType === 'STANDARD' && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerType) && !headerUrl.trim()) {
+      toast({
+        title: "Mídia obrigatória",
+        description: "Faça upload ou informe uma URL pública real antes de enviar o template para aprovação.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (templateType === 'CAROUSEL') {
+      const emptyCardIndex = cards.findIndex(card => !String(card.headerUrl || '').trim());
+      if (emptyCardIndex >= 0) {
+        toast({
+          title: "Mídia obrigatória no carrossel",
+          description: `Adicione uma imagem ou vídeo real no Cartão ${emptyCardIndex + 1} antes de enviar.`,
+          variant: "destructive",
+        });
+        setActiveCardIndex(emptyCardIndex);
+        return;
+      }
+    }
+
     const components: any[] = [];
     
     if (templateType === 'STANDARD') {
@@ -173,7 +195,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
           const variables = headerText.match(/\{\{\d+\}\}/g);
           if (variables) header.example = { header_text: [headerText.replace(/\{\{\d+\}\}/g, "Exemplo")] };
         } else {
-          header.example = { header_handle: [headerUrl || "https://example.com/example.png"] };
+          header.example = { header_handle: [headerUrl.trim()] };
         }
         components.push(header);
       }
@@ -213,7 +235,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
             { 
               type: 'HEADER', 
               format: card.headerType, 
-              example: { header_handle: [card.headerUrl || "https://maisonline.com.br/wp-content/uploads/2023/07/mais-resultados-online.png"] } 
+              example: { header_handle: [String(card.headerUrl || '').trim()] } 
             },
             { 
               type: 'BODY', 
