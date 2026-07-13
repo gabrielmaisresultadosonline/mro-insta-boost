@@ -2834,20 +2834,102 @@ async function ensureWabaSubscribed(wabaId?: string | null, accessToken?: string
   }
 }
 
-async function getMetaHeaderHandle(accessToken: string, appId: string, mediaUrl: string) {
+function getTemplateMediaFileName(mediaUrl: string, expectedFormat: string) {
+  const fallbackByFormat: Record<string, string> = {
+    IMAGE: 'template_sample.jpg',
+    VIDEO: 'template_sample.mp4',
+    DOCUMENT: 'template_sample.pdf',
+  };
+
+  try {
+    const pathname = new URL(mediaUrl).pathname;
+    const lastSegment = decodeURIComponent(pathname.split('/').filter(Boolean).pop() || '');
+    if (lastSegment && /\.[a-z0-9]{2,8}$/i.test(lastSegment)) return lastSegment;
+  } catch (_) {
+    // Fall back below when the input is not a valid URL.
+  }
+
+  return fallbackByFormat[expectedFormat] || 'template_sample.bin';
+}
+
+function getTemplateMediaContentType(mediaUrl: string, responseType: string, expectedFormat: string) {
+  const lowerResponseType = String(responseType || '').split(';')[0].trim().toLowerCase();
+  const path = (() => {
+    try { return new URL(mediaUrl).pathname.toLowerCase(); } catch (_) { return mediaUrl.toLowerCase(); }
+  })();
+
+  if (expectedFormat === 'IMAGE') {
+    if (lowerResponseType === 'image/jpeg' || lowerResponseType === 'image/png') return lowerResponseType;
+    if (/\.(png)(\?|$)/i.test(path)) return 'image/png';
+    if (/\.(jpe?g)(\?|$)/i.test(path)) return 'image/jpeg';
+    return 'image/jpeg';
+  }
+
+  if (expectedFormat === 'VIDEO') {
+    if (lowerResponseType === 'video/mp4' || lowerResponseType === 'video/3gpp') return lowerResponseType;
+    if (/\.(3gp|3gpp)(\?|$)/i.test(path)) return 'video/3gpp';
+    return 'video/mp4';
+  }
+
+  if (expectedFormat === 'DOCUMENT') {
+    if (lowerResponseType && lowerResponseType !== 'application/octet-stream') return lowerResponseType;
+    if (/\.(pdf)(\?|$)/i.test(path)) return 'application/pdf';
+    return 'application/pdf';
+  }
+
+  return lowerResponseType || 'application/octet-stream';
+}
+
+function assertTemplateMediaIsValid(mediaUrl: string, expectedFormat: string, fileSize: number, fileType: string) {
+  if (!/^https?:\/\//i.test(mediaUrl)) {
+    throw new Error(`A mídia do template ${expectedFormat} precisa ser uma URL pública válida.`);
+  }
+
+  if (/example\.com|maisonline\.com\.br/i.test(mediaUrl)) {
+    throw new Error(`Envie uma mídia real para o template ${expectedFormat}. A Meta não aceita URL de exemplo.`);
+  }
+
+  const limits: Record<string, number> = {
+    IMAGE: 5_000_000,
+    VIDEO: 16_000_000,
+    DOCUMENT: 100_000_000,
+  };
+  if (limits[expectedFormat] && fileSize > limits[expectedFormat]) {
+    const mb = Math.floor(limits[expectedFormat] / 1_000_000);
+    throw new Error(`Arquivo ${expectedFormat} acima do limite da Meta para template (${mb}MB).`);
+  }
+
+  if (expectedFormat === 'IMAGE' && !['image/jpeg', 'image/png'].includes(fileType)) {
+    throw new Error('Imagem de template precisa ser JPG ou PNG. Converta o arquivo e tente novamente.');
+  }
+  if (expectedFormat === 'VIDEO' && !['video/mp4', 'video/3gpp'].includes(fileType)) {
+    throw new Error('Vídeo de template precisa ser MP4 ou 3GPP. Converta para MP4 e tente novamente.');
+  }
+}
+
+async function getMetaHeaderHandle(accessToken: string, appId: string, mediaUrl: string, expectedFormat = 'IMAGE') {
   try {
     console.log(`Getting Meta header handle for media: ${mediaUrl}`);
     // 1. Download the media
     const mediaRes = await fetch(mediaUrl);
     if (!mediaRes.ok) throw new Error(`Failed to download media for template: ${mediaRes.status}`);
-    const blob = await mediaRes.blob();
-    const fileSize = blob.size;
-    const fileType = blob.type;
+    const arrayBuffer = await mediaRes.arrayBuffer();
+    const fileSize = arrayBuffer.byteLength;
+    const fileType = getTemplateMediaContentType(mediaUrl, mediaRes.headers.get('content-type') || '', expectedFormat);
+    const fileName = getTemplateMediaFileName(mediaUrl, expectedFormat);
+
+    assertTemplateMediaIsValid(mediaUrl, expectedFormat, fileSize, fileType);
 
     // 2. Initialize upload
-    console.log(`Initializing resumable upload for ${fileType} (${fileSize} bytes)...`);
-    const initRes = await fetch(`https://graph.facebook.com/v18.0/${appId}/uploads?file_length=${fileSize}&file_type=${fileType}&access_token=${accessToken}`, {
-      method: 'POST'
+    console.log(`Initializing resumable upload for ${fileName} ${fileType} (${fileSize} bytes)...`);
+    const initUrl = new URL(`https://graph.facebook.com/v20.0/${appId}/uploads`);
+    initUrl.searchParams.set('file_name', fileName);
+    initUrl.searchParams.set('file_length', String(fileSize));
+    initUrl.searchParams.set('file_type', fileType);
+    initUrl.searchParams.set('access_token', accessToken);
+
+    const initRes = await fetch(initUrl.toString(), {
+      method: 'POST',
     });
     const initData = await initRes.json();
     const uploadSessionId = initData.id;
@@ -2859,13 +2941,14 @@ async function getMetaHeaderHandle(accessToken: string, appId: string, mediaUrl:
 
     // 3. Upload the actual data
     console.log(`Uploading file data to session ${uploadSessionId}...`);
-    const uploadRes = await fetch(`https://graph.facebook.com/v18.0/${uploadSessionId}`, {
+    const uploadRes = await fetch(`https://graph.facebook.com/v20.0/${uploadSessionId}`, {
       method: 'POST',
       headers: {
         'Authorization': `OAuth ${accessToken}`,
-        'file_offset': '0'
+        'file_offset': '0',
+        'Content-Type': fileType,
       },
-      body: blob
+      body: arrayBuffer,
     });
     const uploadData = await uploadRes.json();
     if (!uploadData.h) {
