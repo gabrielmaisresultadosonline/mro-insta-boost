@@ -103,6 +103,7 @@ import Broadcaster from "@/components/crm/Broadcaster";
 import { SwipeableContactRow } from "@/components/crm/SwipeableContactRow";
 import { ImageEditor } from "@/components/crm/ImageEditor";
 import ModuleManager from "@/components/admin/ModuleManager";
+import SalesTutorials from "@/components/sales/SalesTutorials";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
