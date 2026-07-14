@@ -604,6 +604,68 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
         </section>
 
         {/* Pricing */}
+        {/* Verificação de Portfólio */}
+        <section id="verificar-portfolio" className="py-24 bg-gradient-to-br from-orange-50 via-white to-amber-50 border-y border-orange-100">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-10">
+                <Badge className="bg-orange-100 text-orange-700 border-orange-200 mb-4 gap-1">
+                  <BadgeCheck className="w-4 h-4" /> Serviço exclusivo
+                </Badge>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">
+                  Precisa verificar seu portfólio?
+                </h2>
+                <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                  Nós verificamos seu portfólio na Meta e configuramos tudo para você usar o WhatsApp com a API Oficial — com <strong>1 mês de utilização incluso</strong>.
+                </p>
+              </div>
+
+              <Card className="border-orange-200 shadow-xl overflow-hidden">
+                <div className="grid md:grid-cols-2">
+                  <div className="p-8 bg-white">
+                    <h3 className="text-xl font-bold text-slate-900 mb-4">O que está incluso</h3>
+                    <ul className="space-y-3 text-slate-700">
+                      <li className="flex gap-2"><Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" /> Verificação completa do seu portfólio Meta</li>
+                      <li className="flex gap-2"><Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" /> Configuração da conta empresarial (WABA)</li>
+                      <li className="flex gap-2"><Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" /> Conexão do número à API Oficial</li>
+                      <li className="flex gap-2"><Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" /> <strong>1 mês incluso</strong> de utilização do sistema</li>
+                    </ul>
+
+                    <div className="mt-6 p-4 rounded-xl bg-red-50 border border-red-200 flex gap-3">
+                      <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-red-800">
+                        <strong>Atenção:</strong> Sem o portfólio verificado e configurado corretamente como empresa, <strong>não é possível usar o WhatsApp com API Oficial</strong>. Podemos fazer isso por você.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-8 bg-gradient-to-br from-orange-500 to-amber-600 text-white flex flex-col justify-between">
+                    <div>
+                      <div className="text-sm uppercase tracking-wider opacity-90 mb-2">Investimento único</div>
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-5xl font-black">R$ 300</span>
+                      </div>
+                      <div className="text-white/90 mb-6">
+                        ou <strong>12x de R$ 30</strong> no cartão
+                      </div>
+                      <div className="text-sm bg-white/15 rounded-lg p-3 mb-6">
+                        Verificação do portfólio + <strong>1 mês de sistema incluso</strong>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setVerifyOpen(true)}
+                      size="lg"
+                      className="bg-white text-orange-700 hover:bg-orange-50 font-bold w-full"
+                    >
+                      Quero verificar meu portfólio <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </section>
+
        <section id="precos" className="py-24 bg-slate-50">
          <div className="container mx-auto px-4">
            <div className="text-center mb-16">
