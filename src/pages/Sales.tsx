@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BookOpen } from "lucide-react";
 import PurchaseDialog, { type PlanKey } from "@/components/sales/PurchaseDialog";
+import SalesTutorials from "@/components/sales/SalesTutorials";
 import { useState } from "react";
  import whatsappGirlBgImg from "@/assets/whatsapp-meta-hero.png";
  const metaBgImg = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=2000";
@@ -66,6 +67,7 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
              <a href="#funcionalidades" className="hover:text-green-600 transition-colors">Funcionalidades</a>
               <a href="#crm-kanban" className="hover:text-green-600 transition-colors">CRM Kanban</a>
               <a href="#disparos" className="hover:text-green-600 transition-colors">Disparos</a>
+              <a href="#tutoriais" className="hover:text-green-600 transition-colors">Tutoriais</a>
              <a href="#precos" className="hover:text-green-600 transition-colors">Preços</a>
              <a href="#seguranca" className="hover:text-green-600 transition-colors">Segurança</a>
            </nav>
