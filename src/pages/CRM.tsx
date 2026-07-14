@@ -83,9 +83,10 @@ import {
    ExternalLink,
     Eraser,
     Moon,
-    Sun,
-    History as HistoryIcon
-  } from "lucide-react";
+     Sun,
+     History as HistoryIcon,
+     BookOpen
+   } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
 const Instagram = (LucideIcons as any).Instagram || Camera;
 import TemplatePreview from "@/components/whatsapp/TemplatePreview";
@@ -102,6 +103,7 @@ import Broadcaster from "@/components/crm/Broadcaster";
 import { SwipeableContactRow } from "@/components/crm/SwipeableContactRow";
 import { ImageEditor } from "@/components/crm/ImageEditor";
 import ModuleManager from "@/components/admin/ModuleManager";
+import SalesTutorials from "@/components/sales/SalesTutorials";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -4187,9 +4189,10 @@ const CRM = () => {
                     { id: 'scheduling', label: 'Agendamentos', icon: Calendar },
                     { id: 'flows', label: 'Fluxos', icon: GitBranch },
                     { id: 'templates', label: 'Templates', icon: FileText },
-                    { id: 'ai-agent', label: 'Agente IA', icon: Bot },
-                    
-                    { id: 'help', label: 'Ajuda', icon: LucideIcons.HelpCircle },
+                     { id: 'ai-agent', label: 'Agente IA', icon: Bot },
+                     { id: 'tutorials', label: 'Tutoriais', icon: BookOpen },
+                     
+                     { id: 'help', label: 'Ajuda', icon: LucideIcons.HelpCircle },
                     { id: 'settings', label: 'Ajustes', icon: Settings },
                   ].map((item) => (
                     <SidebarMenuItem key={item.id}>
@@ -4348,10 +4351,11 @@ const CRM = () => {
               <SidebarTrigger className="hover:bg-muted shrink-0" />
               <div className="h-4 w-px bg-border/50 mx-1 hidden md:block" />
                <h1 className="font-bold text-xs md:text-base text-foreground tracking-tight truncate flex items-center gap-2">
-                 {activeTab === 'contact-list' ? 'Contatos' : 
-                  activeTab === 'contacts' ? 'Conversas' : 
-                  activeTab === 'google-synced' ? 'Sincronizados Google' :
-                  activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  {activeTab === 'contact-list' ? 'Contatos' : 
+                   activeTab === 'contacts' ? 'Conversas' : 
+                   activeTab === 'google-synced' ? 'Sincronizados Google' :
+                   activeTab === 'tutorials' ? 'Tutoriais' :
+                   activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                  {userRole === 'super_admin' && (
                     <Button 
                       variant="outline" 
@@ -6843,6 +6847,10 @@ const CRM = () => {
                 contacts={contacts} 
                 statuses={kanbanStatuses}
               />
+             )}
+
+            {activeTab === 'tutorials' && (
+              <SalesTutorials variant="dark" />
             )}
 
             {activeTab === 'templates' && (
