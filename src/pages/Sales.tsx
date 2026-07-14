@@ -130,13 +130,13 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
               </Button>
              <Link to="/crm/login?mode=register">
                <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white text-lg px-8 py-6 rounded-2xl w-full sm:w-auto shadow-lg shadow-green-200 group">
-                 Cadastrar Grátis no CRM
+                 Teste grátis por 2 dias
                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                </Button>
              </Link>
              <div className="flex items-center gap-2 text-sm text-slate-500">
                <ShieldCheck className="w-5 h-5 text-green-600" />
-               Sem cartão de crédito necessário
+                Sem cartão • Acesso trava após 2 dias
              </div>
            </div>
 

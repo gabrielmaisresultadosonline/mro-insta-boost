@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CRM from "./pages/CRM";
 import CRMLogin from "./pages/CRMLogin";
 import AdminCentral from "./pages/AdminCentral";
+import AccessGate from "./components/crm/AccessGate";
  import GoogleContactsCallback from "./pages/GoogleContactsCallback";
  import Sales from "./pages/Sales";
 import SalesTutoriais from "./pages/SalesTutoriais";
@@ -23,7 +24,7 @@ const App = () => (
       <BrowserRouter>
          <Routes>
            <Route path="/" element={<Navigate to="/vendas" replace />} />
-           <Route path="/crm" element={<CRM />} />
+           <Route path="/crm" element={<AccessGate><CRM /></AccessGate>} />
            <Route path="/crm/login" element={<CRMLogin />} />
            <Route path="/admincentral" element={<AdminCentral />} />
            <Route path="/administracao" element={<AdminCentral />} />

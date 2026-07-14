@@ -281,6 +281,18 @@ serve(async (req) => {
           invoice_slug: invoice_slug ?? null,
           raw_webhook: body,
         }).eq("id", crmOrder.id);
+        // Grant CRM access on the profile
+        try {
+          const planDays: Record<string, number> = { mensal: 30, semestral: 180, anual: 365 };
+          const days = planDays[crmOrder.plan] ?? 30;
+          await supabase.rpc("grant_crm_access", {
+            p_email: crmOrder.email,
+            p_plan: crmOrder.plan,
+            p_days: days,
+          });
+        } catch (e) {
+          log("CRMSALES grant_crm_access error", { error: String(e) });
+        }
         await sendMetaPurchaseEvent(
           crmOrder.email,
           Number(crmOrder.amount) || 0,
