@@ -63,14 +63,10 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
             <Link to="/vendas" className="bg-[#050508] p-2 rounded-xl">
               <Logo size="sm" />
             </Link>
-           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-             <a href="#funcionalidades" className="hover:text-green-600 transition-colors">Funcionalidades</a>
-              <a href="#crm-kanban" className="hover:text-green-600 transition-colors">CRM Kanban</a>
-              <a href="#disparos" className="hover:text-green-600 transition-colors">Disparos</a>
+            <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
               <a href="#tutoriais" className="hover:text-green-600 transition-colors">Tutoriais</a>
-             <a href="#precos" className="hover:text-green-600 transition-colors">Preços</a>
-             <a href="#seguranca" className="hover:text-green-600 transition-colors">Segurança</a>
-           </nav>
+              <a href="#precos" className="hover:text-green-600 transition-colors">Preços</a>
+            </nav>
            <Link to="/crm/login">
              <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-6">
                Entrar no CRM
