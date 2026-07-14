@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { sendCrmSalesApprovedEmail } from "../_shared/zapmro-sales-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -341,6 +342,23 @@ serve(async (req) => {
       }
       const { error } = await supabase.from("crm_sales_orders").update(upd).eq("id", id);
       if (error) throw error;
+      // Buscar pedido atualizado e enviar email de boas-vindas
+      try {
+        const { data: order } = await supabase
+          .from("crm_sales_orders")
+          .select("email, full_name, plan_label, plan, amount")
+          .eq("id", id).maybeSingle();
+        if (order?.email) {
+          await sendCrmSalesApprovedEmail({
+            to: order.email,
+            fullName: order.full_name,
+            planLabel: order.plan_label || order.plan,
+            amount: Number(order.amount) || 0,
+          });
+        }
+      } catch (e) {
+        console.error("[approve_sales_order] email error:", e);
+      }
       return json({ success: true });
     }
 
