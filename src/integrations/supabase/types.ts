@@ -4263,6 +4263,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_modules: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sales_tutorials: {
         Row: {
           button1_label: string | null
@@ -4275,6 +4308,7 @@ export type Database = {
           id: string
           is_active: boolean
           module: string
+          module_id: string | null
           order_index: number
           title: string
           updated_at: string
@@ -4291,6 +4325,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           module?: string
+          module_id?: string | null
           order_index?: number
           title: string
           updated_at?: string
@@ -4307,12 +4342,21 @@ export type Database = {
           id?: string
           is_active?: boolean
           module?: string
+          module_id?: string | null
           order_index?: number
           title?: string
           updated_at?: string
           video_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sales_tutorials_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "sales_modules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       squarecloud_user_profiles: {
         Row: {
