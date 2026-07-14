@@ -4263,6 +4263,57 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_tutorials: {
+        Row: {
+          button1_label: string | null
+          button1_url: string | null
+          button2_label: string | null
+          button2_url: string | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          module: string
+          order_index: number
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          button1_label?: string | null
+          button1_url?: string | null
+          button2_label?: string | null
+          button2_url?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module?: string
+          order_index?: number
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          button1_label?: string | null
+          button1_url?: string | null
+          button2_label?: string | null
+          button2_url?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       squarecloud_user_profiles: {
         Row: {
           created_at: string | null
