@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { verifyInfinitePayWebhook } from "../_shared/webhook-security.ts";
 import { sendRendaExtEmail } from "../_shared/rendaext-emails.ts";
+import { sendCrmSalesApprovedEmail } from "../_shared/zapmro-sales-email.ts";
 
 
 const corsHeaders = {
@@ -285,6 +286,17 @@ serve(async (req) => {
           Number(crmOrder.amount) || 0,
           `CRM Vendas ${crmOrder.plan_label || crmOrder.plan}`
         );
+        try {
+          await sendCrmSalesApprovedEmail({
+            to: crmOrder.email,
+            fullName: crmOrder.full_name,
+            planLabel: crmOrder.plan_label || crmOrder.plan,
+            amount: Number(crmOrder.amount) || 0,
+          });
+          log("CRMSALES welcome email sent", { to: crmOrder.email });
+        } catch (e) {
+          log("CRMSALES email error", { error: String(e) });
+        }
         log("CRMSALES approved", { id: crmOrder.id });
         return new Response(JSON.stringify({ success: true, message: "CRMSALES confirmed" }), { status: 200, headers: corsHeaders });
       }
