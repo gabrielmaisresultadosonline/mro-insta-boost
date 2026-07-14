@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, RefreshCw, ExternalLink, Trash2, Copy } from "lucide-react";
+import { Loader2, RefreshCw, ExternalLink, Trash2, Copy, CheckCircle2, ArrowLeftRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 type Order = {
@@ -60,6 +61,30 @@ export default function SalesOrdersPanel({ creds }: { creds: { email: string; pa
     } catch (e: any) { toast.error(e.message || "Erro"); }
   }
 
+  async function approveManual(id: string, plan?: string) {
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-central-admin", {
+        body: { action: "approve_sales_order", adminEmail: creds.email, adminPassword: creds.password, id, plan },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro");
+      toast.success("Pedido aprovado");
+      load();
+    } catch (e: any) { toast.error(e.message || "Erro"); }
+  }
+
+  async function migratePlan(id: string, plan: string) {
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-central-admin", {
+        body: { action: "migrate_sales_order_plan", adminEmail: creds.email, adminPassword: creds.password, id, plan },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro");
+      toast.success("Plano migrado");
+      load();
+    } catch (e: any) { toast.error(e.message || "Erro"); }
+  }
+
   const byStatus = (s: string) => orders.filter((o) => o.status === s);
 
   const total = orders.length;
@@ -99,7 +124,15 @@ export default function SalesOrdersPanel({ creds }: { creds: { email: string; pa
             ) : byStatus(tab).length === 0 ? (
               <Card className="p-6 text-center text-sm text-[#128C7E]/70 bg-white border-[#E8F5F1]">Nenhum pedido nesta categoria</Card>
             ) : (
-              byStatus(tab).map((o) => <OrderRow key={o.id} order={o} onDelete={() => remove(o.id)} />)
+              byStatus(tab).map((o) => (
+                <OrderRow
+                  key={o.id}
+                  order={o}
+                  onDelete={() => remove(o.id)}
+                  onApprove={(plan) => approveManual(o.id, plan)}
+                  onMigrate={(plan) => migratePlan(o.id, plan)}
+                />
+              ))
             )}
           </TabsContent>
         ))}
@@ -117,7 +150,15 @@ function StatBox({ label, value, color }: { label: string; value: number | strin
   );
 }
 
-function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
+function OrderRow({
+  order, onDelete, onApprove, onMigrate,
+}: {
+  order: Order;
+  onDelete: () => void;
+  onApprove: (plan?: string) => void;
+  onMigrate: (plan: string) => void;
+}) {
+  const [planOverride, setPlanOverride] = useState<string>(order.plan);
   const created = new Date(order.created_at).toLocaleString("pt-BR");
   const expires = new Date(order.expires_at).toLocaleString("pt-BR");
   const statusBadge =
@@ -147,6 +188,55 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {order.status !== "approved" && (
+            <div className="flex items-center gap-1">
+              <Select value={planOverride} onValueChange={setPlanOverride}>
+                <SelectTrigger className="h-9 w-[160px] text-xs">
+                  <SelectValue placeholder="Plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mensal">Mensal — R$ 137</SelectItem>
+                  <SelectItem value="semestral">6 Meses — R$ 397</SelectItem>
+                  <SelectItem value="anual">Anual — R$ 597</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  if (!confirm(`Aprovar manualmente como ${planOverride}?`)) return;
+                  onApprove(planOverride !== order.plan ? planOverride : undefined);
+                }}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar
+              </Button>
+            </div>
+          )}
+          {order.status === "approved" && (
+            <div className="flex items-center gap-1">
+              <Select value={planOverride} onValueChange={setPlanOverride}>
+                <SelectTrigger className="h-9 w-[160px] text-xs">
+                  <SelectValue placeholder="Migrar plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mensal">Mensal — R$ 137</SelectItem>
+                  <SelectItem value="semestral">6 Meses — R$ 397</SelectItem>
+                  <SelectItem value="anual">Anual — R$ 597</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={planOverride === order.plan}
+                onClick={() => {
+                  if (!confirm(`Migrar acesso para ${planOverride}?`)) return;
+                  onMigrate(planOverride);
+                }}
+              >
+                <ArrowLeftRight className="h-4 w-4 mr-1" /> Migrar
+              </Button>
+            </div>
+          )}
           {order.infinitepay_link && (
             <>
               <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(order.infinitepay_link!); toast.success("Link copiado"); }}>
