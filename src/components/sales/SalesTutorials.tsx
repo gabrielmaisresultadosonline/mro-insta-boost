@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Play, ExternalLink, BookOpen } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Tutorial = {
   id: string;
@@ -47,32 +48,62 @@ export default function SalesTutorials({ variant = "light" }: SalesTutorialsProp
     return acc;
   }, {});
 
+  const isDark = variant === "dark";
+
   return (
-    <section id="tutoriais" className="py-24 bg-gradient-to-b from-white to-green-50">
+    <section
+      id="tutoriais"
+      className={cn(
+        "py-8 md:py-12 h-full overflow-y-auto",
+        isDark ? "bg-[#0c1317] text-white" : "bg-gradient-to-b from-white to-green-50"
+      )}
+    >
       <div className="container mx-auto px-4">
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <div
+            className={cn(
+              "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold mb-4",
+              isDark ? "bg-[#00a884]/10 text-[#00a884]" : "bg-green-100 text-green-700"
+            )}
+          >
             <BookOpen className="w-4 h-4" /> Central de Tutoriais
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4">
+          <h2
+            className={cn(
+              "text-2xl md:text-4xl font-bold mb-3",
+              isDark ? "text-white" : "text-slate-900"
+            )}
+          >
             Aprenda a usar a plataforma
           </h2>
-          <p className="text-slate-600 text-lg">
+          <p className={cn("text-base md:text-lg", isDark ? "text-white/60" : "text-slate-600")}>
             Vídeos organizados por módulo — assista quantas vezes precisar.
           </p>
         </div>
 
         {loading ? (
-          <div className="text-center text-slate-400">Carregando...</div>
+          <div className={cn("text-center", isDark ? "text-white/40" : "text-slate-400")}>
+            Carregando...
+          </div>
         ) : items.length === 0 ? (
-          <Card className="p-10 text-center text-slate-500 max-w-xl mx-auto">
+          <Card
+            className={cn(
+              "p-10 text-center max-w-xl mx-auto",
+              isDark ? "bg-[#111b21] text-white/60 border-white/5" : "text-slate-500"
+            )}
+          >
             Nenhum tutorial disponível no momento. Volte em breve!
           </Card>
         ) : (
-          <div className="space-y-12 max-w-6xl mx-auto">
+          <div className="space-y-10 max-w-6xl mx-auto">
             {Object.entries(grouped).map(([module, list]) => (
               <div key={module}>
-                <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-5 flex items-center gap-2">
+                <h3
+                  className={cn(
+                    "text-lg md:text-xl font-bold mb-4 flex items-center gap-2",
+                    isDark ? "text-white" : "text-slate-900"
+                  )}
+                >
                   <span className="w-1.5 h-6 bg-green-600 rounded-full" />
                   {module}
                 </h3>
@@ -81,7 +112,12 @@ export default function SalesTutorials({ variant = "light" }: SalesTutorialsProp
                     <Card
                       key={t.id}
                       onClick={() => setActive(t)}
-                      className="group cursor-pointer overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 border-slate-100"
+                      className={cn(
+                        "group cursor-pointer overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1",
+                        isDark
+                          ? "bg-[#111b21] border-white/5 hover:border-[#00a884]/30"
+                          : "border-slate-100"
+                      )}
                     >
                       <div className="relative aspect-video bg-slate-900">
                         {t.cover_url ? (
@@ -100,9 +136,23 @@ export default function SalesTutorials({ variant = "light" }: SalesTutorialsProp
                         </div>
                       </div>
                       <div className="p-4">
-                        <h4 className="font-semibold text-slate-900 line-clamp-1">{t.title}</h4>
+                        <h4
+                          className={cn(
+                            "font-semibold line-clamp-1",
+                            isDark ? "text-white" : "text-slate-900"
+                          )}
+                        >
+                          {t.title}
+                        </h4>
                         {t.description && (
-                          <p className="text-sm text-slate-500 line-clamp-2 mt-1">{t.description}</p>
+                          <p
+                            className={cn(
+                              "text-sm line-clamp-2 mt-1",
+                              isDark ? "text-white/50" : "text-slate-500"
+                            )}
+                          >
+                            {t.description}
+                          </p>
                         )}
                       </div>
                     </Card>
@@ -115,7 +165,12 @@ export default function SalesTutorials({ variant = "light" }: SalesTutorialsProp
       </div>
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden bg-white">
+        <DialogContent
+          className={cn(
+            "max-w-3xl p-0 overflow-hidden",
+            isDark ? "bg-[#111b21] border-white/5 text-white" : "bg-white"
+          )}
+        >
           {active && (
             <div>
               <div className="aspect-video bg-black">
@@ -128,9 +183,18 @@ export default function SalesTutorials({ variant = "light" }: SalesTutorialsProp
                 )}
               </div>
               <div className="p-5 space-y-3">
-                <DialogTitle className="text-xl font-bold text-slate-900">{active.title}</DialogTitle>
+                <DialogTitle
+                  className={cn(
+                    "text-xl font-bold",
+                    isDark ? "text-white" : "text-slate-900"
+                  )}
+                >
+                  {active.title}
+                </DialogTitle>
                 {active.description && (
-                  <p className="text-slate-600 whitespace-pre-wrap">{active.description}</p>
+                  <p className={cn("whitespace-pre-wrap", isDark ? "text-white/70" : "text-slate-600")}>
+                    {active.description}
+                  </p>
                 )}
                 {(active.button1_url || active.button2_url) && (
                   <div className="flex flex-wrap gap-2 pt-2">
@@ -146,7 +210,13 @@ export default function SalesTutorials({ variant = "light" }: SalesTutorialsProp
                       </Button>
                     )}
                     {active.button2_url && (
-                      <Button asChild variant="outline">
+                      <Button
+                        asChild
+                        variant="outline"
+                        className={cn(
+                          isDark && "bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white"
+                        )}
+                      >
                         <a href={active.button2_url} target="_blank" rel="noopener noreferrer">
                           {active.button2_label || "Abrir link"}
                           <ExternalLink className="w-4 h-4 ml-1.5" />
