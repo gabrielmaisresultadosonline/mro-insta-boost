@@ -177,12 +177,24 @@ serve(async (req) => {
     let isMROOrder = false;
     let isPromptsOrder = false;
     let isRendaExtOrder = false;
+    let isCrmSalesOrder = false;
     
     if (items && Array.isArray(items)) {
       for (const item of items) {
         const itemName = item.description || item.name || "";
         log("Processing item", { itemName });
         
+        if (itemName.startsWith("CRMSALES_")) {
+          isCrmSalesOrder = true;
+          // CRMSALES_<plan>_<email>
+          const parts = itemName.split("_");
+          if (parts.length >= 3) {
+            email = parts.slice(2).join("_").toLowerCase();
+          }
+          log("Parsed CRMSALES order", { email, order_nsu });
+          break;
+        }
+
         if (itemName.startsWith("RENDAEXT_")) {
           isRendaExtOrder = true;
           email = itemName.replace("RENDAEXT_", "").toLowerCase();
@@ -238,9 +250,45 @@ serve(async (req) => {
       isRendaExtOrder,
       isPromptsOrder,
       isMROOrder,
+      isCrmSalesOrder,
       amount, 
       paid_amount
     });
+
+    // CRM SALES orders (from /vendas PurchaseDialog)
+    if (isCrmSalesOrder || (order_nsu && typeof order_nsu === "string" && order_nsu.startsWith("CRM"))) {
+      log("Processing as CRMSALES order", { order_nsu, email });
+      let crmOrder = null as any;
+      if (order_nsu) {
+        const r = await supabase
+          .from("crm_sales_orders").select("*")
+          .eq("nsu_order", order_nsu).eq("status", "pending").maybeSingle();
+        crmOrder = r.data;
+      }
+      if (!crmOrder && email) {
+        const r = await supabase
+          .from("crm_sales_orders").select("*")
+          .eq("email", email).eq("status", "pending")
+          .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        crmOrder = r.data;
+      }
+      if (crmOrder) {
+        await supabase.from("crm_sales_orders").update({
+          status: "approved",
+          paid_at: new Date().toISOString(),
+          transaction_nsu: transaction_nsu ?? null,
+          invoice_slug: invoice_slug ?? null,
+          raw_webhook: body,
+        }).eq("id", crmOrder.id);
+        await sendMetaPurchaseEvent(
+          crmOrder.email,
+          Number(crmOrder.amount) || 0,
+          `CRM Vendas ${crmOrder.plan_label || crmOrder.plan}`
+        );
+        log("CRMSALES approved", { id: crmOrder.id });
+        return new Response(JSON.stringify({ success: true, message: "CRMSALES confirmed" }), { status: 200, headers: corsHeaders });
+      }
+    }
 
     // RENDAEXT orders
     if (isRendaExtOrder || (order_nsu && typeof order_nsu === 'string' && order_nsu.startsWith("RENDAEXT"))) {
