@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Play, ExternalLink, BookOpen, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
+import { Play, ExternalLink, BookOpen, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Module = {
