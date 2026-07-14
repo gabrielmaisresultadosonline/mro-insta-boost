@@ -94,6 +94,9 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
             </Link>
              <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
                <Link to="/vendas/tutoriais" className="hover:text-green-600 transition-colors">Tutoriais</Link>
+               <a href="#verificar-portfolio" className="hover:text-green-600 transition-colors text-orange-600 font-semibold">
+                 Precisa verificar seu portfólio?
+               </a>
                <a href="#precos" className="hover:text-green-600 transition-colors">Preços</a>
              </nav>
            <Link to="/crm/login">
