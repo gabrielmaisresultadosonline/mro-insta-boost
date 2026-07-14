@@ -6790,51 +6790,6 @@ const CRM = () => {
                     </AccordionItem>
 
 
-                    <AccordionItem value="knowledge" className="border-none">
-                      <Card className="rounded-2xl shadow-sm border overflow-hidden">
-                        <CardHeader className="bg-primary/5 border-b p-0">
-                          <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline [&[data-state=open]>div>h3]:text-primary transition-all">
-                            <div className="flex flex-col items-start text-left gap-1">
-                              <CardTitle className="text-lg flex items-center gap-2">
-                                <GitBranch className="w-5 h-5 text-primary" /> Conhecimento dos Templates
-                              </CardTitle>
-                              <CardDescription>A IA saberá quais botões e caminhos estão disponíveis</CardDescription>
-                            </div>
-                          </AccordionTrigger>
-                        </CardHeader>
-                        <AccordionContent>
-                          <CardContent className="p-6 pt-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {templates.map((template) => (
-                                <div key={template.id} className="p-4 rounded-xl border bg-card/50 space-y-3">
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-bold text-xs truncate max-w-[150px]">{template.name}</span>
-                                    <Badge variant="outline" className="text-[9px]">{template.category}</Badge>
-                                  </div>
-                                  <Textarea 
-                                    placeholder="Descreva quando usar este template..."
-                                    className="text-[11px] min-h-[60px] bg-muted/20 border-none resize-none"
-                                    defaultValue={template.knowledge_description || ''}
-                                    onBlur={(e) => {
-                                      if (e.target.value !== (template.knowledge_description || '')) {
-                                        handleUpdateTemplateKnowledge(template.id, e.target.value);
-                                      }
-                                    }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-
-                            <div className="flex justify-end pt-4 border-t mt-6">
-                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
-                                {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                                Salvar Conhecimento
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </AccordionContent>
-                      </Card>
-                    </AccordionItem>
                   </Accordion>
                 </div>
               </ScrollArea>
