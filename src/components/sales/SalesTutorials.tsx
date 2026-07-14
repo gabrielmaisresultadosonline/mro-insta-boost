@@ -262,12 +262,6 @@ function ModuleSection({
   isDark: boolean;
   onPlay: (v: Tutorial) => void;
 }) {
-  const scrollerRef = (el: HTMLDivElement | null) => {
-    scrollRefs.current[module?.id || "x"] = el;
-  };
-  // simple scroll helpers via closures
-  const scrollRefs: { current: Record<string, HTMLDivElement | null> } = { current: {} };
-
   return (
     <div>
       {/* Module banner */}
