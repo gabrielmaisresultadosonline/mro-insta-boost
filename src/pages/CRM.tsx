@@ -4189,9 +4189,10 @@ const CRM = () => {
                     { id: 'scheduling', label: 'Agendamentos', icon: Calendar },
                     { id: 'flows', label: 'Fluxos', icon: GitBranch },
                     { id: 'templates', label: 'Templates', icon: FileText },
-                    { id: 'ai-agent', label: 'Agente IA', icon: Bot },
-                    
-                    { id: 'help', label: 'Ajuda', icon: LucideIcons.HelpCircle },
+                     { id: 'ai-agent', label: 'Agente IA', icon: Bot },
+                     { id: 'tutorials', label: 'Tutoriais', icon: BookOpen },
+                     
+                     { id: 'help', label: 'Ajuda', icon: LucideIcons.HelpCircle },
                     { id: 'settings', label: 'Ajustes', icon: Settings },
                   ].map((item) => (
                     <SidebarMenuItem key={item.id}>
