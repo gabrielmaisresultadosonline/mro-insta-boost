@@ -322,6 +322,46 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "approve_sales_order") {
+      const { id, plan } = body as any;
+      if (!id) return json({ success: false, error: "id obrigatório" }, 400);
+      const PLANS: Record<string, { label: string; amount: number }> = {
+        mensal: { label: "Plano Mensal", amount: 137 },
+        semestral: { label: "Plano 6 Meses", amount: 397 },
+        anual: { label: "Plano Anual (1 ano)", amount: 597 },
+      };
+      const upd: any = {
+        status: "approved",
+        paid_at: new Date().toISOString(),
+      };
+      if (plan && PLANS[plan]) {
+        upd.plan = plan;
+        upd.plan_label = PLANS[plan].label;
+        upd.amount = PLANS[plan].amount;
+      }
+      const { error } = await supabase.from("crm_sales_orders").update(upd).eq("id", id);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    if (action === "migrate_sales_order_plan") {
+      const { id, plan } = body as any;
+      if (!id || !plan) return json({ success: false, error: "id e plan obrigatórios" }, 400);
+      const PLANS: Record<string, { label: string; amount: number }> = {
+        mensal: { label: "Plano Mensal", amount: 137 },
+        semestral: { label: "Plano 6 Meses", amount: 397 },
+        anual: { label: "Plano Anual (1 ano)", amount: 597 },
+      };
+      if (!PLANS[plan]) return json({ success: false, error: "Plano inválido" }, 400);
+      const { error } = await supabase.from("crm_sales_orders").update({
+        plan,
+        plan_label: PLANS[plan].label,
+        amount: PLANS[plan].amount,
+      }).eq("id", id);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
     return json({ success: false, error: `Ação inválida: ${action}` }, 400);
   } catch (e: any) {
     console.error("[crm-central-admin] error:", e);
