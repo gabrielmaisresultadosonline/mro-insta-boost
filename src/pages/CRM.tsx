@@ -6576,6 +6576,15 @@ const CRM = () => {
                             </div>
 
                             <div className="md:col-span-2 flex justify-end pt-4 border-t">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open("https://platform.openai.com/home", "_blank", "noopener,noreferrer")}
+                                className="mr-2"
+                              >
+                                <LinkIcon className="w-4 h-4 mr-2" /> OpenAI Token
+                              </Button>
                               <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
                                 {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                                 Salvar Motor
@@ -6587,6 +6596,7 @@ const CRM = () => {
                     </AccordionItem>
 
 
+                    {false && (
                     <AccordionItem value="hours" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
                         <CardHeader className="bg-blue-50 dark:bg-blue-900/10 border-b p-0">
@@ -6674,8 +6684,10 @@ const CRM = () => {
                         </AccordionContent>
                       </Card>
                     </AccordionItem>
+                    )}
 
                     {/* Histórico de mensagens apagadas (toggle) */}
+                    {false && (
                     <AccordionItem value="deleted-history" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
                         <CardHeader className="bg-primary/5 border-b p-0">
@@ -6711,6 +6723,7 @@ const CRM = () => {
                         </AccordionContent>
                       </Card>
                     </AccordionItem>
+                    )}
 
                     <AccordionItem value="brain" className="border-none">
                       <Card className="rounded-2xl shadow-sm border overflow-hidden">
