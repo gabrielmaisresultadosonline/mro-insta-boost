@@ -711,7 +711,10 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
          </div>
        </section>
  
-       {/* Footer */}
+        {/* Tutoriais */}
+        <SalesTutorials />
+
+        {/* Footer */}
        <footer className="py-12 border-t border-slate-100">
          <div className="container mx-auto px-4">
            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
