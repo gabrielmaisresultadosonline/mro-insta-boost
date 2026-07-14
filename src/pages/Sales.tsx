@@ -679,9 +679,10 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                  <CardTitle className="text-2xl">Mensal</CardTitle>
                  <CardDescription>Para quem está começando</CardDescription>
                  <div className="mt-6">
-                   <span className="text-4xl font-bold">R$ 137</span>
-                   <span className="text-slate-500 ml-2">/mês</span>
+                    <span className="text-4xl font-bold">R$ 97</span>
+                    <span className="text-slate-500 ml-2">/mês</span>
                  </div>
+                  <p className="mt-2 text-xs text-slate-500">por número</p>
                </CardHeader>
                <CardContent className="p-8 flex-1">
                  <ul className="space-y-3">
@@ -709,11 +710,12 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                  <CardTitle className="text-2xl text-slate-900">6 Meses</CardTitle>
                  <CardDescription>Equilíbrio ideal</CardDescription>
                  <div className="mt-6">
-                   <span className="text-4xl font-bold text-green-600">R$ 397</span>
-                 </div>
-                 <p className="mt-2 text-sm font-medium text-green-700 bg-green-50 py-2 rounded-lg">
-                   Ou em até 6x de <span className="text-lg font-bold">R$ 77</span>
-                 </p>
+                    <span className="text-sm text-slate-500 block">à vista</span>
+                    <span className="text-4xl font-bold text-green-600">R$ 397</span>
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-green-700 bg-green-50 py-2 rounded-lg">
+                    Ou em até 6x de <span className="text-lg font-bold">R$ 77</span> por número
+                  </p>
                </CardHeader>
                <CardContent className="p-8 flex-1">
                  <ul className="space-y-3">
@@ -738,12 +740,12 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                  <CardTitle className="text-2xl">Anual (1 ano)</CardTitle>
                  <CardDescription>Melhor custo-benefício</CardDescription>
                  <div className="mt-6">
-                   <span className="text-sm text-slate-500 block line-through">R$ 1.644 /ano</span>
-                   <span className="text-4xl font-bold text-green-600">R$ 597</span>
-                 </div>
-                 <p className="mt-2 text-sm font-medium text-green-700 bg-green-50 py-2 rounded-lg">
-                   Ou em até 12x de <span className="text-lg font-bold">R$ 61</span>
-                 </p>
+                    <span className="text-sm text-slate-500 block">à vista</span>
+                    <span className="text-4xl font-bold text-green-600">R$ 597</span>
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-green-700 bg-green-50 py-2 rounded-lg">
+                    Ou em até 12x de <span className="text-lg font-bold">R$ 61</span> por número
+                  </p>
                </CardHeader>
                <CardContent className="p-8 flex-1">
                  <ul className="space-y-3">
