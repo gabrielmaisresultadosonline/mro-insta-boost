@@ -834,6 +834,110 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
          </div>
        </footer>
         <PurchaseDialog open={buyOpen} onOpenChange={setBuyOpen} plan={buyPlan} />
+
+        <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Verificar portfólio Meta</DialogTitle>
+              <DialogDescription>
+                Preencha os dados abaixo. Ao enviar, abriremos o WhatsApp para continuarmos o atendimento.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Nome da sua empresa *</Label>
+                <Input
+                  value={verifyForm.empresa}
+                  onChange={(e) => setVerifyForm({ ...verifyForm, empresa: e.target.value })}
+                  maxLength={120}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Seu nome completo *</Label>
+                <Input
+                  value={verifyForm.nome}
+                  onChange={(e) => setVerifyForm({ ...verifyForm, nome: e.target.value })}
+                  maxLength={120}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Número de WhatsApp *</Label>
+                <Input
+                  value={verifyForm.whatsapp}
+                  onChange={(e) => setVerifyForm({ ...verifyForm, whatsapp: e.target.value })}
+                  placeholder="+55 (11) 90000-0000"
+                  maxLength={30}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Este número está conectado no WhatsApp Business (app do celular)? *</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={verifyForm.isBusiness === "sim" ? "default" : "outline"}
+                    onClick={() => setVerifyForm({ ...verifyForm, isBusiness: "sim" })}
+                    className={verifyForm.isBusiness === "sim" ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    Sim
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={verifyForm.isBusiness === "nao" ? "default" : "outline"}
+                    onClick={() => setVerifyForm({ ...verifyForm, isBusiness: "nao" })}
+                    className={verifyForm.isBusiness === "nao" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+                  >
+                    Não
+                  </Button>
+                </div>
+                {verifyForm.isBusiness === "nao" && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    Precisa ser WhatsApp <strong>Business</strong>. Caso contrário, não conseguimos fazer a configuração correta.
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Seu número tem mais de 20 dias de uso instalado no Business? *</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={verifyForm.over20 === "sim" ? "default" : "outline"}
+                    onClick={() => setVerifyForm({ ...verifyForm, over20: "sim" })}
+                    className={verifyForm.over20 === "sim" ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    Sim
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={verifyForm.over20 === "nao" ? "default" : "outline"}
+                    onClick={() => setVerifyForm({ ...verifyForm, over20: "nao" })}
+                    className={verifyForm.over20 === "nao" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+                  >
+                    Não
+                  </Button>
+                </div>
+                {verifyForm.over20 === "nao" && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 flex gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    É necessário ter no mínimo <strong>20 dias de uso no Business App</strong> para conseguir utilizar na API Oficial.
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setVerifyOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={submitVerify}
+                disabled={!canSubmitVerify}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" /> Enviar via WhatsApp
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
      </div>
    );
  };
