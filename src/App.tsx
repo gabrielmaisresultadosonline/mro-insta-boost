@@ -8,6 +8,7 @@ import CRMLogin from "./pages/CRMLogin";
 import AdminCentral from "./pages/AdminCentral";
  import GoogleContactsCallback from "./pages/GoogleContactsCallback";
  import Sales from "./pages/Sales";
+import SalesTutoriais from "./pages/SalesTutoriais";
  import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ConverterVideo from "./pages/ConverterVideo";
@@ -27,6 +28,7 @@ const App = () => (
            <Route path="/admincentral" element={<AdminCentral />} />
            <Route path="/administracao" element={<AdminCentral />} />
            <Route path="/vendas" element={<Sales />} />
+          <Route path="/vendas/tutoriais" element={<SalesTutoriais />} />
            <Route path="/google-callback" element={<GoogleContactsCallback />} />
             <Route path="/google-callback2" element={<GoogleContactsCallback />} />
             <Route path="/br/politicadeprivacidade" element={<PrivacyPolicy />} />
