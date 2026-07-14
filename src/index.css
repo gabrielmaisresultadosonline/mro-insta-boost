@@ -511,3 +511,23 @@
 .kanban-scroll::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary));
 }
+
+/* Flow bar horizontal scrollbar — thin visible scroll for rolagem mode */
+.flow-bar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.6) transparent;
+}
+.flow-bar-scroll::-webkit-scrollbar {
+  height: 6px;
+  -webkit-appearance: none;
+}
+.flow-bar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.flow-bar-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.6);
+  border-radius: 4px;
+}
+.flow-bar-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
