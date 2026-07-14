@@ -1276,28 +1276,40 @@ export type Database = {
       }
       crm_profiles: {
         Row: {
+          access_until: string | null
           created_at: string | null
           full_name: string | null
           id: string
+          is_paid: boolean
+          plan: string | null
           role: string | null
+          trial_ends_at: string | null
           updated_at: string | null
           user_id: string
           whatsapp_number: string | null
         }
         Insert: {
+          access_until?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_paid?: boolean
+          plan?: string | null
           role?: string | null
+          trial_ends_at?: string | null
           updated_at?: string | null
           user_id: string
           whatsapp_number?: string | null
         }
         Update: {
+          access_until?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_paid?: boolean
+          plan?: string | null
           role?: string | null
+          trial_ends_at?: string | null
           updated_at?: string | null
           user_id?: string
           whatsapp_number?: string | null
@@ -5259,6 +5271,10 @@ export type Database = {
     Functions: {
       crm_is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       get_whatsapp_public_config: { Args: never; Returns: Json }
+      grant_crm_access: {
+        Args: { p_days: number; p_email: string; p_plan: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
