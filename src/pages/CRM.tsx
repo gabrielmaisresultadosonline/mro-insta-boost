@@ -83,9 +83,10 @@ import {
    ExternalLink,
     Eraser,
     Moon,
-    Sun,
-    History as HistoryIcon
-  } from "lucide-react";
+     Sun,
+     History as HistoryIcon,
+     BookOpen
+   } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
 const Instagram = (LucideIcons as any).Instagram || Camera;
 import TemplatePreview from "@/components/whatsapp/TemplatePreview";
