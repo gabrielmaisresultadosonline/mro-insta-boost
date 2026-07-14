@@ -541,7 +541,7 @@ const CRM = () => {
   const [contactListText, setContactListText] = useState('');
   const [birthdayName, setBirthdayName] = useState('');
   const [birthdayNumber, setBirthdayNumber] = useState('');
-  const [updatingKnowledge, setUpdatingKnowledge] = useState<string | null>(null);
+  
   const [improvingPrompt, setImprovingPrompt] = useState(false);
   const [webhooks, setWebhooks] = useState<any[]>([]);
   const [isNewWebhookDialogOpen, setIsNewWebhookDialogOpen] = useState(false);
@@ -2361,24 +2361,6 @@ const CRM = () => {
     });
   };
 
-  const handleUpdateTemplateKnowledge = async (templateId: string, knowledge: string) => {
-    setUpdatingKnowledge(templateId);
-    try {
-      const { error } = await supabase
-        .from('crm_templates')
-        .update({ knowledge_description: knowledge })
-        .eq('id', templateId);
-      
-      if (error) throw error;
-      
-      setTemplates(prev => prev.map(t => t.id === templateId ? { ...t, knowledge_description: knowledge } : t));
-      toast({ title: "Conhecimento atualizado!" });
-    } catch (err) {
-      toast({ title: "Erro ao atualizar conhecimento", variant: "destructive" });
-    } finally {
-      setUpdatingKnowledge(null);
-    }
-  };
   const handleScheduleBatch = async () => {
     let finalContactIds = [...selectedContactsForScheduling];
 
@@ -7014,26 +6996,6 @@ const CRM = () => {
                                 </div>
                               )}
                               
-                              <div className="mt-4 pt-4 border-t space-y-2">
-                                <Label className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
-                                  <Bot className="w-3 h-3" /> Instruções para o Agente IA
-                                </Label>
-                                <Textarea 
-                                  placeholder="Explique quando a IA deve usar este template ou o que os botões fazem..."
-                                  className="text-xs min-h-[60px] resize-none bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/30"
-                                  defaultValue={template.knowledge_description || ''}
-                                  onBlur={(e) => {
-                                    if (e.target.value !== (template.knowledge_description || '')) {
-                                      handleUpdateTemplateKnowledge(template.id, e.target.value);
-                                    }
-                                  }}
-                                />
-                                {updatingKnowledge === template.id && (
-                                  <div className="text-[9px] text-primary animate-pulse flex items-center gap-1">
-                                    <RefreshCcw className="w-2 h-2 animate-spin" /> Salvando...
-                                  </div>
-                                )}
-                              </div>
                             </CardContent>
                           </Card>
                         );
