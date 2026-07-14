@@ -5389,8 +5389,8 @@ const CRM = () => {
                                 });
                                 const scale = (flowBarPrefs.size || 100) / 100;
                                 const c = FLOW_BAR_COLORS[flowBarPrefs.color] || FLOW_BAR_COLORS.blue;
-                                const layoutClass = flowBarPrefs.layout === 'scroll'
-                                  ? 'flex gap-1 flex-1 overflow-x-auto scrollbar-hide flex-nowrap'
+                                 const layoutClass = flowBarPrefs.layout === 'scroll'
+                                   ? 'flex gap-1 flex-1 min-w-0 overflow-x-auto overflow-y-hidden flex-nowrap flow-bar-scroll'
                                   : flowBarPrefs.layout === 'one'
                                     ? 'flex gap-1 flex-1 flex-wrap'
                                     : 'flex gap-1 flex-1 flex-wrap max-h-[calc(2*(20px*var(--fbs,1))+8px)] overflow-hidden';
