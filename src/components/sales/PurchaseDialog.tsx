@@ -10,9 +10,9 @@ import { toast } from "sonner";
 export type PlanKey = "mensal" | "semestral" | "anual";
 
 const PLAN_INFO: Record<PlanKey, { label: string; amount: number; sub: string }> = {
-  mensal: { label: "Plano Mensal", amount: 137, sub: "R$ 137/mês" },
-  semestral: { label: "Plano 6 Meses", amount: 397, sub: "R$ 397 • até 6x de R$ 77" },
-  anual: { label: "Plano Anual (1 ano)", amount: 597, sub: "R$ 597 • até 12x de R$ 61" },
+  mensal: { label: "Plano Mensal", amount: 97, sub: "R$ 97/mês por número" },
+  semestral: { label: "Plano 6 Meses", amount: 397, sub: "R$ 397 à vista • ou 6x de R$ 77 por número" },
+  anual: { label: "Plano Anual (1 ano)", amount: 597, sub: "R$ 597 à vista • ou 12x de R$ 61 por número" },
 };
 
 interface Props {
