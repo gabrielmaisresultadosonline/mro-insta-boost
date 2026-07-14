@@ -4351,10 +4351,11 @@ const CRM = () => {
               <SidebarTrigger className="hover:bg-muted shrink-0" />
               <div className="h-4 w-px bg-border/50 mx-1 hidden md:block" />
                <h1 className="font-bold text-xs md:text-base text-foreground tracking-tight truncate flex items-center gap-2">
-                 {activeTab === 'contact-list' ? 'Contatos' : 
-                  activeTab === 'contacts' ? 'Conversas' : 
-                  activeTab === 'google-synced' ? 'Sincronizados Google' :
-                  activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  {activeTab === 'contact-list' ? 'Contatos' : 
+                   activeTab === 'contacts' ? 'Conversas' : 
+                   activeTab === 'google-synced' ? 'Sincronizados Google' :
+                   activeTab === 'tutorials' ? 'Tutoriais' :
+                   activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                  {userRole === 'super_admin' && (
                     <Button 
                       variant="outline" 
