@@ -6847,6 +6847,10 @@ const CRM = () => {
                 contacts={contacts} 
                 statuses={kanbanStatuses}
               />
+             )}
+
+            {activeTab === 'tutorials' && (
+              <SalesTutorials variant="dark" />
             )}
 
             {activeTab === 'templates' && (
