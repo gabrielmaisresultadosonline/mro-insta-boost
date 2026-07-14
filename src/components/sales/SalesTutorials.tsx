@@ -20,7 +20,11 @@ type Tutorial = {
   is_active: boolean;
 };
 
-export default function SalesTutorials() {
+type SalesTutorialsProps = {
+  variant?: "light" | "dark";
+};
+
+export default function SalesTutorials({ variant = "light" }: SalesTutorialsProps) {
   const [items, setItems] = useState<Tutorial[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<Tutorial | null>(null);
