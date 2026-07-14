@@ -326,10 +326,10 @@ serve(async (req) => {
     if (action === "approve_sales_order") {
       const { id, plan } = body as any;
       if (!id) return json({ success: false, error: "id obrigatório" }, 400);
-      const PLANS: Record<string, { label: string; amount: number }> = {
-        mensal: { label: "Plano Mensal", amount: 137 },
-        semestral: { label: "Plano 6 Meses", amount: 397 },
-        anual: { label: "Plano Anual (1 ano)", amount: 597 },
+      const PLANS: Record<string, { label: string; amount: number; days: number }> = {
+        mensal: { label: "Plano Mensal", amount: 137, days: 30 },
+        semestral: { label: "Plano 6 Meses", amount: 397, days: 180 },
+        anual: { label: "Plano Anual (1 ano)", amount: 597, days: 365 },
       };
       const upd: any = {
         status: "approved",
@@ -349,6 +349,17 @@ serve(async (req) => {
           .select("email, full_name, plan_label, plan, amount")
           .eq("id", id).maybeSingle();
         if (order?.email) {
+          // Grant access on the CRM profile
+          try {
+            const days = PLANS[order.plan]?.days ?? 30;
+            await supabase.rpc("grant_crm_access", {
+              p_email: order.email,
+              p_plan: order.plan,
+              p_days: days,
+            });
+          } catch (e) {
+            console.error("[approve_sales_order] grant_crm_access error:", e);
+          }
           await sendCrmSalesApprovedEmail({
             to: order.email,
             fullName: order.full_name,
