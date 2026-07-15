@@ -10,6 +10,7 @@ import AccessGate from "./components/crm/AccessGate";
  import GoogleContactsCallback from "./pages/GoogleContactsCallback";
  import Sales from "./pages/Sales";
 import SalesTutoriais from "./pages/SalesTutoriais";
+import PortfolioVerification from "./pages/PortfolioVerification";
  import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ConverterVideo from "./pages/ConverterVideo";
@@ -30,6 +31,7 @@ const App = () => (
            <Route path="/administracao" element={<AdminCentral />} />
            <Route path="/vendas" element={<Sales />} />
           <Route path="/vendas/tutoriais" element={<SalesTutoriais />} />
+          <Route path="/vendas/verificar-portfolio" element={<PortfolioVerification />} />
            <Route path="/google-callback" element={<GoogleContactsCallback />} />
             <Route path="/google-callback2" element={<GoogleContactsCallback />} />
             <Route path="/br/politicadeprivacidade" element={<PrivacyPolicy />} />
