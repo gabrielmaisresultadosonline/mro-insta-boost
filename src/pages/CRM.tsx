@@ -4106,6 +4106,26 @@ const CRM = () => {
           <p className="text-[11px] text-white/30 mt-6">
             Ao conectar, você autoriza nosso app (Tech Provider Meta) a gerenciar mensagens em nome do seu número WhatsApp Business.
           </p>
+          <div className="mt-6 space-y-3 text-left">
+            <FirstTutorialVideo
+              orderIndex={0}
+              headline="Você precisa estar verificado"
+              subline="Assista o vídeo 01 — entenda por que a verificação da Meta é obrigatória."
+            />
+            <FirstTutorialVideo
+              orderIndex={2}
+              headline="Como conectar o WhatsApp"
+              subline="Assista o vídeo 03 — passo a passo para conectar sua conta oficial."
+            />
+            <a
+              href="/vendas/tutoriais"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full text-center h-11 leading-[44px] rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm transition"
+            >
+              Ver todos os tutoriais
+            </a>
+          </div>
         </div>
       </div>
     );
