@@ -126,6 +126,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
+import FirstTutorialVideo from "@/components/sales/FirstTutorialVideo";
 
 const encodeAudioBufferToWav = (audioBuffer: AudioBuffer) => {
   const channels = Math.min(audioBuffer.numberOfChannels, 2);
