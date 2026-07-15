@@ -260,19 +260,19 @@ export default function TutorialsAdminPanel() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1 pt-1">
-                  <Button size="sm" variant="outline" onClick={() => setSelected(m)} className="h-8">
+                  <Button size="sm" variant="outline" onClick={() => setSelected(m)} className="h-8 border-[#075E54] text-[#075E54] hover:bg-[#075E54] hover:text-white">
                     <VideoIcon className="h-3 w-3 mr-1" /> Vídeos
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => openEditModule(m)} className="h-8">
+                  <Button size="sm" variant="outline" onClick={() => openEditModule(m)} className="h-8 border-[#075E54] text-[#075E54] hover:bg-[#075E54] hover:text-white">
                     <Pencil className="h-3 w-3" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => toggleModuleActive(m)} className="h-8">
+                  <Button size="sm" variant="outline" onClick={() => toggleModuleActive(m)} className="h-8 border-[#075E54] text-[#075E54] hover:bg-[#075E54] hover:text-white">
                     {m.is_active ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => moveModule(m, -1)} disabled={idx === 0} className="h-8">
+                  <Button size="sm" variant="outline" onClick={() => moveModule(m, -1)} disabled={idx === 0} className="h-8 border-[#075E54] text-[#075E54] hover:bg-[#075E54] hover:text-white">
                     <ArrowUp className="h-3 w-3" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => moveModule(m, 1)} disabled={idx === modules.length - 1} className="h-8">
+                  <Button size="sm" variant="outline" onClick={() => moveModule(m, 1)} disabled={idx === modules.length - 1} className="h-8 border-[#075E54] text-[#075E54] hover:bg-[#075E54] hover:text-white">
                     <ArrowDown className="h-3 w-3" />
                   </Button>
                   <Button size="sm" variant="destructive" onClick={() => deleteModule(m)} className="h-8">
