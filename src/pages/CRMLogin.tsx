@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
 import MetaApiTermsDialog from '@/components/MetaApiTermsDialog';
+import FirstTutorialVideo from '@/components/sales/FirstTutorialVideo';
 
 const CRMLogin = () => {
   const [email, setEmail] = useState('');
@@ -203,6 +204,10 @@ const CRMLogin = () => {
 
           {isRegistering && (
             <>
+               <FirstTutorialVideo
+                 headline="Você precisa estar verificado"
+                 subline="Assista o vídeo 01 antes de cadastrar — ele explica a verificação obrigatória da Meta."
+               />
                <button
                  type="button"
                  onClick={() => setInfoOpen(true)}
