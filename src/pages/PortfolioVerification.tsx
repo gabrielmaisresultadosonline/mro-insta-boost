@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import FirstTutorialVideo from "@/components/sales/FirstTutorialVideo";
 
 const PortfolioVerification = () => {
   const navigate = useNavigate();
@@ -69,6 +70,13 @@ const PortfolioVerification = () => {
               <p className="text-lg text-slate-600 max-w-2xl mx-auto">
                 Nós verificamos seu portfólio na Meta e configuramos tudo para você usar o WhatsApp com a API Oficial — com <strong>1 mês de utilização incluso</strong>.
               </p>
+            </div>
+
+            <div className="max-w-2xl mx-auto mb-8">
+              <FirstTutorialVideo
+                headline="Você precisa estar verificado"
+                subline="Assista o vídeo 01 — entenda por que a verificação da Meta é obrigatória antes de usar o sistema."
+              />
             </div>
 
             <Card className="border-orange-200 shadow-xl overflow-hidden">
