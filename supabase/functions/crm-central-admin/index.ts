@@ -461,7 +461,7 @@ serve(async (req) => {
       try {
         await sendCrmSalesApprovedEmail({
           to: email,
-          fullName: null,
+          fullName: "",
           planLabel: PLANS[plan].label,
           amount: PLANS[plan].amount,
         });
