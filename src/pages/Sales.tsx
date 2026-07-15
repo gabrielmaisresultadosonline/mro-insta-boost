@@ -16,9 +16,10 @@ const productCarouselImg = "https://images.unsplash.com/photo-1460925895917-afda
 const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94e495d?auto=format&fit=crop&q=80&w=800";
  
  const Sales = () => {
-   const [buyOpen, setBuyOpen] = useState(false);
-   const [buyPlan, setBuyPlan] = useState<PlanKey>("mensal");
-   const openBuy = (p: PlanKey) => { setBuyPlan(p); setBuyOpen(true); };
+    const [buyOpen, setBuyOpen] = useState(false);
+    const [buyPlan, setBuyPlan] = useState<PlanKey>("mensal");
+    const [menuOpen, setMenuOpen] = useState(false);
+    const openBuy = (p: PlanKey) => { setBuyPlan(p); setBuyOpen(true); };
    const features = [
      {
        icon: <MessageCircle className="w-6 h-6 text-green-500" />,
