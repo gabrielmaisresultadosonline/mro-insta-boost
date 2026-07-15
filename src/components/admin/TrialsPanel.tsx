@@ -29,7 +29,7 @@ interface Trial {
 }
 
 interface Props {
-  creds: { adminEmail: string; adminPassword: string };
+  creds: { email: string; password: string };
 }
 
 const PLAN_OPTIONS = [
@@ -63,7 +63,7 @@ export default function TrialsPanel({ creds }: Props) {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("crm-central-admin", {
-        body: { action: "list_trials", ...creds },
+        body: { action: "list_trials", adminEmail: creds.email, adminPassword: creds.password },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro ao carregar");
@@ -87,7 +87,7 @@ export default function TrialsPanel({ creds }: Props) {
     setBusyId(t.id);
     try {
       const { data, error } = await supabase.functions.invoke("crm-central-admin", {
-        body: { action: "grant_access", email: t.email, plan, ...creds },
+        body: { action: "grant_access", email: t.email, plan, adminEmail: creds.email, adminPassword: creds.password },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro");
