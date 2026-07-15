@@ -109,11 +109,17 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
         {/* Hero Section */}
         <section className="pt-28 md:pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
           <div className="container mx-auto px-4 text-center">
-            {/* Mobile logo placed above the official API badge */}
-            <Link to="/vendas" className="md:hidden inline-block bg-[#050508] p-3 rounded-2xl mb-4">
-              <Logo size="sm" />
-            </Link>
-            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-100 border-none px-4 py-1">
+            {/* Mobile logo + badge centered */}
+            <div className="md:hidden flex flex-col items-center mb-4">
+              <Link to="/vendas" className="bg-[#050508] p-3 rounded-2xl mb-4">
+                <Logo size="sm" />
+              </Link>
+              <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none px-4 py-1">
+                🚀 API Oficial WhatsApp Business
+              </Badge>
+            </div>
+            {/* Desktop badge */}
+            <Badge className="hidden md:inline-flex mb-4 bg-green-100 text-green-700 hover:bg-green-100 border-none px-4 py-1">
               🚀 API Oficial WhatsApp Business
             </Badge>
            <h1 className="text-4xl md:text-6xl font-bold mb-6 max-w-4xl mx-auto leading-tight">
