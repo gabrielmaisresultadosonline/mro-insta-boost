@@ -10,7 +10,7 @@ const INFINITEPAY_HANDLE = "paguemro";
 const INFINITEPAY_URL = "https://api.checkout.infinitepay.io/links";
 
 const PLANS: Record<string, { label: string; amount: number }> = {
-  mensal: { label: "Plano Mensal", amount: 137 },
+  mensal: { label: "Plano Mensal", amount: 97 },
   semestral: { label: "Plano 6 Meses", amount: 397 },
   anual: { label: "Plano Anual (1 ano)", amount: 597 },
 };
@@ -90,7 +90,18 @@ serve(async (req) => {
 
     if (!paymentLink) {
       const fb = JSON.stringify([{ name: lineItems[0].description, price: priceInCents, quantity: 1 }]);
-      paymentLink = `https://checkout.infinitepay.io/${INFINITEPAY_HANDLE}?items=${encodeURIComponent(fb)}&redirect_url=${encodeURIComponent(redirectUrl)}`;
+      const prefill = new URLSearchParams({
+        items: fb,
+        redirect_url: redirectUrl,
+        customer_name: fullName,
+        customer_email: cleanEmail,
+        customer_phone: cleanWhats,
+        name: fullName,
+        email: cleanEmail,
+        phone: cleanWhats,
+        order_nsu: orderNsu,
+      });
+      paymentLink = `https://checkout.infinitepay.io/${INFINITEPAY_HANDLE}?${prefill.toString()}`;
     }
 
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
