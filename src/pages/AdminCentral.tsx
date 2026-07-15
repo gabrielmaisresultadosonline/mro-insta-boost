@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AnnouncementsAdminPanel from "@/components/admin/AnnouncementsAdminPanel";
 import SalesOrdersPanel from "@/components/admin/SalesOrdersPanel";
 import TutorialsAdminPanel from "@/components/admin/TutorialsAdminPanel";
+import TrialsPanel from "@/components/admin/TrialsPanel";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -335,6 +336,7 @@ export default function AdminCentral() {
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="bg-white border border-[#E8F5F1] shadow-sm">
             <TabsTrigger value="users" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Cadastros & Números</TabsTrigger>
+            <TabsTrigger value="trials" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Testes & Acessos</TabsTrigger>
             <TabsTrigger value="sales" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Vendas</TabsTrigger>
             <TabsTrigger value="announcements" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Avisos (Popup)</TabsTrigger>
             <TabsTrigger value="tutorials" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Tutoriais</TabsTrigger>
@@ -519,6 +521,10 @@ export default function AdminCentral() {
 
           <TabsContent value="sales" className="mt-4">
             <SalesOrdersPanel creds={creds} />
+          </TabsContent>
+
+          <TabsContent value="trials" className="mt-4">
+            <TrialsPanel creds={creds} />
           </TabsContent>
 
           <TabsContent value="tutorials" className="mt-4">
