@@ -4,9 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/Logo";
 import { Link } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { BookOpen } from "lucide-react";
 import PurchaseDialog, { type PlanKey } from "@/components/sales/PurchaseDialog";
 import SalesTutorials from "@/components/sales/SalesTutorials";
@@ -22,33 +19,6 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
    const [buyOpen, setBuyOpen] = useState(false);
    const [buyPlan, setBuyPlan] = useState<PlanKey>("mensal");
    const openBuy = (p: PlanKey) => { setBuyPlan(p); setBuyOpen(true); };
-  const [verifyOpen, setVerifyOpen] = useState(false);
-  const [verifyForm, setVerifyForm] = useState({
-    empresa: "",
-    nome: "",
-    whatsapp: "",
-    isBusiness: "" as "sim" | "nao" | "",
-    over20: "" as "sim" | "nao" | "",
-  });
-  const canSubmitVerify =
-    verifyForm.empresa.trim() &&
-    verifyForm.nome.trim() &&
-    verifyForm.whatsapp.trim() &&
-    verifyForm.isBusiness === "sim" &&
-    verifyForm.over20 === "sim";
-  const submitVerify = () => {
-    if (!canSubmitVerify) return;
-    const msg =
-      `Olá! Preciso verificar meu portfólio.\n\n` +
-      `*Empresa:* ${verifyForm.empresa}\n` +
-      `*Nome:* ${verifyForm.nome}\n` +
-      `*WhatsApp:* ${verifyForm.whatsapp}\n` +
-      `*WhatsApp Business instalado:* ${verifyForm.isBusiness}\n` +
-      `*Mais de 20 dias de uso no Business:* ${verifyForm.over20}`;
-    const url = `https://wa.me/555192835863?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
-    setVerifyOpen(false);
-  };
    const features = [
      {
        icon: <MessageCircle className="w-6 h-6 text-green-500" />,
