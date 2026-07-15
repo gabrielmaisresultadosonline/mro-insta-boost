@@ -70,7 +70,7 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
               </Link>
             </div>
 
-            <nav className="flex md:items-center gap-4 md:gap-8 text-sm font-medium overflow-x-auto pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar">
+            <nav className="flex md:items-center gap-4 md:gap-8 text-sm font-medium overflow-x-auto pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
               <Link to="/vendas/tutoriais" className="whitespace-nowrap hover:text-green-600 transition-colors">Tutoriais</Link>
               <Link to="/vendas/verificar-portfolio" className="whitespace-nowrap hover:text-green-600 transition-colors text-orange-600 font-semibold">
                 Precisa verificar seu portfólio?
