@@ -14,11 +14,13 @@ type Tutorial = {
 type Props = {
   headline?: string;
   subline?: string;
+  orderIndex?: number;
 };
 
 export default function FirstTutorialVideo({
   headline = "Você precisa estar verificado",
   subline = "Assista o vídeo 01 antes de começar — ele explica por que a verificação é obrigatória para usar o sistema.",
+  orderIndex = 0,
 }: Props) {
   const [video, setVideo] = useState<Tutorial | null>(null);
   const [open, setOpen] = useState(false);
@@ -31,11 +33,11 @@ export default function FirstTutorialVideo({
         .select("id,title,description,cover_url,video_url")
         .eq("is_active", true)
         .order("order_index", { ascending: true })
-        .limit(1)
+        .range(orderIndex, orderIndex)
         .maybeSingle();
       if (data) setVideo(data as Tutorial);
     })();
-  }, []);
+  }, [orderIndex]);
 
   if (!video?.video_url) return null;
 
