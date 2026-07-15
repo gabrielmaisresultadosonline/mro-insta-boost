@@ -107,25 +107,28 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
            )}
           </header>
 
-        {/* Maintenance popup banner */}
+        {/* Maintenance full-screen popup */}
         {maintenanceVisible && (
-          <div className="fixed top-16 md:top-16 left-0 right-0 z-40 bg-amber-500 text-white shadow-lg">
-            <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <AlertTriangle className="w-5 h-5 shrink-0" />
-                <p className="text-sm font-semibold truncate">
-                  Estamos em manutenção, em breve normalizamos tudo aqui.
-                </p>
-              </div>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+            <div className="relative w-full max-w-md bg-amber-500 text-white rounded-2xl shadow-2xl p-6 md:p-8 text-center animate-in fade-in zoom-in duration-200">
               <Button
                 variant="ghost"
                 size="icon"
-                className="shrink-0 text-white hover:bg-white/20"
+                className="absolute top-3 right-3 text-white hover:bg-white/20"
                 onClick={() => setMaintenanceVisible(false)}
                 aria-label="Fechar aviso de manutenção"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </Button>
+              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl md:text-2xl font-bold mb-2">
+                Estamos em manutenção
+              </h2>
+              <p className="text-white/90 text-sm md:text-base">
+                Em breve normalizamos tudo aqui.
+              </p>
             </div>
           </div>
         )}
