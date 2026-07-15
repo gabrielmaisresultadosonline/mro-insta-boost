@@ -87,7 +87,7 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
         </header>
  
        {/* Hero Section */}
-       <section className="pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
+       <section className="pt-40 md:pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
          <div className="container mx-auto px-4 text-center">
            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-100 border-none px-4 py-1">
              🚀 API Oficial WhatsApp Business
