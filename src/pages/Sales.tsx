@@ -89,15 +89,15 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
            <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
              Atenda seus clientes de forma profissional, automatize suas vendas e tenha a segurança de uma conexão oficial sem riscos de bloqueio.
            </p>
-           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                size="lg"
-                onClick={() => openBuy("mensal")}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-lg px-8 py-6 rounded-2xl w-full sm:w-auto shadow-lg shadow-green-200 group"
-              >
-                Escolher meu plano
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+               <Button
+                 size="lg"
+                 onClick={() => document.getElementById("precos")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-lg px-8 py-6 rounded-2xl w-full sm:w-auto shadow-lg shadow-green-200 group"
+               >
+                 Escolher meu plano
+                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+               </Button>
              <Link to="/crm/login?mode=register">
                <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white text-lg px-8 py-6 rounded-2xl w-full sm:w-auto shadow-lg shadow-green-200 group">
                  Teste grátis por 2 dias
