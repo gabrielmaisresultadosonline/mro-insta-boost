@@ -57,28 +57,37 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
    return (
      <div className="min-h-screen bg-white font-sans text-slate-900">
        {/* Header */}
-       <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
-         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <Link to="/vendas" className="bg-[#050508] p-2 rounded-xl">
-              <Logo size="sm" />
-            </Link>
-             <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-               <Link to="/vendas/tutoriais" className="hover:text-green-600 transition-colors">Tutoriais</Link>
-              <Link to="/vendas/verificar-portfolio" className="hover:text-green-600 transition-colors text-orange-600 font-semibold">
+        <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
+          <div className="container mx-auto px-4 py-3 md:h-16 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <Link to="/vendas" className="bg-[#050508] p-2 rounded-xl">
+                <Logo size="sm" />
+              </Link>
+              <Link to="/crm/login" className="md:hidden">
+                <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-6">
+                  Entrar no CRM
+                </Button>
+              </Link>
+            </div>
+
+            <nav className="flex md:items-center gap-4 md:gap-8 text-sm font-medium overflow-x-auto pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+              <Link to="/vendas/tutoriais" className="whitespace-nowrap hover:text-green-600 transition-colors">Tutoriais</Link>
+              <Link to="/vendas/verificar-portfolio" className="whitespace-nowrap hover:text-green-600 transition-colors text-orange-600 font-semibold">
                 Precisa verificar seu portfólio?
               </Link>
-               <a href="#precos" className="hover:text-green-600 transition-colors">Preços</a>
-             </nav>
-           <Link to="/crm/login">
-             <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-6">
-               Entrar no CRM
-             </Button>
-           </Link>
-         </div>
-       </header>
+              <a href="#precos" className="whitespace-nowrap hover:text-green-600 transition-colors">Preços</a>
+            </nav>
+
+            <Link to="/crm/login" className="hidden md:block">
+              <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-6">
+                Entrar no CRM
+              </Button>
+            </Link>
+          </div>
+        </header>
  
        {/* Hero Section */}
-       <section className="pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
+       <section className="pt-40 md:pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
          <div className="container mx-auto px-4 text-center">
            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-100 border-none px-4 py-1">
              🚀 API Oficial WhatsApp Business
