@@ -391,6 +391,86 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "list_trials") {
+      // Fetch all auth users (paginated)
+      const allUsers: any[] = [];
+      let page = 1;
+      while (true) {
+        const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw error;
+        allUsers.push(...(data.users || []));
+        if (!data.users || data.users.length < 1000) break;
+        page++;
+        if (page > 20) break;
+      }
+      const userIds = allUsers.map((u) => u.id);
+      const { data: profiles } = await supabase
+        .from("crm_profiles")
+        .select("user_id, full_name, whatsapp_number, trial_ends_at, access_until, is_paid, plan, created_at")
+        .in("user_id", userIds);
+      const pMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      const now = Date.now();
+      const trials = allUsers.map((u) => {
+        const p: any = pMap.get(u.id) || {};
+        const trialEnds = p.trial_ends_at ? new Date(p.trial_ends_at).getTime() : null;
+        const accessUntil = p.access_until ? new Date(p.access_until).getTime() : null;
+        const isPaid = !!p.is_paid && accessUntil && accessUntil > now;
+        const trialActive = !isPaid && trialEnds && trialEnds > now;
+        const trialExpired = !isPaid && trialEnds && trialEnds <= now;
+        let status: string;
+        if (isPaid) status = "paid";
+        else if (trialActive) status = "trial_active";
+        else if (trialExpired) status = "trial_expired";
+        else status = "no_trial";
+        const msLeft = trialActive ? trialEnds! - now : 0;
+        return {
+          id: u.id,
+          email: u.email,
+          created_at: u.created_at,
+          full_name: p.full_name || null,
+          whatsapp_number: p.whatsapp_number || null,
+          trial_ends_at: p.trial_ends_at || null,
+          access_until: p.access_until || null,
+          is_paid: !!p.is_paid,
+          plan: p.plan || null,
+          status,
+          hours_left: Math.max(0, Math.floor(msLeft / 3600000)),
+        };
+      });
+      trials.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return json({ success: true, trials });
+    }
+
+    if (action === "grant_access") {
+      const { email, plan, days } = body as any;
+      if (!email || !plan) return json({ success: false, error: "email e plan obrigatórios" }, 400);
+      const PLANS: Record<string, { label: string; amount: number; days: number }> = {
+        mensal: { label: "Plano Mensal", amount: 97, days: 30 },
+        semestral: { label: "Plano 6 Meses", amount: 397, days: 180 },
+        anual: { label: "Plano Anual (1 ano)", amount: 597, days: 365 },
+      };
+      if (!PLANS[plan]) return json({ success: false, error: "Plano inválido" }, 400);
+      const d = Number(days) || PLANS[plan].days;
+      const { data: ok, error } = await supabase.rpc("grant_crm_access", {
+        p_email: email,
+        p_plan: plan,
+        p_days: d,
+      });
+      if (error) throw error;
+      if (ok === false) return json({ success: false, error: "Usuário não encontrado" }, 404);
+      try {
+        await sendCrmSalesApprovedEmail({
+          to: email,
+          fullName: "",
+          planLabel: PLANS[plan].label,
+          amount: PLANS[plan].amount,
+        });
+      } catch (e) {
+        console.error("[grant_access] email error:", e);
+      }
+      return json({ success: true });
+    }
+
     return json({ success: false, error: `Ação inválida: ${action}` }, 400);
   } catch (e: any) {
     console.error("[crm-central-admin] error:", e);
