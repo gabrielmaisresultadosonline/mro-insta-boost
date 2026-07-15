@@ -106,12 +106,16 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
            )}
          </header>
  
-       {/* Hero Section */}
-       <section className="pt-40 md:pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
-         <div className="container mx-auto px-4 text-center">
-           <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-100 border-none px-4 py-1">
-             🚀 API Oficial WhatsApp Business
-           </Badge>
+        {/* Hero Section */}
+        <section className="pt-28 md:pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
+          <div className="container mx-auto px-4 text-center">
+            {/* Mobile logo placed above the official API badge */}
+            <Link to="/vendas" className="md:hidden inline-block bg-[#050508] p-3 rounded-2xl mb-4">
+              <Logo size="sm" />
+            </Link>
+            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-100 border-none px-4 py-1">
+              🚀 API Oficial WhatsApp Business
+            </Badge>
            <h1 className="text-4xl md:text-6xl font-bold mb-6 max-w-4xl mx-auto leading-tight">
              Não perca nunca mais seu WhatsApp! Utilize agora <span className="text-green-600">API META Whatsapp</span>.
            </h1>
