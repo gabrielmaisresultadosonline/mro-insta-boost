@@ -15,11 +15,12 @@ const interactiveChatImg = "https://images.unsplash.com/photo-1522202176988-6627
 const productCarouselImg = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800";
 const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94e495d?auto=format&fit=crop&q=80&w=800";
  
- const Sales = () => {
-    const [buyOpen, setBuyOpen] = useState(false);
-    const [buyPlan, setBuyPlan] = useState<PlanKey>("mensal");
-    const [menuOpen, setMenuOpen] = useState(false);
-    const openBuy = (p: PlanKey) => { setBuyPlan(p); setBuyOpen(true); };
+  const Sales = () => {
+     const [buyOpen, setBuyOpen] = useState(false);
+     const [buyPlan, setBuyPlan] = useState<PlanKey>("mensal");
+     const [menuOpen, setMenuOpen] = useState(false);
+     const [maintenanceVisible, setMaintenanceVisible] = useState(true);
+     const openBuy = (p: PlanKey) => { setBuyPlan(p); setBuyOpen(true); };
    const features = [
      {
        icon: <MessageCircle className="w-6 h-6 text-green-500" />,
@@ -104,9 +105,32 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                </nav>
              </div>
            )}
-         </header>
- 
-        {/* Hero Section */}
+          </header>
+
+        {/* Maintenance popup banner */}
+        {maintenanceVisible && (
+          <div className="fixed top-16 md:top-16 left-0 right-0 z-40 bg-amber-500 text-white shadow-lg">
+            <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <p className="text-sm font-semibold truncate">
+                  Estamos em manutenção, em breve normalizamos tudo aqui.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-white hover:bg-white/20"
+                onClick={() => setMaintenanceVisible(false)}
+                aria-label="Fechar aviso de manutenção"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+  
+         {/* Hero Section */}
         <section className="pt-28 md:pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
           <div className="container mx-auto px-4 text-center">
             {/* Mobile logo + badge centered */}
