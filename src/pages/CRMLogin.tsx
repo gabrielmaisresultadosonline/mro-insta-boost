@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/Logo';
-import { Lock, Mail, AlertCircle, User, Phone, BookOpen } from 'lucide-react';
+import { Lock, Mail, AlertCircle, User, Phone, BookOpen, ArrowLeft, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -173,12 +173,24 @@ const CRMLogin = () => {
   return (
      <div className="min-h-screen bg-[#F0FDF4] flex items-center justify-center p-4">
        <div className="bg-white rounded-3xl shadow-xl shadow-green-900/5 p-8 max-w-md w-full animate-slide-up border border-green-100">
+         <button
+           type="button"
+           onClick={() => navigate('/vendas')}
+           className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-green-700 hover:text-green-900 transition-colors"
+         >
+           <ArrowLeft className="w-4 h-4" />
+           Voltar para /vendas
+         </button>
          <div className="flex flex-col items-center mb-8">
            <div className="bg-[#050508] p-5 rounded-3xl mb-4 border border-white/10 shadow-2xl">
              <Logo size="md" />
            </div>
            <h1 className="text-3xl font-display font-black mt-2 text-[#166534] tracking-tight text-center">CRM Meta SaaS</h1>
            <p className="text-green-600/70 font-medium text-sm text-center">Gestão Profissional de WhatsApp</p>
+          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-green-100 border border-green-200 text-green-800 text-sm font-bold shadow-sm">
+            <Gift className="w-4 h-4 text-amber-600" />
+            Inicie grátis 2 dias — cadastre-se ou faça login
+          </div>
          </div>
 
          <form id="crm-auth-form" onSubmit={handleSubmit} className="space-y-5">
