@@ -70,6 +70,11 @@ export default function PurchaseDialog({ open, onOpenChange, plan }: Props) {
         const { data } = await supabase.functions.invoke("crm-sales-verify", { body: { order_id: orderId } });
         if (data?.status === "approved") {
           setStep("approved");
+          fbTrack("Purchase", {
+            content_name: info.label,
+            value: info.amount,
+            currency: "BRL",
+          });
           if (pollRef.current) { window.clearInterval(pollRef.current); pollRef.current = null; }
           if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
         } else if (data?.status === "expired") {
