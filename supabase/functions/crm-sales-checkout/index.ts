@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { sendCrmSalesRegisteredEmail } from "../_shared/zapmro-sales-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,6 +126,21 @@ serve(async (req) => {
       .single();
 
     if (insertErr) return json({ error: insertErr.message }, 500);
+
+    // Envia email de confirmação de cadastro com credenciais e link de pagamento
+    // (não bloqueia a resposta caso falhe)
+    try {
+      await sendCrmSalesRegisteredEmail({
+        to: cleanEmail,
+        fullName,
+        planLabel: selected.label,
+        amount: selected.amount,
+        password: String(password),
+        paymentLink,
+      });
+    } catch (e) {
+      console.error("Falha ao enviar email de cadastro:", e);
+    }
 
     return json({
       success: true,
