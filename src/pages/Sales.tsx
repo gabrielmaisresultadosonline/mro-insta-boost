@@ -153,34 +153,34 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
             </div>
 
             {/* Highlighted value props below title */}
-            <div className="mt-8 max-w-4xl mx-auto">
-              <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-1 shadow-lg shadow-green-200">
-                <div className="bg-white rounded-xl p-5 md:p-6">
-                  <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-center md:text-left">
-                    <div className="flex items-start gap-3">
-                      <div className="bg-green-100 p-2.5 rounded-xl shrink-0">
-                        <BadgeCheck className="w-6 h-6 text-green-600" />
+            <div className="mt-6 max-w-3xl mx-auto">
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-[3px] shadow-md shadow-green-100">
+                <div className="bg-white rounded-[10px] p-3 md:p-4">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6 text-center md:text-left">
+                    <div className="flex items-center gap-2.5">
+                      <div className="bg-green-100 p-2 rounded-lg shrink-0">
+                        <BadgeCheck className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-base md:text-lg leading-tight">
+                        <p className="font-bold text-slate-900 text-sm md:text-base leading-tight">
                           WhatsApp API Oficial
                         </p>
-                        <p className="text-slate-600 text-sm mt-1">
-                          Não perca nunca mais o seu número! Utilize a forma correta para não ter problema. <span className="font-semibold text-green-600">Teste grátis 2 dias.</span>
+                        <p className="text-slate-600 text-xs mt-0.5 leading-snug">
+                          Não perca nunca mais o seu número. <span className="font-semibold text-green-600">Teste grátis 2 dias.</span>
                         </p>
                       </div>
                     </div>
-                    <div className="hidden md:block w-px h-12 bg-slate-200" />
-                    <div className="flex items-start gap-3">
-                      <div className="bg-orange-100 p-2.5 rounded-xl shrink-0">
-                        <Send className="w-6 h-6 text-orange-600" />
+                    <div className="hidden md:block w-px h-8 bg-slate-200" />
+                    <div className="flex items-center gap-2.5">
+                      <div className="bg-orange-100 p-2 rounded-lg shrink-0">
+                        <Send className="w-5 h-5 text-orange-600" />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-base md:text-lg leading-tight">
+                        <p className="font-bold text-slate-900 text-sm md:text-base leading-tight">
                           Disparos em massa
                         </p>
-                        <p className="text-slate-600 text-sm mt-1">
-                          Envie mensagens sem bloquear o número. Envios a partir de <span className="font-semibold text-green-600">R$0,04 centavos</span>.
+                        <p className="text-slate-600 text-xs mt-0.5 leading-snug">
+                          Envios sem bloquear o número. A partir de <span className="font-semibold text-green-600">R$0,04</span>.
                         </p>
                       </div>
                     </div>
