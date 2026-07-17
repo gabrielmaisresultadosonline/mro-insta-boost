@@ -324,8 +324,8 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                   <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center mb-4">
                     <Send className="w-6 h-6 text-green-600" />
                   </div>
-                  <CardTitle className="text-xl">Templates Utility</CardTitle>
-                  <CardDescription>Notificações, lembretes e atualizações</CardDescription>
+                  <CardTitle className="text-xl text-slate-900">Templates Utility</CardTitle>
+                  <CardDescription className="text-slate-600">Notificações, lembretes e atualizações</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-baseline gap-1 mb-3">
@@ -347,8 +347,8 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                   <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mb-4">
                     <Sparkles className="w-6 h-6 text-orange-600" />
                   </div>
-                  <CardTitle className="text-xl">Templates Marketing</CardTitle>
-                  <CardDescription>Campanhas, promoções e ofertas</CardDescription>
+                  <CardTitle className="text-xl text-slate-900">Templates Marketing</CardTitle>
+                  <CardDescription className="text-slate-600">Campanhas, promoções e ofertas</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-baseline gap-1 mb-3">
@@ -367,8 +367,8 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                   <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
                     <Smartphone className="w-6 h-6 text-blue-600" />
                   </div>
-                  <CardTitle className="text-xl">Mídia + Botões</CardTitle>
-                  <CardDescription>Imagens, vídeos e carrossel interativo</CardDescription>
+                  <CardTitle className="text-xl text-slate-900">Mídia + Botões</CardTitle>
+                  <CardDescription className="text-slate-600">Imagens, vídeos e carrossel interativo</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-baseline gap-1 mb-3">
