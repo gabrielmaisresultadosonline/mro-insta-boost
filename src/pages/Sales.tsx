@@ -152,26 +152,6 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
               </div>
             </div>
 
-            {/* Highlighted value prop below title */}
-            <div className="mt-6 max-w-xl mx-auto">
-              <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-[3px] shadow-md shadow-orange-100">
-                <div className="bg-white rounded-[10px] px-4 py-3">
-                  <div className="flex items-center gap-3 text-left">
-                    <div className="bg-orange-100 p-2.5 rounded-lg shrink-0">
-                      <Send className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm md:text-base leading-tight">
-                        Disparos em massa
-                      </p>
-                      <p className="text-slate-600 text-xs mt-0.5 leading-snug">
-                        Envios sem bloquear o número. A partir de <span className="font-semibold text-green-600">R$0,04</span>.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Info CTA - Como Funciona */}
             {/* Main Banner / Hero Image */}
