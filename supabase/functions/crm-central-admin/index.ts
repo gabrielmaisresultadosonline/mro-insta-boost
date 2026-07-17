@@ -471,6 +471,73 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "resend_access_email") {
+      const { email } = body as any;
+      if (!email) return json({ success: false, error: "email obrigatório" }, 400);
+      const cleanEmail = String(email).trim().toLowerCase();
+
+      // Latest sales order for this email (to reuse plan/label/link)
+      const { data: order } = await supabase
+        .from("crm_sales_orders")
+        .select("full_name, plan, plan_label, amount, status, infinitepay_link")
+        .eq("email", cleanEmail)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Profile to know if user is already paid
+      const { data: authUser } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const found = (authUser?.users || []).find(
+        (u: any) => (u.email || "").toLowerCase() === cleanEmail
+      );
+      let isPaid = false;
+      let fullName = order?.full_name || "";
+      if (found) {
+        const { data: prof } = await supabase
+          .from("crm_profiles")
+          .select("full_name, is_paid, access_until, plan")
+          .eq("user_id", found.id)
+          .maybeSingle();
+        if (prof) {
+          fullName = fullName || prof.full_name || "";
+          const accessUntil = prof.access_until ? new Date(prof.access_until).getTime() : 0;
+          isPaid = !!prof.is_paid && accessUntil > Date.now();
+        }
+      }
+
+      try {
+        if (isPaid || order?.status === "approved") {
+          await sendCrmSalesApprovedEmail({
+            to: cleanEmail,
+            fullName,
+            planLabel: order?.plan_label || "Plano ZapMRO CRM",
+            amount: Number(order?.amount) || 0,
+          });
+        } else if (order?.infinitepay_link) {
+          await sendCrmSalesRegisteredEmail({
+            to: cleanEmail,
+            fullName,
+            planLabel: order?.plan_label || "Plano ZapMRO CRM",
+            amount: Number(order?.amount) || 0,
+            password: "(a senha que você criou no cadastro — use 'Esqueci minha senha' no login se precisar redefinir)",
+            paymentLink: order.infinitepay_link,
+          });
+        } else {
+          // No order info — fall back to the approved-style access email
+          await sendCrmSalesApprovedEmail({
+            to: cleanEmail,
+            fullName,
+            planLabel: "Plano ZapMRO CRM",
+            amount: 0,
+          });
+        }
+      } catch (e: any) {
+        console.error("[resend_access_email] error:", e);
+        return json({ success: false, error: e?.message || "Falha ao enviar email" }, 500);
+      }
+      return json({ success: true });
+    }
+
     return json({ success: false, error: `Ação inválida: ${action}` }, 400);
   } catch (e: any) {
     console.error("[crm-central-admin] error:", e);
