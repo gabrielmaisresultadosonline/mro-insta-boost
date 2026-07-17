@@ -144,13 +144,21 @@ export default function MetaApiTermsDialog({
               </div>
             )}
             {reachedBottom && (
-              <label className="flex items-start gap-3 cursor-pointer select-none py-3">
+              <label
+                className={`flex items-start gap-3 cursor-pointer select-none py-3 px-3 my-2 rounded-lg border-2 transition-all ${
+                  agreed
+                    ? "border-green-500 bg-green-50"
+                    : "border-green-500 bg-green-50/70 animate-pulse ring-4 ring-green-300/60 shadow-lg shadow-green-300/40"
+                }`}
+              >
                 <Checkbox
                   checked={agreed}
                   onCheckedChange={(v) => setAgreed(v === true)}
-                  className="mt-0.5 border-green-500 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                  className={`mt-0.5 h-5 w-5 border-2 border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 ${
+                    !agreed ? "ring-2 ring-green-400 ring-offset-2 ring-offset-green-50" : ""
+                  }`}
                 />
-                <span className="text-sm text-slate-800 font-medium">
+                <span className="text-sm text-slate-900 font-bold">
                   Li o informativo completo, entendi como funciona a Meta API do WhatsApp, seus requisitos, custos e regras, e concordo em prosseguir com o cadastro.
                 </span>
               </label>
