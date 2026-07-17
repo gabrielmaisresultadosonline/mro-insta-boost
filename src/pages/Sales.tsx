@@ -1,4 +1,4 @@
-import { Check, MessageCircle, ShieldCheck, Zap, BarChart3, Bot, Clock, Users, ArrowRight, Star, Layout, Smartphone, BrainCircuit, Sparkles, MessageSquareQuote, MousePointerClick, Columns, Send, BadgeCheck, AlertTriangle, Menu, X } from "lucide-react";
+import { Check, MessageCircle, ShieldCheck, Zap, BarChart3, Bot, Clock, Users, ArrowRight, Star, Layout, Smartphone, BrainCircuit, Sparkles, MessageSquareQuote, MousePointerClick, Columns, Send, BadgeCheck, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,7 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
   const Sales = () => {
      const [buyOpen, setBuyOpen] = useState(false);
      const [buyPlan, setBuyPlan] = useState<PlanKey>("mensal");
-     const [menuOpen, setMenuOpen] = useState(false);
-     const [maintenanceVisible, setMaintenanceVisible] = useState(true);
+      const [menuOpen, setMenuOpen] = useState(false);
      const openBuy = (p: PlanKey) => { setBuyPlan(p); setBuyOpen(true); };
    const features = [
      {
@@ -107,33 +106,7 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
            )}
           </header>
 
-        {/* Maintenance full-screen popup */}
-        {maintenanceVisible && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
-            <div className="relative w-full max-w-md bg-amber-500 text-white rounded-2xl shadow-2xl p-6 md:p-8 text-center animate-in fade-in zoom-in duration-200">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-3 right-3 text-white hover:bg-white/20"
-                onClick={() => setMaintenanceVisible(false)}
-                aria-label="Fechar aviso de manutenção"
-              >
-                <X className="w-5 h-5" />
-              </Button>
-              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-8 h-8" />
-              </div>
-              <h2 className="text-xl md:text-2xl font-bold mb-2">
-                Estamos em manutenção
-              </h2>
-              <p className="text-white/90 text-sm md:text-base">
-                Em breve normalizamos tudo aqui.
-              </p>
-            </div>
-          </div>
-        )}
-  
-         {/* Hero Section */}
+          {/* Hero Section */}
         <section className="pt-28 md:pt-32 pb-20 bg-gradient-to-b from-green-50 to-white">
           <div className="container mx-auto px-4 text-center">
             {/* Mobile logo + badge centered */}
