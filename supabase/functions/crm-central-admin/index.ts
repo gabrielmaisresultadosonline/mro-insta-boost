@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { sendCrmSalesApprovedEmail } from "../_shared/zapmro-sales-email.ts";
+import { sendCrmSalesApprovedEmail, sendCrmSalesRegisteredEmail } from "../_shared/zapmro-sales-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
