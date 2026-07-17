@@ -146,6 +146,15 @@ export default function PurchaseDialog({ open, onOpenChange, plan }: Props) {
     e.preventDefault();
     if (form.password.length < 6) { toast.error("Senha mínima de 6 caracteres"); return; }
     setLoading(true);
+    // Dispara Lead imediatamente ao finalizar cadastro (antes da API)
+    fbTrack("Lead", {
+      content_name: info.label,
+      content_category: "CRM Signup",
+      value: info.amount,
+      currency: "BRL",
+      email: form.email,
+      phone: form.whatsapp,
+    });
     try {
       const { data, error } = await supabase.functions.invoke("crm-sales-checkout", {
         body: { ...form, plan },
@@ -156,14 +165,6 @@ export default function PurchaseDialog({ open, onOpenChange, plan }: Props) {
       setOrderId(data.order_id);
       setExpiresAt(new Date(data.expires_at).getTime());
       setStep("waiting");
-      fbTrack("Lead", {
-        content_name: info.label,
-        content_category: "CRM Signup",
-        value: info.amount,
-        currency: "BRL",
-        email: form.email,
-        phone: form.whatsapp,
-      });
       window.open(data.payment_link, "_blank", "noopener");
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar compra");
