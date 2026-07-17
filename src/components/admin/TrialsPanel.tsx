@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Clock, Lock, CheckCircle2 } from "lucide-react";
+import { Loader2, RefreshCw, Clock, Lock, CheckCircle2, Mail } from "lucide-react";
 
 interface Trial {
   id: string;
@@ -57,6 +57,7 @@ export default function TrialsPanel({ creds }: Props) {
   const [filter, setFilter] = useState<"all" | "trial_active" | "trial_expired" | "paid">("all");
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [resendId, setResendId] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Record<string, string>>({});
 
   const load = async () => {
@@ -97,6 +98,27 @@ export default function TrialsPanel({ creds }: Props) {
       toast.error(e.message || "Erro ao liberar acesso");
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const resendEmail = async (t: Trial) => {
+    setResendId(t.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-central-admin", {
+        body: {
+          action: "resend_access_email",
+          email: t.email,
+          adminEmail: creds.email,
+          adminPassword: creds.password,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro");
+      toast.success(`Email reenviado para ${t.email}`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao reenviar email");
+    } finally {
+      setResendId(null);
     }
   };
 
@@ -237,6 +259,23 @@ export default function TrialsPanel({ creds }: Props) {
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           "Liberar"
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => resendEmail(t)}
+                        disabled={resendId === t.id}
+                        className="h-8"
+                        title="Reenviar email de acesso"
+                      >
+                        {resendId === t.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Mail className="w-4 h-4 mr-1" />
+                            Reenviar
+                          </>
                         )}
                       </Button>
                     </div>
