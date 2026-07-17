@@ -125,3 +125,67 @@ export async function sendCrmSalesApprovedEmail(params: {
 
   await sendSmtpEmail({ to: params.to, subject, htmlBody: html, textBody: text });
 }
+
+export async function sendCrmSalesRegisteredEmail(params: {
+  to: string;
+  fullName: string;
+  planLabel: string;
+  amount: number;
+  password: string;
+  paymentLink: string;
+}) {
+  const firstName = (params.fullName || "").split(" ")[0] || "cliente";
+  const subject = `📝 Cadastro efetuado — finalize seu pagamento | ZapMRO CRM`;
+
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f5f7fa;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:24px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+        <tr><td style="background:linear-gradient(135deg,#0ea5e9 0%,#2563eb 100%);padding:32px 30px;text-align:center;">
+          <h1 style="color:#fff;margin:0;font-size:24px;">Cadastro efetuado! ✅</h1>
+          <p style="color:#dbeafe;margin:8px 0 0;font-size:14px;">Falta só finalizar o pagamento para liberar o acesso</p>
+        </td></tr>
+        <tr><td style="padding:30px;">
+          <p style="color:#111;font-size:16px;margin:0 0 12px;">Olá <strong>${firstName}</strong>,</p>
+          <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px;">
+            Recebemos seu cadastro no <strong>ZapMRO CRM</strong>. Guarde essas credenciais em um lugar seguro — você vai usá-las para entrar na plataforma assim que o pagamento for aprovado.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin:0 0 24px;">
+            <tr><td style="padding:6px 10px;color:#1e3a8a;font-size:14px;"><strong>Plano escolhido:</strong> ${params.planLabel}</td></tr>
+            <tr><td style="padding:6px 10px;color:#1e3a8a;font-size:14px;"><strong>Valor:</strong> R$ ${Number(params.amount).toFixed(2)}</td></tr>
+            <tr><td style="padding:6px 10px;color:#1e3a8a;font-size:14px;"><strong>Email de acesso:</strong> ${params.to}</td></tr>
+            <tr><td style="padding:6px 10px;color:#1e3a8a;font-size:14px;"><strong>Senha cadastrada:</strong> <code style="background:#fff;padding:2px 8px;border-radius:6px;border:1px solid #bfdbfe;">${params.password}</code></td></tr>
+          </table>
+          <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px;">
+            <strong>Próximo passo:</strong> clique no botão abaixo para concluir o pagamento pela InfinitePay. Assim que for aprovado, seu acesso é liberado automaticamente.
+          </p>
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td>
+            <a href="${params.paymentLink}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:bold;font-size:15px;">💳 Finalizar pagamento</a>
+          </td></tr></table>
+          <p style="color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;margin:24px 0 0;">
+            ⚠️ Por segurança, recomendamos alterar sua senha após o primeiro acesso à plataforma.
+          </p>
+          <p style="color:#666;font-size:13px;line-height:1.6;margin:16px 0 0;">
+            Precisa de ajuda? Basta responder este email — nosso time responde rapidinho.
+          </p>
+        </td></tr>
+        <tr><td style="background:#0f172a;padding:16px;text-align:center;">
+          <p style="color:#94a3b8;margin:0;font-size:12px;">© ${new Date().getFullYear()} ZapMRO • CRM oficial API Meta WhatsApp</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table></body></html>`;
+
+  const text =
+    `Olá ${firstName},\n\n` +
+    `Recebemos seu cadastro no ZapMRO CRM.\n\n` +
+    `Plano: ${params.planLabel}\n` +
+    `Valor: R$ ${Number(params.amount).toFixed(2)}\n` +
+    `Email de acesso: ${params.to}\n` +
+    `Senha cadastrada: ${params.password}\n\n` +
+    `Finalize o pagamento em: ${params.paymentLink}\n\n` +
+    `Assim que o pagamento for aprovado, seu acesso é liberado automaticamente.\n\n` +
+    `Por segurança, recomendamos alterar sua senha após o primeiro acesso.\n\n— Equipe ZapMRO`;
+
+  await sendSmtpEmail({ to: params.to, subject, htmlBody: html, textBody: text });
+}
