@@ -214,9 +214,10 @@ export default function AdminCentral() {
   }
 
   async function handleSendReset(u: AdminUser) {
+    if (!confirm(`Enviar lembrete de acesso para ${u.email}?\n\nSerá gerada uma nova senha temporária e enviada por e-mail junto com o link de acesso.`)) return;
     try {
-      await call("send_reset_email", { email: u.email, redirectTo: `${window.location.origin}/crm/login` });
-      toast.success("E-mail de redefinição enviado");
+      await call("send_access_reminder", { userId: u.id, email: u.email });
+      toast.success("Lembrete de acesso enviado por e-mail");
     } catch (err: any) {
       toast.error(err.message || "Erro");
     }
@@ -476,7 +477,7 @@ export default function AdminCentral() {
                       <KeyRound className="h-4 w-4 mr-1" /> Nova senha
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleSendReset(u)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
-                      <Mail className="h-4 w-4 mr-1" /> Reset e-mail
+                      <Mail className="h-4 w-4 mr-1" /> Lembrar acesso
                     </Button>
                     {u.connected && (
                       <Button size="sm" variant="outline" onClick={() => handleDisconnect(u)} className="bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
