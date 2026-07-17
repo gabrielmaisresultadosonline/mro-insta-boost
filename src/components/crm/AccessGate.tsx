@@ -121,7 +121,21 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
           <a href="/vendas#precos" className="underline">assine agora</a> para não perder o acesso.
         </div>
       )}
-      <div className={status.mode === "trial" ? "pt-9" : ""}>{children}</div>
+      {status.mode === "paid" && status.daysLeft !== undefined && status.daysLeft <= 3 && (
+        <div className="fixed top-0 inset-x-0 z-50 bg-orange-500 text-white text-center text-sm font-semibold py-2 px-4 shadow">
+          ⚠️ Seu plano vence em {status.daysLeft} dia{status.daysLeft === 1 ? "" : "s"} —{" "}
+          <a href="/vendas#precos" className="underline">renove agora</a> para não travar o CRM.
+        </div>
+      )}
+      <div
+        className={
+          status.mode === "trial" || (status.mode === "paid" && (status.daysLeft ?? 999) <= 3)
+            ? "pt-9"
+            : ""
+        }
+      >
+        {children}
+      </div>
     </>
   );
 }

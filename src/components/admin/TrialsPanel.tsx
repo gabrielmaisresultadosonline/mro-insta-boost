@@ -36,6 +36,7 @@ const PLAN_OPTIONS = [
   { value: "mensal", label: "Mensal (30d)", days: 30 },
   { value: "semestral", label: "6 Meses (180d)", days: 180 },
   { value: "anual", label: "Anual (365d)", days: 365 },
+  { value: "custom", label: "Personalizado", days: 0 },
 ];
 
 function fmtDate(iso: string | null) {
@@ -59,6 +60,7 @@ export default function TrialsPanel({ creds }: Props) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [resendId, setResendId] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Record<string, string>>({});
+  const [customDays, setCustomDays] = useState<Record<string, string>>({});
 
   const load = async () => {
     setLoading(true);
@@ -84,15 +86,40 @@ export default function TrialsPanel({ creds }: Props) {
 
   const approve = async (t: Trial) => {
     const plan = selectedPlan[t.id] || "mensal";
-    if (!confirm(`Liberar ${plan.toUpperCase()} para ${t.email}?`)) return;
+    let days: number | undefined;
+    let planToSend = plan;
+    if (plan === "custom") {
+      const raw = customDays[t.id];
+      days = Number(raw);
+      if (!days || days < 1 || days > 3650) {
+        toast.error("Informe uma quantidade válida de dias (1 a 3650)");
+        return;
+      }
+      // backend requires a valid plan key; use "mensal" as label placeholder for custom durations
+      planToSend = "mensal";
+      if (!confirm(`Liberar ${days} dia(s) para ${t.email}?`)) return;
+    } else {
+      if (!confirm(`Liberar ${plan.toUpperCase()} para ${t.email}?`)) return;
+    }
     setBusyId(t.id);
     try {
       const { data, error } = await supabase.functions.invoke("crm-central-admin", {
-        body: { action: "grant_access", email: t.email, plan, adminEmail: creds.email, adminPassword: creds.password },
+        body: {
+          action: "grant_access",
+          email: t.email,
+          plan: planToSend,
+          days,
+          adminEmail: creds.email,
+          adminPassword: creds.password,
+        },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro");
-      toast.success(`Acesso liberado (${plan}) para ${t.email}`);
+      toast.success(
+        plan === "custom"
+          ? `Acesso liberado por ${days} dia(s) para ${t.email}`
+          : `Acesso liberado (${plan}) para ${t.email}`
+      );
       await load();
     } catch (e: any) {
       toast.error(e.message || "Erro ao liberar acesso");
@@ -249,6 +276,19 @@ export default function TrialsPanel({ creds }: Props) {
                           ))}
                         </SelectContent>
                       </Select>
+                      {selectedPlan[t.id] === "custom" && (
+                        <Input
+                          type="number"
+                          min={1}
+                          max={3650}
+                          placeholder="dias"
+                          value={customDays[t.id] || ""}
+                          onChange={(e) =>
+                            setCustomDays((p) => ({ ...p, [t.id]: e.target.value }))
+                          }
+                          className="w-20 h-8 text-xs"
+                        />
+                      )}
                       <Button
                         size="sm"
                         onClick={() => approve(t)}
