@@ -7,6 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, Clock, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
+const SALES_PIXEL_ID = "1009304915232936";
+const fbTrack = (event: string, data?: Record<string, any>) => {
+  try {
+    const w = window as any;
+    if (w.fbq) w.fbq("trackSingle", SALES_PIXEL_ID, event, data || {});
+  } catch (_) { /* noop */ }
+};
+
 export type PlanKey = "mensal" | "semestral" | "anual";
 
 const PLAN_INFO: Record<PlanKey, { label: string; amount: number; sub: string }> = {
@@ -94,6 +102,12 @@ export default function PurchaseDialog({ open, onOpenChange, plan }: Props) {
       setOrderId(data.order_id);
       setExpiresAt(new Date(data.expires_at).getTime());
       setStep("waiting");
+      fbTrack("Lead", {
+        content_name: info.label,
+        content_category: "CRM Signup",
+        value: info.amount,
+        currency: "BRL",
+      });
       window.open(data.payment_link, "_blank", "noopener");
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar compra");
