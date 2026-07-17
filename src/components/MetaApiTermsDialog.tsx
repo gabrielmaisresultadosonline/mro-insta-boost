@@ -137,9 +137,10 @@ export default function MetaApiTermsDialog({
         {requireConsent && (
           <div className="px-6 pt-3 border-t bg-slate-50">
             {!reachedBottom && (
-              <div className="flex items-center justify-center gap-2 text-amber-700 text-sm font-medium py-2">
-                <ArrowDown className="w-4 h-4 animate-bounce" />
-                Role a leitura até o final para liberar a confirmação
+              <div className="flex items-center justify-center gap-2 text-amber-900 bg-amber-100 border-2 border-amber-400 rounded-lg text-sm font-bold py-3 px-4 my-2 shadow-sm">
+                <ArrowDown className="w-5 h-5 animate-bounce text-amber-700" />
+                <span className="uppercase tracking-wide">Role até o final e marque a opção para aceitar</span>
+                <ArrowDown className="w-5 h-5 animate-bounce text-amber-700" />
               </div>
             )}
             {reachedBottom && (
@@ -158,7 +159,11 @@ export default function MetaApiTermsDialog({
         )}
 
         <DialogFooter className="px-6 py-4 border-t bg-white gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="border-2 border-slate-400 bg-white text-slate-900 hover:bg-slate-100 hover:text-slate-900 font-semibold"
+          >
             {requireConsent ? "Cancelar" : "Fechar"}
           </Button>
           {requireConsent && (
