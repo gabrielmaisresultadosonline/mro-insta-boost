@@ -3949,21 +3949,28 @@ const CRM = () => {
 
   const getWindowInfo = (lastInbound: string) => {
     if (!lastInbound) return { label: "Janela aberta", isExpired: false };
-    
+
     const last = new Date(lastInbound).getTime();
-    const nowTime = Date.now();
-    const diffMs = nowTime - last;
+    if (!Number.isFinite(last)) return { label: "Janela aberta", isExpired: false };
+
     const DAY = 24 * 60 * 60 * 1000;
-    
-    // Tolerância de 30 minutos para exibição visual também
-    const limit = DAY + (30 * 60 * 1000);
-    const remainingMs = Math.max(0, limit - diffMs);
-    const remainingHours = remainingMs / (1000 * 60 * 60);
-    
-    return {
-      label: remainingHours > 0 ? `${remainingHours.toFixed(1)}h restantes` : "Janela expirada",
-      isExpired: remainingHours <= 0
-    };
+    const remainingMs = last + DAY - Date.now();
+
+    if (remainingMs <= 0) {
+      return { label: "Janela expirada", isExpired: true };
+    }
+
+    const totalMinutes = Math.floor(remainingMs / (60 * 1000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    // Exibição exata: "Xh YYm restantes" ou "YYm restantes" quando <1h
+    const label =
+      hours > 0
+        ? `${hours}h ${minutes.toString().padStart(2, "0")}m restantes`
+        : `${minutes}m restantes`;
+
+    return { label, isExpired: false };
   };
 
   const getStatusColor = (status: string) => {
