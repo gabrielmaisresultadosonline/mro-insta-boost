@@ -308,10 +308,14 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
               <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 leading-tight">
                 Disparos em massa
               </h2>
-              <p className="text-lg md:text-xl text-slate-600 leading-relaxed">
-                Existem <span className="font-semibold text-slate-900">3 formas de envio em massa</span> dentro da API Oficial do WhatsApp. A mais barata e eficiente para notificações, lembretes e atualizações sai a apenas <span className="font-bold text-green-600">R$0,04 centavos</span> por mensagem.
+              <p className="text-xl md:text-2xl text-slate-700 leading-relaxed mb-4">
+                Envios sem bloquear o número. A partir de <span className="font-bold text-green-600">R$0,04</span>.
+              </p>
+              <p className="text-lg text-slate-600 leading-relaxed">
+                Existem <span className="font-semibold text-slate-900">3 formas de envio em massa</span> dentro da API Oficial do WhatsApp. A mais barata hoje é <span className="font-bold text-green-600">R$0,04 centavos</span> por mensagem.
               </p>
             </div>
+
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {/* Utility */}
