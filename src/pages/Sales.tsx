@@ -18,8 +18,7 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
   const Sales = () => {
      const [buyOpen, setBuyOpen] = useState(false);
      const [buyPlan, setBuyPlan] = useState<PlanKey>("mensal");
-     const [menuOpen, setMenuOpen] = useState(false);
-     const [maintenanceVisible, setMaintenanceVisible] = useState(true);
+      const [menuOpen, setMenuOpen] = useState(false);
      const openBuy = (p: PlanKey) => { setBuyPlan(p); setBuyOpen(true); };
    const features = [
      {
