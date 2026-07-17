@@ -1,4 +1,4 @@
-import { Check, MessageCircle, ShieldCheck, Zap, BarChart3, Bot, Clock, Users, ArrowRight, Star, Layout, Smartphone, BrainCircuit, Sparkles, MessageSquareQuote, MousePointerClick, Columns, Send, BadgeCheck, AlertTriangle, Menu, X } from "lucide-react";
+import { Check, MessageCircle, ShieldCheck, Zap, BarChart3, Bot, Clock, Users, ArrowRight, Star, Layout, Smartphone, BrainCircuit, Sparkles, MessageSquareQuote, MousePointerClick, Columns, Send, BadgeCheck, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
