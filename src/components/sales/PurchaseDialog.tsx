@@ -121,6 +121,8 @@ export default function PurchaseDialog({ open, onOpenChange, plan }: Props) {
             content_name: info.label,
             value: info.amount,
             currency: "BRL",
+            email: form.email,
+            phone: form.whatsapp,
           });
           if (pollRef.current) { window.clearInterval(pollRef.current); pollRef.current = null; }
           if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
@@ -159,6 +161,8 @@ export default function PurchaseDialog({ open, onOpenChange, plan }: Props) {
         content_category: "CRM Signup",
         value: info.amount,
         currency: "BRL",
+        email: form.email,
+        phone: form.whatsapp,
       });
       window.open(data.payment_link, "_blank", "noopener");
     } catch (err: any) {
