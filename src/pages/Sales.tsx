@@ -152,26 +152,6 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
               </div>
             </div>
 
-            {/* Highlighted value prop below title */}
-            <div className="mt-6 max-w-xl mx-auto">
-              <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-[3px] shadow-md shadow-orange-100">
-                <div className="bg-white rounded-[10px] px-4 py-3">
-                  <div className="flex items-center gap-3 text-left">
-                    <div className="bg-orange-100 p-2.5 rounded-lg shrink-0">
-                      <Send className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm md:text-base leading-tight">
-                        Disparos em massa
-                      </p>
-                      <p className="text-slate-600 text-xs mt-0.5 leading-snug">
-                        Envios sem bloquear o número. A partir de <span className="font-semibold text-green-600">R$0,04</span>.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Info CTA - Como Funciona */}
             {/* Main Banner / Hero Image */}
@@ -317,7 +297,91 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
           </div>
         </section>
 
+        {/* Mass Sending Deep Dive */}
+        <section className="py-20 md:py-24 bg-gradient-to-b from-white to-slate-50 border-y border-slate-100 overflow-hidden relative">
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+              <Badge className="mb-4 bg-orange-100 text-orange-700 hover:bg-orange-100 border-none px-4 py-1">
+                <Send className="w-3.5 h-3.5 mr-2" />
+                Envio em Massa Inteligente
+              </Badge>
+              <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 leading-tight">
+                Disparos em massa
+              </h2>
+              <p className="text-lg md:text-xl text-slate-600 leading-relaxed">
+                Existem <span className="font-semibold text-slate-900">3 formas de envio em massa</span> dentro da API Oficial do WhatsApp. A mais barata e eficiente para notificações, lembretes e atualizações sai a apenas <span className="font-bold text-green-600">R$0,04 centavos</span> por mensagem.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {/* Utility */}
+              <Card className="border-2 border-green-500/20 shadow-lg shadow-green-100/50 overflow-hidden bg-white">
+                <CardHeader className="pb-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center mb-4">
+                    <Send className="w-6 h-6 text-green-600" />
+                  </div>
+                  <CardTitle className="text-xl">Templates Utility</CardTitle>
+                  <CardDescription>Notificações, lembretes e atualizações</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className="text-3xl font-black text-green-600">R$0,04</span>
+                    <span className="text-sm text-slate-500">/envio</span>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    A forma mais barata de envio em massa. Ideal para avisar clientes, confirmar pedidos e enviar lembretes automáticos sem bloquear o número.
+                  </p>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">Mais econômico</Badge>
+                </CardFooter>
+              </Card>
+
+              {/* Marketing */}
+              <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardHeader className="pb-4">
+                  <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mb-4">
+                    <Sparkles className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <CardTitle className="text-xl">Templates Marketing</CardTitle>
+                  <CardDescription>Campanhas, promoções e ofertas</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className="text-3xl font-black text-orange-600">R$0,33</span>
+                    <span className="text-sm text-slate-500">/envio</span>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Envie campanhas promocionais para sua base de contatos com botões interativos, carrossel e alta taxa de entrega.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Multimedia */}
+              <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardHeader className="pb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
+                    <Smartphone className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-xl">Mídia + Botões</CardTitle>
+                  <CardDescription>Imagens, vídeos e carrossel interativo</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className="text-3xl font-black text-blue-600">A partir de R$0,04</span>
+                    <span className="text-sm text-slate-500">/envio</span>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Envie imagens, vídeos, carrossel de produtos e botões interativos para engajar seus clientes de forma profissional.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
         {/* AI Agent Deep Dive */}
+
          <section id="funcionalidades" className="py-24 bg-slate-950 text-white overflow-hidden relative">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.1),transparent_50%)]"></div>
           <div className="container mx-auto px-4 relative z-10">
