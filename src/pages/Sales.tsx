@@ -122,9 +122,12 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
             <Badge className="hidden md:inline-flex mb-4 bg-green-100 text-green-700 hover:bg-green-100 border-none px-4 py-1">
               🚀 API Oficial WhatsApp Business
             </Badge>
-           <h1 className="text-4xl md:text-6xl font-bold mb-6 max-w-4xl mx-auto leading-tight">
-             Não perca nunca mais seu WhatsApp! Utilize agora <span className="text-green-600">API META Whatsapp</span>.
-           </h1>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 max-w-4xl mx-auto leading-tight">
+              WhatsApp API Oficial
+            </h1>
+            <p className="text-xl md:text-2xl text-slate-700 mb-6 max-w-3xl mx-auto leading-relaxed">
+              Não perca nunca mais o seu número! Utilize a forma correta para não ter problema. <span className="font-semibold text-green-600">Teste grátis 2 dias.</span>
+            </p>
            <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
              Atenda seus clientes de forma profissional, automatize suas vendas e tenha a segurança de uma conexão oficial sem riscos de bloqueio.
            </p>
