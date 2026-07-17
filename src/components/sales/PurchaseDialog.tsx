@@ -8,10 +8,57 @@ import { Loader2, CheckCircle2, Clock, AlertCircle, ExternalLink } from "lucide-
 import { toast } from "sonner";
 
 const SALES_PIXEL_ID = "1009304915232936";
-const fbTrack = (event: string, data?: Record<string, any>) => {
+const genEventId = () =>
+  `evt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+const getFbCookies = () => {
+  if (typeof document === "undefined") return { fbc: "", fbp: "" };
+  let fbc = "", fbp = "";
+  for (const c of document.cookie.split(";")) {
+    const [n, v] = c.trim().split("=");
+    if (n === "_fbc") fbc = v;
+    if (n === "_fbp") fbp = v;
+  }
+  if (!fbc) {
+    const fbclid = new URLSearchParams(window.location.search).get("fbclid");
+    if (fbclid) fbc = `fb.1.${Date.now()}.${fbclid}`;
+  }
+  return { fbc, fbp };
+};
+
+const getTestEventCode = () => {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("test_event_code");
+};
+
+const fbTrack = async (
+  event: string,
+  data?: { content_name?: string; content_category?: string; value?: number; currency?: string; email?: string; phone?: string }
+) => {
+  const eventId = genEventId();
+  // Client-side Pixel
   try {
     const w = window as any;
-    if (w.fbq) w.fbq("trackSingle", SALES_PIXEL_ID, event, data || {});
+    if (w.fbq) w.fbq("trackSingle", SALES_PIXEL_ID, event, data || {}, { eventID: eventId });
+  } catch (_) { /* noop */ }
+  // Server-side CAPI
+  try {
+    const { fbc, fbp } = getFbCookies();
+    const testEventCode = getTestEventCode();
+    const payload: Record<string, any> = {
+      pixel_id: SALES_PIXEL_ID,
+      event_name: event,
+      event_id: eventId,
+      event_source_url: window.location.href,
+      user_agent: navigator.userAgent,
+      fbc: fbc || undefined,
+      fbp: fbp || undefined,
+      test_event_code: testEventCode || undefined,
+      currency: data?.currency || "BRL",
+      ...data,
+    };
+    Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+    await supabase.functions.invoke("meta-conversions", { body: payload });
   } catch (_) { /* noop */ }
 };
 
