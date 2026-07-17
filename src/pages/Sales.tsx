@@ -143,11 +143,48 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                </Button>
              </Link>
-             <div className="flex items-center gap-2 text-sm text-slate-500">
-               <ShieldCheck className="w-5 h-5 text-green-600" />
-                Sem cartão • Acesso trava após 2 dias
-             </div>
-           </div>
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <ShieldCheck className="w-5 h-5 text-green-600" />
+                 Sem cartão • Acesso trava após 2 dias
+              </div>
+            </div>
+
+            {/* Highlighted value props below title */}
+            <div className="mt-8 max-w-4xl mx-auto">
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-1 shadow-lg shadow-green-200">
+                <div className="bg-white rounded-xl p-5 md:p-6">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-center md:text-left">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-green-100 p-2.5 rounded-xl shrink-0">
+                        <BadgeCheck className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-base md:text-lg leading-tight">
+                          WhatsApp API Oficial
+                        </p>
+                        <p className="text-slate-600 text-sm mt-1">
+                          Não perca nunca mais o seu número! Utilize a forma correta para não ter problema. <span className="font-semibold text-green-600">Teste grátis 2 dias.</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hidden md:block w-px h-12 bg-slate-200" />
+                    <div className="flex items-start gap-3">
+                      <div className="bg-orange-100 p-2.5 rounded-xl shrink-0">
+                        <Send className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-base md:text-lg leading-tight">
+                          Disparos em massa
+                        </p>
+                        <p className="text-slate-600 text-sm mt-1">
+                          Envie mensagens sem bloquear o número. Envios a partir de <span className="font-semibold text-green-600">R$0,04 centavos</span>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Info CTA - Como Funciona */}
             {/* Main Banner / Hero Image */}
