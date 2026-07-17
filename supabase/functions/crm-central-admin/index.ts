@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { sendCrmSalesApprovedEmail, sendCrmSalesRegisteredEmail } from "../_shared/zapmro-sales-email.ts";
+import {
+  sendCrmSalesApprovedEmail,
+  sendCrmSalesRegisteredEmail,
+  sendCrmAccessReminderEmail,
+} from "../_shared/zapmro-sales-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -177,15 +181,54 @@ serve(async (req) => {
       return json({ success: true });
     }
 
-    if (action === "send_reset_email") {
-      const { email, redirectTo } = body as any;
-      if (!email) return json({ success: false, error: "Email obrigatório" }, 400);
-      const { error } = await supabase.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: { redirectTo: redirectTo || undefined },
-      });
-      if (error) throw error;
+    if (action === "send_reset_email" || action === "send_access_reminder") {
+      const { email, userId: uidRaw } = body as any;
+      if (!email && !uidRaw) return json({ success: false, error: "Email obrigatório" }, 400);
+
+      // Find user
+      let targetUser: any = null;
+      if (uidRaw) {
+        const { data } = await supabase.auth.admin.getUserById(uidRaw);
+        targetUser = data?.user || null;
+      }
+      if (!targetUser && email) {
+        let page = 1;
+        const target = String(email).toLowerCase();
+        while (true) {
+          const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+          if (error) throw error;
+          const found = (data.users || []).find((u: any) => (u.email || "").toLowerCase() === target);
+          if (found) { targetUser = found; break; }
+          if (!data.users?.length || data.users.length < 1000) break;
+          page++;
+        }
+      }
+      if (!targetUser) return json({ success: false, error: "Usuário não encontrado" }, 404);
+
+      // Generate a new temporary password
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+      let tempPwd = "";
+      for (let i = 0; i < 10; i++) tempPwd += chars[Math.floor(Math.random() * chars.length)];
+      tempPwd += "@1";
+
+      const { error: updErr } = await supabase.auth.admin.updateUserById(targetUser.id, { password: tempPwd });
+      if (updErr) throw updErr;
+
+      const fullName =
+        targetUser.user_metadata?.full_name ||
+        targetUser.user_metadata?.name ||
+        (targetUser.email || "").split("@")[0];
+
+      try {
+        await sendCrmAccessReminderEmail({
+          to: targetUser.email,
+          fullName,
+          password: tempPwd,
+        });
+      } catch (e) {
+        console.error("[send_access_reminder] email error:", e);
+        return json({ success: false, error: "Falha ao enviar e-mail" }, 500);
+      }
       return json({ success: true });
     }
 
