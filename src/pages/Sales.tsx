@@ -372,7 +372,7 @@ const appDashboardImg = "https://images.unsplash.com/photo-1675271591211-126ad94
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-baseline gap-1 mb-3">
-                    <span className="text-3xl font-black text-blue-600">A partir de R$0,04</span>
+                    <span className="text-2xl font-black text-blue-600 whitespace-nowrap">A partir de R$0,04</span>
                     <span className="text-sm text-slate-500">/envio</span>
                   </div>
                   <p className="text-sm text-slate-600 leading-relaxed">
