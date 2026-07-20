@@ -768,6 +768,30 @@ const CRM = () => {
         }
         const { data: { user } } = await supabase.auth.getUser();
         if (user) localStorage.setItem(`crm_whatsapp_connected_${user.id}`, 'true');
+        // Ativa o teste grátis de 2 dias no momento em que o WhatsApp é conectado
+        // (apenas se o usuário ainda não tem trial ativo e não é pago).
+        if (user) {
+          try {
+            const { data: prof } = await supabase
+              .from('crm_profiles')
+              .select('trial_ends_at, is_paid, access_until')
+              .eq('user_id', user.id)
+              .maybeSingle();
+            const nowMs = Date.now();
+            const accessUntilMs = prof?.access_until ? new Date(prof.access_until).getTime() : 0;
+            const isPaidActive = !!prof?.is_paid && accessUntilMs > nowMs;
+            if (!prof?.trial_ends_at && !isPaidActive) {
+              const trialEnds = new Date(nowMs + 2 * 86400000).toISOString();
+              await supabase
+                .from('crm_profiles')
+                .update({ trial_ends_at: trialEnds })
+                .eq('user_id', user.id);
+              toast({ title: '🎁 Teste grátis iniciado!', description: 'Você tem 2 dias completos para testar o CRM.' });
+            }
+          } catch (err) {
+            console.error('[trial] erro ao ativar teste após conexão do WhatsApp', err);
+          }
+        }
         addConnectionLog('success', 'Conexão salva no CRM com sucesso', data);
         setWhatsAppConnectionConfirmed(true);
         setMetaSettings(prev => ({

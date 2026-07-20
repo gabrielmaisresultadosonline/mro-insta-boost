@@ -78,16 +78,16 @@ const CRMLogin = () => {
            // The very first registered user becomes super_admin
            const role = (count === 0) ? 'super_admin' : 'user';
 
-            // Create profile in crm_profiles (trial_ends_at defaults to now + 2 days)
-            const trialEnds = new Date(Date.now() + 2 * 86400000).toISOString();
-            const { error: profileError } = await supabase
+             // Cria perfil sem iniciar o teste — os 2 dias começam a contar
+             // apenas quando o usuário conectar o WhatsApp no /crm.
+             const { error: profileError } = await supabase
               .from('crm_profiles')
               .insert({
                 user_id: authData.user.id,
                 full_name: fullName,
                 whatsapp_number: whatsapp,
                 role: role,
-                trial_ends_at: trialEnds,
+                trial_ends_at: null,
               });
            
            if (profileError) console.error("Error creating profile:", profileError);
@@ -100,7 +100,7 @@ const CRMLogin = () => {
             } else {
               toast({
                 title: "🎁 2 dias de teste grátis ativados!",
-                description: "Aproveite todo o CRM por 2 dias. Depois disso, escolha um plano para continuar.",
+                description: "Conecte seu WhatsApp no CRM para ativar os 2 dias de teste grátis.",
               });
            }
          }
