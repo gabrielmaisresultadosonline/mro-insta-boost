@@ -1703,13 +1703,29 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
   // never be migrated to a newly connected Auto Sync account automatically.
   const activeAccountIds = new Set<string>((accounts || []).map((a: any) => a.id));
 
-  let remaining = ([...(pendingNew || []), ...(pendingDirty || [])]).filter((c: any) => {
-    const name = (c.name || '').trim();
-    if (!name) return false;
-    if (name === (c.wa_id || '').trim()) return false;
-    if (c.google_sync_account_id && !activeAccountIds.has(c.google_sync_account_id)) return false;
-    return true;
-  });
+  // Contacts assigned to a Google account that is no longer active
+  // (Auto Sync turned OFF, or the account was disconnected) would otherwise
+  // be stuck forever. Treat them as unassigned so they get pushed to one of
+  // the currently active Auto Sync accounts on this cycle.
+  let remaining = ([...(pendingNew || []), ...(pendingDirty || [])])
+    .filter((c: any) => {
+      const name = (c.name || '').trim();
+      if (!name) return false;
+      if (name === (c.wa_id || '').trim()) return false;
+      return true;
+    })
+    .map((c: any) => {
+      if (c.google_sync_account_id && !activeAccountIds.has(c.google_sync_account_id)) {
+        // Detach from the inactive account so the loop below treats it as
+        // "new" for the currently active account. We also strip the old
+        // resourceName because it belongs to a different Google account
+        // and would fail a batchDelete on this token.
+        const nextMeta = { ...((c as any).metadata || {}) };
+        delete nextMeta.google_resource_name;
+        return { ...c, google_sync_account_id: null, metadata: nextMeta };
+      }
+      return c;
+    });
 
   const totalPending = remaining.length;
   let pushed = 0;
