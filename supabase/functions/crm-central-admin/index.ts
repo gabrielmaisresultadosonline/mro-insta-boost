@@ -452,9 +452,47 @@ serve(async (req) => {
         .select("user_id, full_name, whatsapp_number, trial_ends_at, access_until, is_paid, plan, created_at")
         .in("user_id", userIds);
       const pMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      // Detectar quem já conectou o WhatsApp (via crm_settings). Se estiver conectado
+      // mas ainda não tiver trial_ends_at e não for pago, faz backfill de 2 dias
+      // usando a data em que a conexão foi salva (updated_at) como referência.
+      const { data: settings } = await supabase
+        .from("crm_settings")
+        .select("user_id, meta_phone_number_id, meta_access_token, meta_waba_id, updated_at, created_at")
+        .in("user_id", userIds);
+      const sMap = new Map(
+        (settings || []).map((s: any) => [s.user_id, s])
+      );
+      const backfills: { user_id: string; trial_ends_at: string }[] = [];
+      for (const u of allUsers) {
+        const p: any = pMap.get(u.id) || {};
+        const s: any = sMap.get(u.id);
+        const connected = !!(s && s.meta_phone_number_id && s.meta_access_token && s.meta_waba_id);
+        const nowMs = Date.now();
+        const accessUntilMs = p.access_until ? new Date(p.access_until).getTime() : 0;
+        const isPaidActive = !!p.is_paid && accessUntilMs > nowMs;
+        if (connected && !p.trial_ends_at && !isPaidActive) {
+          const base = s.updated_at ? new Date(s.updated_at).getTime() : nowMs;
+          const trialEnds = new Date(base + 2 * 86400000).toISOString();
+          backfills.push({ user_id: u.id, trial_ends_at: trialEnds });
+          // atualiza mapa local para refletir imediatamente
+          pMap.set(u.id, { ...p, trial_ends_at: trialEnds });
+        }
+      }
+      if (backfills.length) {
+        await Promise.all(
+          backfills.map((b) =>
+            supabase
+              .from("crm_profiles")
+              .update({ trial_ends_at: b.trial_ends_at })
+              .eq("user_id", b.user_id)
+          )
+        );
+      }
       const now = Date.now();
       const trials = allUsers.map((u) => {
         const p: any = pMap.get(u.id) || {};
+        const s: any = sMap.get(u.id);
+        const connected = !!(s && s.meta_phone_number_id && s.meta_access_token && s.meta_waba_id);
         const trialEnds = p.trial_ends_at ? new Date(p.trial_ends_at).getTime() : null;
         const accessUntil = p.access_until ? new Date(p.access_until).getTime() : null;
         const isPaid = !!p.is_paid && accessUntil && accessUntil > now;
@@ -478,6 +516,7 @@ serve(async (req) => {
           plan: p.plan || null,
           status,
           hours_left: Math.max(0, Math.floor(msLeft / 3600000)),
+          whatsapp_connected: connected,
         };
       });
       trials.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
