@@ -332,8 +332,9 @@ export default function TrialsPanel({ creds }: Props) {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Cadastros novos ganham 2 dias grátis. Após expirar, o CRM bloqueia até liberar um plano
-        (manual aqui ou automático via webhook InfinitePay).
+        Os 2 dias de teste só começam a contar quando o usuário conecta o WhatsApp no CRM.
+        Antes disso ele fica em "Aguardando WhatsApp". Depois de expirar, o CRM bloqueia
+        com popup até liberar um plano (manual aqui ou automático via webhook InfinitePay).
       </p>
     </div>
   );
