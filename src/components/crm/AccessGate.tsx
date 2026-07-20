@@ -86,7 +86,7 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
           </h1>
           <p className="text-slate-600 mb-6">
             {status.reason === "trial"
-              ? "Você usou seus 2 dias de acesso gratuito. Para continuar usando o CRM, escolha um plano."
+              ? "Você usou seus 2 dias de acesso gratuito. Para continuar, compre um plano abaixo ou entre em contato com o administrador para liberar seu acesso."
               : "Seu plano venceu. Renove agora para continuar usando o CRM sem interrupções."}
           </p>
           <div className="space-y-2">
@@ -95,8 +95,16 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
               size="lg"
               className="w-full bg-green-600 hover:bg-green-700 text-white font-bold"
             >
-              <Sparkles className="w-4 h-4 mr-2" /> Escolher um plano
+              <Sparkles className="w-4 h-4 mr-2" /> Comprar um plano
             </Button>
+            <a
+              href="https://wa.me/5511914326153"
+              target="_blank"
+              rel="noreferrer"
+              className="block w-full text-center rounded-md border border-green-600 text-green-700 hover:bg-green-50 font-semibold py-2"
+            >
+              Falar com o administrador
+            </a>
             <Button
               variant="outline"
               onClick={async () => { await supabase.auth.signOut(); window.location.href = "/crm/login"; }}
