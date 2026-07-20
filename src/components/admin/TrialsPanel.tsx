@@ -55,7 +55,7 @@ function countdown(hours: number) {
 export default function TrialsPanel({ creds }: Props) {
   const [loading, setLoading] = useState(false);
   const [trials, setTrials] = useState<Trial[]>([]);
-  const [filter, setFilter] = useState<"all" | "trial_active" | "trial_expired" | "paid">("all");
+  const [filter, setFilter] = useState<"all" | "no_trial" | "trial_active" | "trial_expired" | "paid">("all");
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [resendId, setResendId] = useState<string | null>(null);
@@ -151,6 +151,7 @@ export default function TrialsPanel({ creds }: Props) {
 
   const counts = {
     all: trials.length,
+    no_trial: trials.filter((t) => t.status === "no_trial").length,
     trial_active: trials.filter((t) => t.status === "trial_active").length,
     trial_expired: trials.filter((t) => t.status === "trial_expired").length,
     paid: trials.filter((t) => t.status === "paid").length,
@@ -174,7 +175,7 @@ export default function TrialsPanel({ creds }: Props) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex flex-wrap gap-2">
-          {(["all", "trial_active", "trial_expired", "paid"] as const).map((k) => (
+          {(["all", "no_trial", "trial_active", "trial_expired", "paid"] as const).map((k) => (
             <Button
               key={k}
               size="sm"
@@ -183,6 +184,7 @@ export default function TrialsPanel({ creds }: Props) {
               className={filter === k ? "bg-[#25D366] hover:bg-[#128C7E] text-white" : ""}
             >
               {k === "all" && `Todos (${counts.all})`}
+              {k === "no_trial" && `Aguardando WhatsApp (${counts.no_trial})`}
               {k === "trial_active" && `Em teste (${counts.trial_active})`}
               {k === "trial_expired" && `Travados (${counts.trial_expired})`}
               {k === "paid" && `Pagos (${counts.paid})`}
@@ -252,7 +254,9 @@ export default function TrialsPanel({ creds }: Props) {
                       </Badge>
                     )}
                     {t.status === "no_trial" && (
-                      <Badge variant="outline">Sem teste</Badge>
+                      <Badge className="bg-slate-100 text-slate-700 border-0">
+                        Aguardando WhatsApp
+                      </Badge>
                     )}
                   </td>
                   <td className="p-3 text-xs">
