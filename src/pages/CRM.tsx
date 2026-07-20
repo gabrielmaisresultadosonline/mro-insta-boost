@@ -5860,7 +5860,10 @@ const CRM = () => {
                                           )}
                                           {(m.message_text || m.content) && m.message_type !== 'reaction' && m.message_type !== 'audio' && m.message_type !== 'voice' && m.message_type !== 'unsupported' && !((m.message_text || m.content || '').trim() === '[Mensagem de Áudio]') && !/^\[(image|video|document|audio|sticker|imagem|vídeo|video|documento|áudio|audio)\]$/i.test((m.message_text || m.content || '').trim()) && (
                                             <div className="space-y-2">
-                                              <div className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5">
+                                              <div
+                                                className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5"
+                                                style={{ fontFamily: `system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", sans-serif` }}
+                                              >
                                                 {m.message_text || m.content}
                                               </div>
                                               
@@ -5896,7 +5899,10 @@ const CRM = () => {
                                           )}
                                           {m.message_type === 'unsupported' && hasReadableUnsupportedContent(m) && (
                                             <div className="space-y-2">
-                                              <div className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5">
+                                              <div
+                                                className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5"
+                                                style={{ fontFamily: `system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", sans-serif` }}
+                                              >
                                                 {m.message_text || m.content}
                                               </div>
                                             </div>
