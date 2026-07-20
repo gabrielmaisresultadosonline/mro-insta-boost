@@ -5862,7 +5862,7 @@ const CRM = () => {
                                             <div className="space-y-2">
                                               <div
                                                 className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5"
-                                                style={{ fontFamily: `system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", sans-serif` }}
+                                                style={{ fontFamily: `system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", sans-serif` }}
                                               >
                                                 {m.message_text || m.content}
                                               </div>
@@ -5901,7 +5901,7 @@ const CRM = () => {
                                             <div className="space-y-2">
                                               <div
                                                 className="text-sm md:text-[15px] leading-relaxed break-words whitespace-pre-wrap px-0.5"
-                                                style={{ fontFamily: `system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", sans-serif` }}
+                                                style={{ fontFamily: `system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", sans-serif` }}
                                               >
                                                 {m.message_text || m.content}
                                               </div>
