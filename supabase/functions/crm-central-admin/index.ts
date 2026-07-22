@@ -483,8 +483,10 @@ serve(async (req) => {
           backfills.map((b) =>
             supabase
               .from("crm_profiles")
-              .update({ trial_ends_at: b.trial_ends_at })
-              .eq("user_id", b.user_id)
+              .upsert(
+                { user_id: b.user_id, trial_ends_at: b.trial_ends_at },
+                { onConflict: "user_id" }
+              )
           )
         );
       }
