@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Lock, Sparkles } from "lucide-react";
+import { Loader2, Lock, Sparkles, Check, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/Logo";
 
 type Status =
   | { kind: "loading" }
@@ -75,47 +74,108 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
   }
 
   if (status.kind === "blocked") {
+    const plans = [
+      { name: "Mensal", price: "R$ 97", per: "/mês", href: "/vendas#precos", highlight: false },
+      { name: "6 Meses", price: "R$ 77", per: "/mês", href: "/vendas#precos", highlight: true, badge: "Mais popular" },
+      { name: "Anual", price: "R$ 61", per: "/mês", href: "/vendas#precos", highlight: false, badge: "Melhor preço" },
+    ];
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-red-100 text-center">
-          <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-red-100 mb-5">
-            <Lock className="h-10 w-10 text-red-600" />
+      <div className="relative min-h-screen">
+        {/* CRM continua renderizando ao fundo, mas travado */}
+        <div
+          aria-hidden
+          className="pointer-events-none select-none"
+          style={{ filter: "blur(10px) brightness(0.35)" }}
+        >
+          {children}
+        </div>
+        {/* Overlay bloqueando toda interação */}
+        <div
+          className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-md"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.preventDefault()}
+        />
+        {/* Popup central */}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border-2 border-red-200 my-8 overflow-hidden">
+            <div className="bg-gradient-to-r from-red-600 to-orange-500 text-white p-6 text-center">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur mb-3">
+                <Lock className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black mb-1">
+                🔒 Seu acesso foi travado
+              </h1>
+              <p className="text-white/90 text-sm md:text-base">
+                {status.reason === "trial"
+                  ? "Seus 2 dias de teste grátis terminaram."
+                  : "Seu plano venceu."}{" "}
+                Para continuar usando o CRM, escolha um plano abaixo ou fale com o administrador.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {plans.map((p) => (
+                  <a
+                    key={p.name}
+                    href={p.href}
+                    className={`relative rounded-2xl border-2 p-4 text-center transition hover:scale-[1.02] ${
+                      p.highlight
+                        ? "border-green-500 bg-green-50 shadow-lg"
+                        : "border-slate-200 bg-white hover:border-green-400"
+                    }`}
+                  >
+                    {p.badge && (
+                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                        {p.badge}
+                      </span>
+                    )}
+                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      {p.name}
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-2xl font-black text-slate-900">{p.price}</span>
+                      <span className="text-xs text-slate-500">{p.per}</span>
+                    </div>
+                    <div className="mt-2 text-[11px] text-slate-600 flex items-center justify-center gap-1">
+                      <Check className="w-3 h-3 text-green-600" /> API oficial WhatsApp
+                    </div>
+                  </a>
+                ))}
+              </div>
+
+              <Button
+                onClick={() => (window.location.href = "/vendas#precos")}
+                size="lg"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-base"
+              >
+                <Sparkles className="w-5 h-5 mr-2" /> Ver todos os planos e comprar agora
+              </Button>
+
+              <a
+                href="https://wa.me/5511914326153"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 w-full text-center rounded-md border-2 border-green-600 text-green-700 hover:bg-green-50 font-semibold py-2.5"
+              >
+                <MessageCircle className="w-4 h-4" /> Falar com o administrador no WhatsApp
+              </a>
+
+              <button
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  window.location.href = "/crm/login";
+                }}
+                className="w-full text-xs text-slate-400 hover:text-slate-600 pt-1"
+              >
+                Sair da conta
+              </button>
+
+              <p className="text-[11px] text-center text-slate-400 pt-1">
+                Já pagou? Aguarde alguns instantes — a liberação é automática após o pagamento.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 mb-2">
-            {status.reason === "trial" ? "Seu teste grátis terminou" : "Seu plano expirou"}
-          </h1>
-          <p className="text-slate-600 mb-6">
-            {status.reason === "trial"
-              ? "Você usou seus 2 dias de acesso gratuito. Para continuar, compre um plano abaixo ou entre em contato com o administrador para liberar seu acesso."
-              : "Seu plano venceu. Renove agora para continuar usando o CRM sem interrupções."}
-          </p>
-          <div className="space-y-2">
-            <Button
-              onClick={() => (window.location.href = "/vendas#precos")}
-              size="lg"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold"
-            >
-              <Sparkles className="w-4 h-4 mr-2" /> Comprar um plano
-            </Button>
-            <a
-              href="https://wa.me/5511914326153"
-              target="_blank"
-              rel="noreferrer"
-              className="block w-full text-center rounded-md border border-green-600 text-green-700 hover:bg-green-50 font-semibold py-2"
-            >
-              Falar com o administrador
-            </a>
-            <Button
-              variant="outline"
-              onClick={async () => { await supabase.auth.signOut(); window.location.href = "/crm/login"; }}
-              className="w-full"
-            >
-              Sair
-            </Button>
-          </div>
-          <p className="text-xs text-slate-400 mt-5">
-            Já pagou? Aguarde alguns instantes ou fale com o suporte.
-          </p>
         </div>
       </div>
     );
