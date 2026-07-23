@@ -855,17 +855,6 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                   <span className="text-[9px] text-cyan-600 font-medium uppercase tracking-wider">Copia e Cola + QR Code</span>
                 </div>
               </Button>
-              <Button
-                variant="outline"
-                className="justify-start gap-2 border-pink-500 bg-pink-50 hover:bg-pink-100 group transition-all h-auto py-2.5 shadow-sm"
-                onClick={() => addNode('mediaCarousel')}
-              >
-                <Images className="w-5 h-5 text-pink-600 group-hover:scale-110 transition-transform" />
-                <div className="flex flex-col items-start text-left">
-                  <span className="text-pink-800 font-bold text-xs">Carrossel de Mídia</span>
-                  <span className="text-[9px] text-pink-600 font-medium uppercase tracking-wider">Imagens/Vídeos + Botões</span>
-                </div>
-              </Button>
               <Button variant="outline" className="justify-start gap-2 border-slate-700/20 hover:bg-slate-700/10" onClick={() => addNode('crmAction')}>
                 <Zap className="w-4 h-4 text-slate-700" /> Ação CRM
               </Button>
