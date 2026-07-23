@@ -974,23 +974,32 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                               <X className="w-3 h-3" />
                             </Button>
                           </div>
-                          <div className="flex flex-col gap-1.5 px-1 bg-white/50 p-2 rounded-md border border-slate-100">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-[10px] font-bold text-slate-600">Botão de Link?</Label>
-                              <Switch 
-                                checked={!!btn.url}
-                                onCheckedChange={(checked) => {
-                                  const newButtons = [...(selectedNode.data.buttons as any[])];
-                                  newButtons[idx].url = checked ? 'https://' : '';
-                                  updateNodeData(selectedNode.id, { buttons: newButtons });
-                                  
-                                  // Se ativar link, remove conexões saindo desse botão
-                                  if (checked) {
-                                    setEdges((eds) => eds.filter(e => e.source !== selectedNode.id || e.sourceHandle !== (btn.id || `btn-${idx}`)));
-                                  }
-                                }}
-                              />
-                            </div>
+                           <div className="flex flex-col gap-1.5 px-1 bg-white/50 p-2 rounded-md border border-slate-100">
+                             <div className="flex items-center justify-between">
+                               <Label className="text-[10px] font-bold text-slate-600">Botão de Link?</Label>
+                               <Switch 
+                                 checked={!!btn.url}
+                                 onCheckedChange={(checked) => {
+                                   const current = (selectedNode.data.buttons as any[]) || [];
+                                   const hasReply = current.some((b: any, i: number) => i !== idx && !b.url);
+                                   const hasLink = current.some((b: any, i: number) => i !== idx && !!b.url);
+                                   if (checked && hasReply) {
+                                     toast.error("Não é possível misturar botões de resposta e link no mesmo bloco. Use apenas um tipo — limitação da API oficial do WhatsApp.");
+                                     return;
+                                   }
+                                   if (!checked && hasLink) {
+                                     toast.error("Este bloco já possui botões de link. Não é possível misturar com botões de resposta — limitação da API oficial do WhatsApp.");
+                                     return;
+                                   }
+                                   const newButtons = [...current];
+                                   newButtons[idx].url = checked ? 'https://' : '';
+                                   updateNodeData(selectedNode.id, { buttons: newButtons });
+                                   if (checked) {
+                                     setEdges((eds) => eds.filter(e => e.source !== selectedNode.id || e.sourceHandle !== (btn.id || `btn-${idx}`)));
+                                   }
+                                 }}
+                               />
+                             </div>
                             {btn.url !== undefined && btn.url !== null && btn.url !== '' && (
                               <Input 
                                 value={btn.url} 
