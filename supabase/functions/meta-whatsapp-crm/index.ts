@@ -160,6 +160,18 @@ function extractInboundTextFromWebhookMessage(message: any) {
 function collectInboundTriggerTexts(message: any, resolvedText?: string) {
   const node = message?.[message?.type] || {};
   const referral = getReferralFromWebhookMessage(message);
+  // Se o contato enviou um texto real (digitado ou clique em botão), o gatilho
+  // deve ser avaliado APENAS contra esse texto — nunca contra o welcome_message
+  // do referral do anúncio (CTWA). Caso contrário, um simples "Oi" dispara o
+  // fluxo cujo gatilho é o texto pré-preenchido do anúncio.
+  const userTypedText = firstNonEmptyString(
+    message?.text?.body,
+    message?.button?.text,
+    message?.interactive?.button_reply?.title,
+    message?.interactive?.list_reply?.title,
+  );
+  const hasUserTypedText = !!(userTypedText && userTypedText.trim());
+
   const rawCandidates = [
     resolvedText,
     extractInboundTextFromWebhookMessage(message),
@@ -177,7 +189,10 @@ function collectInboundTriggerTexts(message: any, resolvedText?: string) {
     message?.unsupported?.text?.body,
     message?.unsupported?.body,
     message?.unsupported?.caption,
-    ...getReferralTextParts(referral),
+    // Só incluímos textos do referral (welcome_message/headline/etc.) quando
+    // o usuário NÃO enviou um texto próprio — ex.: clique de anúncio que chega
+    // como "unsupported" sem body.
+    ...(hasUserTypedText ? [] : getReferralTextParts(referral)),
   ];
 
   const normalized = rawCandidates
