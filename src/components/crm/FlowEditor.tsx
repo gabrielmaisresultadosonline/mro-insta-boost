@@ -2100,16 +2100,28 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                                 <X className="w-3 h-3" />
                               </Button>
                             </div>
-                            <Input
-                              value={btn.url || ''}
-                              placeholder="URL (opcional — deixe vazio p/ botão de resposta)"
-                              className="text-[10px] h-7"
-                              onChange={(e) => {
-                                const next = [...(nData.buttons as any[])];
-                                next[idx] = { ...next[idx], url: e.target.value };
-                                updateNodeData(node.id, { buttons: next });
-                              }}
-                            />
+                             <Input
+                               value={btn.url || ''}
+                               placeholder="URL (opcional — deixe vazio p/ botão de resposta)"
+                               className="text-[10px] h-7"
+                               onChange={(e) => {
+                                 const val = e.target.value;
+                                 const current = (nData.buttons as any[]) || [];
+                                 const hasReply = current.some((b: any, i: number) => i !== idx && !b.url);
+                                 const hasLink = current.some((b: any, i: number) => i !== idx && !!b.url);
+                                 if (val && hasReply) {
+                                   toast({ title: "Não é possível misturar tipos de botão", description: "Use apenas botões de resposta OU apenas botões de link no mesmo bloco — limitação da API oficial do WhatsApp.", variant: "destructive" });
+                                   return;
+                                 }
+                                 if (!val && hasLink) {
+                                   toast({ title: "Não é possível misturar tipos de botão", description: "Este bloco já possui botões de link. Remova-os antes de adicionar botões de resposta.", variant: "destructive" });
+                                   return;
+                                 }
+                                 const next = [...current];
+                                 next[idx] = { ...next[idx], url: val };
+                                 updateNodeData(node.id, { buttons: next });
+                               }}
+                             />
                           </div>
                         ))}
                         {((nData.buttons as any[]) || []).length < 3 && (
