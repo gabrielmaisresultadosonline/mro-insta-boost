@@ -1018,16 +1018,18 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                           </div>
                         </div>
                       ))}
-                      {(selectedNode.data.buttons as any[]).length < 3 && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full text-xs h-8" 
-                          onClick={() => {
-                            const newButtons = [...(selectedNode.data.buttons as any[]), { text: 'Novo Botão', id: `btn-${Date.now()}`, url: '' }];
-                            updateNodeData(selectedNode.id, { buttons: newButtons });
-                          }}
-                        >
+                       {(selectedNode.data.buttons as any[]).length < 3 && (
+                         <Button 
+                           variant="outline" 
+                           size="sm" 
+                           className="w-full text-xs h-8" 
+                           onClick={() => {
+                             const current = (selectedNode.data.buttons as any[]) || [];
+                             const inheritLink = current.some((b: any) => !!b.url);
+                             const newButtons = [...current, { text: 'Novo Botão', id: `btn-${Date.now()}`, url: inheritLink ? 'https://' : '' }];
+                             updateNodeData(selectedNode.id, { buttons: newButtons });
+                           }}
+                         >
                           <Plus className="w-3 h-3 mr-1" /> Add Botão
                         </Button>
                       )}
