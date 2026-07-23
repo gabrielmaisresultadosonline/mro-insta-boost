@@ -974,23 +974,32 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                               <X className="w-3 h-3" />
                             </Button>
                           </div>
-                          <div className="flex flex-col gap-1.5 px-1 bg-white/50 p-2 rounded-md border border-slate-100">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-[10px] font-bold text-slate-600">Botão de Link?</Label>
-                              <Switch 
-                                checked={!!btn.url}
-                                onCheckedChange={(checked) => {
-                                  const newButtons = [...(selectedNode.data.buttons as any[])];
-                                  newButtons[idx].url = checked ? 'https://' : '';
-                                  updateNodeData(selectedNode.id, { buttons: newButtons });
-                                  
-                                  // Se ativar link, remove conexões saindo desse botão
-                                  if (checked) {
-                                    setEdges((eds) => eds.filter(e => e.source !== selectedNode.id || e.sourceHandle !== (btn.id || `btn-${idx}`)));
-                                  }
-                                }}
-                              />
-                            </div>
+                           <div className="flex flex-col gap-1.5 px-1 bg-white/50 p-2 rounded-md border border-slate-100">
+                             <div className="flex items-center justify-between">
+                               <Label className="text-[10px] font-bold text-slate-600">Botão de Link?</Label>
+                               <Switch 
+                                 checked={!!btn.url}
+                                 onCheckedChange={(checked) => {
+                                   const current = (selectedNode.data.buttons as any[]) || [];
+                                   const hasReply = current.some((b: any, i: number) => i !== idx && !b.url);
+                                   const hasLink = current.some((b: any, i: number) => i !== idx && !!b.url);
+                                   if (checked && hasReply) {
+                                     toast({ title: "Não é possível misturar tipos de botão", description: "Use apenas botões de resposta OU apenas botões de link no mesmo bloco — limitação da API oficial do WhatsApp.", variant: "destructive" });
+                                     return;
+                                   }
+                                   if (!checked && hasLink) {
+                                     toast({ title: "Não é possível misturar tipos de botão", description: "Este bloco já possui botões de link. Remova-os antes de adicionar botões de resposta.", variant: "destructive" });
+                                     return;
+                                   }
+                                   const newButtons = [...current];
+                                   newButtons[idx].url = checked ? 'https://' : '';
+                                   updateNodeData(selectedNode.id, { buttons: newButtons });
+                                   if (checked) {
+                                     setEdges((eds) => eds.filter(e => e.source !== selectedNode.id || e.sourceHandle !== (btn.id || `btn-${idx}`)));
+                                   }
+                                 }}
+                               />
+                             </div>
                             {btn.url !== undefined && btn.url !== null && btn.url !== '' && (
                               <Input 
                                 value={btn.url} 
@@ -2091,16 +2100,28 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                                 <X className="w-3 h-3" />
                               </Button>
                             </div>
-                            <Input
-                              value={btn.url || ''}
-                              placeholder="URL (opcional — deixe vazio p/ botão de resposta)"
-                              className="text-[10px] h-7"
-                              onChange={(e) => {
-                                const next = [...(nData.buttons as any[])];
-                                next[idx] = { ...next[idx], url: e.target.value };
-                                updateNodeData(node.id, { buttons: next });
-                              }}
-                            />
+                             <Input
+                               value={btn.url || ''}
+                               placeholder="URL (opcional — deixe vazio p/ botão de resposta)"
+                               className="text-[10px] h-7"
+                               onChange={(e) => {
+                                 const val = e.target.value;
+                                 const current = (nData.buttons as any[]) || [];
+                                 const hasReply = current.some((b: any, i: number) => i !== idx && !b.url);
+                                 const hasLink = current.some((b: any, i: number) => i !== idx && !!b.url);
+                                 if (val && hasReply) {
+                                   toast({ title: "Não é possível misturar tipos de botão", description: "Use apenas botões de resposta OU apenas botões de link no mesmo bloco — limitação da API oficial do WhatsApp.", variant: "destructive" });
+                                   return;
+                                 }
+                                 if (!val && hasLink) {
+                                   toast({ title: "Não é possível misturar tipos de botão", description: "Este bloco já possui botões de link. Remova-os antes de adicionar botões de resposta.", variant: "destructive" });
+                                   return;
+                                 }
+                                 const next = [...current];
+                                 next[idx] = { ...next[idx], url: val };
+                                 updateNodeData(node.id, { buttons: next });
+                               }}
+                             />
                           </div>
                         ))}
                         {((nData.buttons as any[]) || []).length < 3 && (
