@@ -73,7 +73,10 @@ function flowMatchesIncomingTrigger(flow: any, allCandidateTexts: string[]) {
   if (keywords.length === 0 || allCandidateTexts.length === 0) return false;
 
   if (triggerType === 'exact_phrase') {
-    return keywords.some((keyword) => allCandidateTexts.some((candidate) => candidate === keyword || candidate.includes(keyword)));
+    // Frases Completas: exige correspondência EXATA (após normalização).
+    // Não usar includes aqui — isso fazia frases longas dispararem com
+    // partes soltas (ex.: "olá" disparando "Olá! Posso ter mais informações...").
+    return keywords.some((keyword) => allCandidateTexts.some((candidate) => candidate === keyword));
   }
 
   if (triggerType === 'keyword') {
