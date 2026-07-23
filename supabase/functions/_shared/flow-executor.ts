@@ -519,22 +519,23 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           }
           await wait(700);
 
-          // Send any link (CTA URL) buttons for this card as separate cta_url messages
+          // Send any link (CTA URL) buttons for this card as separate cta_url messages.
+          // IMPORTANT: do NOT resend caption/media here — they already went in the media
+          // message above. Repeating them causes the duplicated "Atendimento finalizado"
+          // text seen in the chat. Use a short neutral CTA body instead.
           for (const lb of linkButtons) {
+            const ctaLabel = (lb.text || lb.label || 'Acessar').toString();
             const interactive: any = {
               type: 'cta_url',
-              body: { text: caption || 'Clique abaixo para acessar:' },
+              body: { text: '👇' },
               action: {
                 name: 'cta_url',
                 parameters: {
-                  display_text: (lb.text || lb.label || 'Acessar').substring(0, 20),
+                  display_text: ctaLabel.substring(0, 20),
                   url: lb.url
                 }
               }
             };
-            if (mediaUrl && mediaType === 'image') {
-              interactive.header = { type: 'image', image: { link: mediaUrl } };
-            }
             await supabase.functions.invoke('meta-whatsapp-crm', {
               headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
               body: {
