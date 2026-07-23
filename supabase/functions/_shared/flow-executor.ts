@@ -103,9 +103,14 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
         for (const linkBtn of linkButtons) {
           console.log(`[EXECUTOR] Enviando botão de LINK para ${waId}: ${linkBtn.url}`);
           const imageUrl = (node.data?.imageUrl || '').toString();
-          const hasImage = imageUrl.startsWith('http');
-          const bodyText = replyButtons.length > 0
-            ? (text || "Acesse pelo link:")
+          const videoUrl = (node.data?.videoUrl || '').toString();
+          // Se já enviamos os reply buttons com mídia+texto acima, NÃO repetimos
+          // mídia nem legenda aqui — só o botão de link com um corpo curto.
+          const alreadySentMediaAndText = replyButtons.length > 0;
+          const hasImage = !alreadySentMediaAndText && imageUrl.startsWith('http');
+          const hasVideo = !alreadySentMediaAndText && !hasImage && videoUrl.startsWith('http');
+          const bodyText = alreadySentMediaAndText
+            ? "👇"
             : (text || "Clique abaixo para acessar:");
           const interactive: any = {
             type: 'cta_url',
@@ -120,6 +125,8 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
           };
           if (hasImage) {
             interactive.header = { type: 'image', image: { link: imageUrl } };
+          } else if (hasVideo) {
+            interactive.header = { type: 'video', video: { link: videoUrl } };
           }
           await supabase.functions.invoke('meta-whatsapp-crm', {
             headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
