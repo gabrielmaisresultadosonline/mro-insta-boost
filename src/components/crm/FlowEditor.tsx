@@ -2132,7 +2132,9 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                             size="sm"
                             className="w-full h-7 text-xs"
                             onClick={() => {
-                              const next = [...((nData.buttons as any[]) || []), { text: 'Novo Botão', id: `btn_${Date.now()}`, url: '' }];
+                              const current = (nData.buttons as any[]) || [];
+                              const inheritLink = current.some((b: any) => !!b.url);
+                              const next = [...current, { text: 'Novo Botão', id: `btn_${Date.now()}`, url: inheritLink ? 'https://' : '' }];
                               updateNodeData(node.id, { buttons: next });
                             }}
                           >
