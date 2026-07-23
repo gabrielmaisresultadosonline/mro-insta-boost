@@ -153,7 +153,7 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
               </Button>
 
               <a
-                href="https://wa.me/5511914326153"
+                href={`https://wa.me/555192835863?text=${encodeURIComponent('Ola estou usando o zapmro API oficial, meu acesso foi TRAVADO !')}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center justify-center gap-2 w-full text-center rounded-md border-2 border-green-600 text-green-700 hover:bg-green-50 font-semibold py-2.5"
