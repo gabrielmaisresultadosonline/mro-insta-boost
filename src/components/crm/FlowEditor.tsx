@@ -984,11 +984,11 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                                    const hasReply = current.some((b: any, i: number) => i !== idx && !b.url);
                                    const hasLink = current.some((b: any, i: number) => i !== idx && !!b.url);
                                    if (checked && hasReply) {
-                                     toast.error("Não é possível misturar botões de resposta e link no mesmo bloco. Use apenas um tipo — limitação da API oficial do WhatsApp.");
+                                     toast({ title: "Não é possível misturar tipos de botão", description: "Use apenas botões de resposta OU apenas botões de link no mesmo bloco — limitação da API oficial do WhatsApp.", variant: "destructive" });
                                      return;
                                    }
                                    if (!checked && hasLink) {
-                                     toast.error("Este bloco já possui botões de link. Não é possível misturar com botões de resposta — limitação da API oficial do WhatsApp.");
+                                     toast({ title: "Não é possível misturar tipos de botão", description: "Este bloco já possui botões de link. Remova-os antes de adicionar botões de resposta.", variant: "destructive" });
                                      return;
                                    }
                                    const newButtons = [...current];
