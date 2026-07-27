@@ -27,6 +27,7 @@ import {
   MessageCircle,
   TrendingUp,
   Zap,
+  ExternalLink,
 } from "lucide-react";
 
 type AdminUser = {
@@ -210,6 +211,23 @@ export default function AdminCentral() {
       loadUsers();
     } catch (err: any) {
       toast.error(err.message || "Erro");
+    }
+  }
+
+  async function handleImpersonate(u: AdminUser) {
+    const tab = window.open("", "_blank");
+    try {
+      const data = await call("impersonate", {
+        userId: u.id,
+        redirectTo: `${window.location.origin}/crm`,
+      });
+      if (!data?.url) throw new Error("Não foi possível gerar o acesso");
+      if (tab) tab.location.href = data.url;
+      else window.open(data.url, "_blank", "noopener,noreferrer");
+      toast.success(`Abrindo WhatsApp de ${u.email}`);
+    } catch (err: any) {
+      tab?.close();
+      toast.error(err.message || "Erro ao acessar WhatsApp do usuário");
     }
   }
 
@@ -479,6 +497,11 @@ export default function AdminCentral() {
                     <Button size="sm" variant="outline" onClick={() => handleSendReset(u)} className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4]">
                       <Mail className="h-4 w-4 mr-1" /> Lembrar acesso
                     </Button>
+                    {u.connected && (
+                      <Button size="sm" onClick={() => handleImpersonate(u)} className="bg-[#25D366] text-white hover:bg-[#1eb356]">
+                        <ExternalLink className="h-4 w-4 mr-1" /> Acessar WhatsApp
+                      </Button>
+                    )}
                     {u.connected && (
                       <Button size="sm" variant="outline" onClick={() => handleDisconnect(u)} className="bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
                         <Power className="h-4 w-4 mr-1" /> Desconectar
