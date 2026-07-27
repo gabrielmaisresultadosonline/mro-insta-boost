@@ -204,7 +204,6 @@ export default function AdminCentral() {
   }
 
   async function handleDisconnect(u: AdminUser) {
-
     if (!confirm(`Desconectar WhatsApp de ${u.email}?`)) return;
     try {
       await call("disconnect_whatsapp", { userId: u.id });
@@ -212,6 +211,23 @@ export default function AdminCentral() {
       loadUsers();
     } catch (err: any) {
       toast.error(err.message || "Erro");
+    }
+  }
+
+  async function handleImpersonate(u: AdminUser) {
+    const tab = window.open("", "_blank");
+    try {
+      const data = await call("impersonate", {
+        userId: u.id,
+        redirectTo: `${window.location.origin}/crm`,
+      });
+      if (!data?.url) throw new Error("Não foi possível gerar o acesso");
+      if (tab) tab.location.href = data.url;
+      else window.open(data.url, "_blank", "noopener,noreferrer");
+      toast.success(`Abrindo WhatsApp de ${u.email}`);
+    } catch (err: any) {
+      tab?.close();
+      toast.error(err.message || "Erro ao acessar WhatsApp do usuário");
     }
   }
 
