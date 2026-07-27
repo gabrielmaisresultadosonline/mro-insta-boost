@@ -27,6 +27,7 @@ import {
   MessageCircle,
   TrendingUp,
   Zap,
+  ExternalLink,
 } from "lucide-react";
 
 type AdminUser = {
@@ -203,6 +204,7 @@ export default function AdminCentral() {
   }
 
   async function handleDisconnect(u: AdminUser) {
+
     if (!confirm(`Desconectar WhatsApp de ${u.email}?`)) return;
     try {
       await call("disconnect_whatsapp", { userId: u.id });
