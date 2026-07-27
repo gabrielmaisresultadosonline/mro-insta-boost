@@ -181,10 +181,6 @@ serve(async (req) => {
       return json({ success: true });
     }
 
-    if (action === "send_reset_email" || action === "send_access_reminder") {
-      // handled below
-    }
-
     if (action === "impersonate") {
       const { userId, redirectTo } = body as any;
       if (!userId) return json({ success: false, error: "userId obrigatório" }, 400);
