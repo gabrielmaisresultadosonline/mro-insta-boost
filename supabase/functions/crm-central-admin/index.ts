@@ -182,7 +182,7 @@ serve(async (req) => {
     }
 
     if (action === "impersonate") {
-      const { userId, redirectTo } = body as any;
+      const { userId } = body as any;
       if (!userId) return json({ success: false, error: "userId obrigatório" }, 400);
 
       const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(userId);
@@ -190,17 +190,25 @@ serve(async (req) => {
         return json({ success: false, error: "Usuário não encontrado" }, 404);
       }
 
+      // Domínio oficial da aplicação (nunca usar o domínio de preview)
+      const APP_BASE_URL = "https://zapmro.com.br";
+
       const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
         type: "magiclink",
         email: userData.user.email,
-        options: { redirectTo: (redirectTo || "").toString() || undefined },
+        options: { redirectTo: `${APP_BASE_URL}/crm` },
       });
       if (linkErr) throw linkErr;
 
-      const link = (linkData as any)?.properties?.action_link;
-      if (!link) return json({ success: false, error: "Não foi possível gerar o acesso" }, 500);
+      // Usamos o token_hash diretamente no nosso domínio, assim a sessão
+      // é criada no próprio app (evita redirect para domínio Lovable).
+      const tokenHash = (linkData as any)?.properties?.hashed_token;
+      if (!tokenHash) {
+        return json({ success: false, error: "Não foi possível gerar o acesso" }, 500);
+      }
 
-      return json({ success: true, url: link, email: userData.user.email });
+      const url = `${APP_BASE_URL}/crm?admin_token=${encodeURIComponent(tokenHash)}`;
+      return json({ success: true, url, email: userData.user.email });
     }
 
     if (action === "send_reset_email" || action === "send_access_reminder") {
