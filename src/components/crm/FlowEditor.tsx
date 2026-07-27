@@ -1646,10 +1646,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="manual">🔘 Apenas Manual</SelectItem>
-                      <SelectItem value="first_message">🆕 Primeiro Contato (Vida toda)</SelectItem>
                       <SelectItem value="first_message_day">☀️ Primeira mensagem do dia</SelectItem>
-                      <SelectItem value="24h_inactivity">⏰ Primeira mensagem após 24h</SelectItem>
-                      <SelectItem value="keyword">⌨️ Palavras-chave específicas</SelectItem>
                       <SelectItem value="exact_phrase">📝 Frase Completa Exata</SelectItem>
                     </SelectContent>
                   </Select>
