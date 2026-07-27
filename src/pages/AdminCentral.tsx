@@ -217,10 +217,7 @@ export default function AdminCentral() {
   async function handleImpersonate(u: AdminUser) {
     const tab = window.open("", "_blank");
     try {
-      const data = await call("impersonate", {
-        userId: u.id,
-        redirectTo: `${window.location.origin}/crm`,
-      });
+      const data = await call("impersonate", { userId: u.id });
       if (!data?.url) throw new Error("Não foi possível gerar o acesso");
       if (tab) tab.location.href = data.url;
       else window.open(data.url, "_blank", "noopener,noreferrer");

@@ -1278,6 +1278,20 @@ const CRM = () => {
 
    useEffect(() => {
      const checkAuth = async () => {
+       // Acesso administrativo via token (botão "Acessar WhatsApp" no /admincentral)
+       const params = new URLSearchParams(window.location.search);
+       const adminToken = params.get('admin_token');
+       if (adminToken) {
+         try {
+           await supabase.auth.verifyOtp({ type: 'magiclink', token_hash: adminToken });
+         } catch (e) {
+           console.error('Falha no acesso administrativo:', e);
+         }
+         params.delete('admin_token');
+         const clean = window.location.pathname + (params.toString() ? `?${params}` : '');
+         window.history.replaceState({}, '', clean);
+       }
+
        const { data: { session } } = await supabase.auth.getSession();
        if (!session) {
          navigate('/crm/login');
