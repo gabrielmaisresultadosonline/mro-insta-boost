@@ -182,6 +182,32 @@ serve(async (req) => {
     }
 
     if (action === "send_reset_email" || action === "send_access_reminder") {
+      // handled below
+    }
+
+    if (action === "impersonate") {
+      const { userId, redirectTo } = body as any;
+      if (!userId) return json({ success: false, error: "userId obrigatório" }, 400);
+
+      const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(userId);
+      if (userErr || !userData?.user?.email) {
+        return json({ success: false, error: "Usuário não encontrado" }, 404);
+      }
+
+      const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email: userData.user.email,
+        options: { redirectTo: (redirectTo || "").toString() || undefined },
+      });
+      if (linkErr) throw linkErr;
+
+      const link = (linkData as any)?.properties?.action_link;
+      if (!link) return json({ success: false, error: "Não foi possível gerar o acesso" }, 500);
+
+      return json({ success: true, url: link, email: userData.user.email });
+    }
+
+    if (action === "send_reset_email" || action === "send_access_reminder") {
       const { email, userId: uidRaw } = body as any;
       if (!email && !uidRaw) return json({ success: false, error: "Email obrigatório" }, 400);
 
