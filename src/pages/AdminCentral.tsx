@@ -498,6 +498,11 @@ export default function AdminCentral() {
                       <Mail className="h-4 w-4 mr-1" /> Lembrar acesso
                     </Button>
                     {u.connected && (
+                      <Button size="sm" onClick={() => handleImpersonate(u)} className="bg-[#25D366] text-white hover:bg-[#1eb356]">
+                        <ExternalLink className="h-4 w-4 mr-1" /> Acessar WhatsApp
+                      </Button>
+                    )}
+                    {u.connected && (
                       <Button size="sm" variant="outline" onClick={() => handleDisconnect(u)} className="bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
                         <Power className="h-4 w-4 mr-1" /> Desconectar
                       </Button>
