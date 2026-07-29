@@ -2006,7 +2006,6 @@ async function autoPushGoogleContactsForAllUsers(supabase: any) {
     const { data: accounts } = await supabase
       .from('crm_google_accounts')
       .select('*')
-      .eq('auto_sync', true)
       .order('updated_at', { ascending: false });
     if (!accounts || accounts.length === 0) return;
 
@@ -2019,8 +2018,14 @@ async function autoPushGoogleContactsForAllUsers(supabase: any) {
 
     for (const [userId, userAccounts] of byUser.entries()) {
       try {
+        // Contas com Auto Sync ligado recebem primeiro; as demais contas
+        // conectadas do mesmo usuário servem de destino extra (overflow),
+        // garantindo que nenhum contato fique pendente para sempre.
+        const ordered = [...userAccounts].sort(
+          (a: any, b: any) => Number(!!b.auto_sync) - Number(!!a.auto_sync)
+        );
         const settings = await getCrmSettings(supabase, userId);
-        await pushPendingContactsToGoogle(supabase, userId, settings, userAccounts, 100);
+        await pushPendingContactsToGoogle(supabase, userId, settings, ordered, 500);
       } catch (e) {
         console.warn('[auto-google-push] user error', userId, (e as any)?.message);
       }
