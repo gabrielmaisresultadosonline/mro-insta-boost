@@ -1187,7 +1187,18 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                           )}>
                             <div className="min-w-0 flex-1">
                               <p className={cn("text-xs text-[#e9edef] truncate", isExcluded && "line-through")}>{r.name}</p>
-                              <p className="text-[9px] text-[#8696a0] font-mono">{r.wa_id}</p>
+                              <p className="text-[9px] text-[#8696a0] font-mono flex items-center gap-1.5">
+                                {r.wa_id}
+                                {windowInfo.has(r.wa_id) ? (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-[#00a884]/15 text-[#00a884] font-sans">
+                                    {Math.floor((windowInfo.get(r.wa_id) || 0) / 60)}h {(windowInfo.get(r.wa_id) || 0) % 60}m restantes
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-yellow-500/15 text-yellow-500 font-sans">
+                                    fora das 24h
+                                  </span>
+                                )}
+                              </p>
                             </div>
                             <button
                               type="button"
