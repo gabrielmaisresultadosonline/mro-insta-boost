@@ -163,6 +163,21 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     return [];
   }, [targetType, selectedStatus, contacts, uploadedNumbers, conversationTagFilter, selectedTags24h]);
 
+  // Map wa_id -> minutes left in the 24h window (null when outside/unknown)
+  const windowInfo = useMemo(() => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const map = new Map<string, number>();
+    for (const c of contacts as any[]) {
+      if (!c?.last_message_received_at) continue;
+      const last = new Date(c.last_message_received_at).getTime();
+      if (Number.isNaN(last)) continue;
+      const msLeft = DAY - (now - last);
+      if (msLeft > 0) map.set(c.wa_id, Math.round(msLeft / 60000));
+    }
+    return map;
+  }, [contacts]);
+
   // Count contacts matching selected tags that are OUT of the 24h window (informational)
   const outOf24hByTag = useMemo(() => {
     if (targetType !== 'tag_24h' || selectedTags24h.length === 0) return 0;
@@ -970,6 +985,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                         <>
                           <SelectItem value="conversation">Contatos em Janela de 24h (Grátis)</SelectItem>
                           <SelectItem value="tag_24h">Por Etiquetas (dentro de 24h)</SelectItem>
+                          <SelectItem value="contacts">Todos os Contatos ({contacts.length})</SelectItem>
                         </>
                       )}
                     </SelectContent>
@@ -1123,10 +1139,29 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     </div>
                   </div>
                   {targetType !== 'conversation' && (
-                    <label className="flex items-center gap-2 text-[10px] md:text-xs text-[#8696a0] cursor-pointer select-none">
-                      <Switch checked={only24h} onCheckedChange={setOnly24h} />
-                      Apenas conversas dentro da janela de 24h
-                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-2 text-[10px] md:text-xs text-[#8696a0] cursor-pointer select-none">
+                        <Switch checked={only24h} onCheckedChange={setOnly24h} />
+                        Apenas conversas dentro da janela de 24h
+                      </label>
+                      <span className="text-[10px] text-[#00a884]">
+                        {candidateRecipients.filter(r => windowInfo.has(r.wa_id)).length} dentro das 24h
+                      </span>
+                      <span className="text-[10px] text-yellow-500">
+                        {candidateRecipients.filter(r => !windowInfo.has(r.wa_id)).length} fora
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setExcludedNumbers(prev => {
+                          const next = new Set(prev);
+                          candidateRecipients.forEach(r => { if (!windowInfo.has(r.wa_id)) next.add(r.wa_id); });
+                          return next;
+                        })}
+                        className="text-[10px] underline text-[#8696a0] hover:text-[#e9edef]"
+                      >
+                        Remover os fora das 24h
+                      </button>
+                    </div>
                   )}
                   {showRecipients && (
                     <>
@@ -1152,7 +1187,18 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                           )}>
                             <div className="min-w-0 flex-1">
                               <p className={cn("text-xs text-[#e9edef] truncate", isExcluded && "line-through")}>{r.name}</p>
-                              <p className="text-[9px] text-[#8696a0] font-mono">{r.wa_id}</p>
+                              <p className="text-[9px] text-[#8696a0] font-mono flex items-center gap-1.5">
+                                {r.wa_id}
+                                {windowInfo.has(r.wa_id) ? (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-[#00a884]/15 text-[#00a884] font-sans">
+                                    {Math.floor((windowInfo.get(r.wa_id) || 0) / 60)}h {(windowInfo.get(r.wa_id) || 0) % 60}m restantes
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-yellow-500/15 text-yellow-500 font-sans">
+                                    fora das 24h
+                                  </span>
+                                )}
+                              </p>
                             </div>
                             <button
                               type="button"
