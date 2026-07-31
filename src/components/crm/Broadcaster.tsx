@@ -163,6 +163,21 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     return [];
   }, [targetType, selectedStatus, contacts, uploadedNumbers, conversationTagFilter, selectedTags24h]);
 
+  // Map wa_id -> minutes left in the 24h window (null when outside/unknown)
+  const windowInfo = useMemo(() => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const map = new Map<string, number>();
+    for (const c of contacts as any[]) {
+      if (!c?.last_message_received_at) continue;
+      const last = new Date(c.last_message_received_at).getTime();
+      if (Number.isNaN(last)) continue;
+      const msLeft = DAY - (now - last);
+      if (msLeft > 0) map.set(c.wa_id, Math.round(msLeft / 60000));
+    }
+    return map;
+  }, [contacts]);
+
   // Count contacts matching selected tags that are OUT of the 24h window (informational)
   const outOf24hByTag = useMemo(() => {
     if (targetType !== 'tag_24h' || selectedTags24h.length === 0) return 0;
