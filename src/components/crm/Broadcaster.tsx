@@ -1139,10 +1139,29 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     </div>
                   </div>
                   {targetType !== 'conversation' && (
-                    <label className="flex items-center gap-2 text-[10px] md:text-xs text-[#8696a0] cursor-pointer select-none">
-                      <Switch checked={only24h} onCheckedChange={setOnly24h} />
-                      Apenas conversas dentro da janela de 24h
-                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-2 text-[10px] md:text-xs text-[#8696a0] cursor-pointer select-none">
+                        <Switch checked={only24h} onCheckedChange={setOnly24h} />
+                        Apenas conversas dentro da janela de 24h
+                      </label>
+                      <span className="text-[10px] text-[#00a884]">
+                        {candidateRecipients.filter(r => windowInfo.has(r.wa_id)).length} dentro das 24h
+                      </span>
+                      <span className="text-[10px] text-yellow-500">
+                        {candidateRecipients.filter(r => !windowInfo.has(r.wa_id)).length} fora
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setExcludedNumbers(prev => {
+                          const next = new Set(prev);
+                          candidateRecipients.forEach(r => { if (!windowInfo.has(r.wa_id)) next.add(r.wa_id); });
+                          return next;
+                        })}
+                        className="text-[10px] underline text-[#8696a0] hover:text-[#e9edef]"
+                      >
+                        Remover os fora das 24h
+                      </button>
+                    </div>
                   )}
                   {showRecipients && (
                     <>
