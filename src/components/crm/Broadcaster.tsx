@@ -985,6 +985,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                         <>
                           <SelectItem value="conversation">Contatos em Janela de 24h (Grátis)</SelectItem>
                           <SelectItem value="tag_24h">Por Etiquetas (dentro de 24h)</SelectItem>
+                          <SelectItem value="contacts">Todos os Contatos ({contacts.length})</SelectItem>
                         </>
                       )}
                     </SelectContent>
