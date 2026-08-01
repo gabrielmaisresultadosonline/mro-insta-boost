@@ -93,6 +93,7 @@ import TemplatePreview from "@/components/whatsapp/TemplatePreview";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -591,6 +592,11 @@ const CRM = () => {
   const [allScheduledMessages, setAllScheduledMessages] = useState<any[]>([]);
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [showAllGoogleContacts, setShowAllGoogleContacts] = useState(false);
+  // Reenvio de contatos já salvos/sincronizados pela ferramenta para outra conta Google
+  const [resendSelection, setResendSelection] = useState<Set<string>>(new Set());
+  const [resendSourceFilter, setResendSourceFilter] = useState<string>('all');
+  const [resendTargetAccount, setResendTargetAccount] = useState<string>('');
+  const [isResendingGoogle, setIsResendingGoogle] = useState(false);
 
   // States for custom statuses
   const [kanbanStatuses, setKanbanStatuses] = useState<any[]>([]);
@@ -2056,6 +2062,45 @@ const CRM = () => {
       });
     } finally {
       setIsSyncingContacts(false);
+    }
+  };
+
+  /**
+   * Reenvia contatos que já foram salvos/sincronizados pela ferramenta
+   * para OUTRA conta Google escolhida pelo usuário.
+   */
+  const handleResendGoogleContacts = async (contactIds: string[]) => {
+    if (!resendTargetAccount) {
+      toast({ title: 'Selecione a conta Google de destino', variant: 'destructive' });
+      return;
+    }
+    setIsResendingGoogle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: {
+          action: 'resendGoogleContacts',
+          targetAccountId: resendTargetAccount,
+          contactIds,
+          sourceAccountId: resendSourceFilter !== 'all' && contactIds.length === 0 ? resendSourceFilter : undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.success === false) throw new Error(data.error || 'Falha ao reenviar contatos');
+
+      toast({
+        title: 'Reenvio iniciado',
+        description: `${data?.detached || 0} contatos marcados para reenvio. ${data?.pushed || 0} já subiram para a conta de destino.`,
+      });
+      setResendSelection(new Set());
+      await fetchContacts();
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao reenviar contatos',
+        description: err.message || 'Não foi possível reenviar para a outra conta.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResendingGoogle(false);
     }
   };
 
@@ -7533,10 +7578,19 @@ const CRM = () => {
                     const synced = contacts.filter(isSynced);
                     const pendingNamed = contacts.filter(c => hasRealName(c) && (!isSynced(c) || isDirty(c)));
                     const filtered = synced.filter(c => {
+                      if (resendSourceFilter !== 'all' && c.google_sync_account_id !== resendSourceFilter) return false;
                       if (contactListSearch === 'all') return true;
                       const q = contactListSearch.toLowerCase();
                       return c.name?.toLowerCase().includes(q) || c.wa_id?.includes(contactListSearch);
                     });
+                    const allFilteredSelected = filtered.length > 0 && filtered.every(c => resendSelection.has(c.id));
+                    const toggleContactSelection = (id: string) => {
+                      setResendSelection(prev => {
+                        const next = new Set(prev);
+                        if (next.has(id)) next.delete(id); else next.add(id);
+                        return next;
+                      });
+                    };
 
                     return (
                       <>
@@ -7629,6 +7683,72 @@ const CRM = () => {
                           </div>
                         )}
 
+                        {/* Reenvio dos contatos salvos pela ferramenta para outra conta Google */}
+                        <div className="bg-card rounded-2xl border shadow-sm p-4 md:p-6 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <RefreshCcw className="w-4 h-4 text-primary" />
+                            <h3 className="text-sm font-bold">Reenviar contatos salvos pela ferramenta</h3>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Filtre os contatos que já foram salvos e sincronizados pelo sistema e reenvie todos (ou só os selecionados) para outra conta Google conectada.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-muted-foreground">Origem (conta atual)</label>
+                              <Select value={resendSourceFilter} onValueChange={(v) => { setResendSourceFilter(v); setResendSelection(new Set()); }}>
+                                <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Todas as contas" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">Todas as contas</SelectItem>
+                                  {googleAccounts.map(acc => (
+                                    <SelectItem key={acc.id} value={acc.id}>{acc.email}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-muted-foreground">Destino (novo email)</label>
+                              <Select value={resendTargetAccount} onValueChange={setResendTargetAccount}>
+                                <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Escolha a conta destino" /></SelectTrigger>
+                                <SelectContent>
+                                  {googleAccounts
+                                    .filter(acc => acc.id !== resendSourceFilter)
+                                    .map(acc => (
+                                      <SelectItem key={acc.id} value={acc.id}>{acc.email}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1 flex flex-col justify-end">
+                              <Button
+                                className="h-10 rounded-xl font-bold text-xs"
+                                disabled={isResendingGoogle || !resendTargetAccount}
+                                onClick={() => handleResendGoogleContacts(Array.from(resendSelection))}
+                              >
+                                <RefreshCcw className={cn("w-3.5 h-3.5 mr-2", isResendingGoogle && "animate-spin")} />
+                                {resendSelection.size > 0
+                                  ? `Reenviar ${resendSelection.size} selecionados`
+                                  : `Reenviar todos (${filtered.length})`}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 pt-1">
+                            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                              <Checkbox
+                                checked={allFilteredSelected}
+                                onCheckedChange={(checked) => {
+                                  setResendSelection(checked ? new Set(filtered.map(c => c.id)) : new Set());
+                                }}
+                              />
+                              Selecionar todos os listados ({filtered.length})
+                            </label>
+                            {resendSelection.size > 0 && (
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setResendSelection(new Set())}>
+                                Limpar seleção
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
                           {filtered.length === 0 ? (
                             <div className="p-12 text-center text-muted-foreground text-sm italic">
@@ -7646,6 +7766,10 @@ const CRM = () => {
                                 {filtered.slice(0, showAllGoogleContacts ? undefined : 50).map((contact) => (
                                   <div key={contact.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/30">
                                     <div className="flex items-center gap-3 min-w-0">
+                                      <Checkbox
+                                        checked={resendSelection.has(contact.id)}
+                                        onCheckedChange={() => toggleContactSelection(contact.id)}
+                                      />
                                       <div className="relative w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
                                         {contact.name?.charAt(0).toUpperCase() || <User className="w-5 h-5" />}
                                         <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#4285F4] rounded-full flex items-center justify-center border-2 border-card">
@@ -7669,6 +7793,12 @@ const CRM = () => {
                                 <table className="w-full text-left border-collapse min-w-[700px]">
                                   <thead>
                                     <tr className="bg-muted/50 text-[10px] uppercase font-bold text-muted-foreground tracking-wider border-b">
+                                      <th className="px-4 py-4 w-10">
+                                        <Checkbox
+                                          checked={allFilteredSelected}
+                                          onCheckedChange={(checked) => setResendSelection(checked ? new Set(filtered.map(c => c.id)) : new Set())}
+                                        />
+                                      </th>
                                       <th className="px-6 py-4">Nome</th>
                                       <th className="px-6 py-4">WhatsApp</th>
                                       <th className="px-6 py-4">Conta Google</th>
@@ -7679,6 +7809,12 @@ const CRM = () => {
                                   <tbody className="divide-y">
                                     {filtered.slice(0, showAllGoogleContacts ? undefined : 50).map((contact) => (
                                       <tr key={contact.id} className="hover:bg-muted/30 transition-colors group">
+                                        <td className="px-4 py-4">
+                                          <Checkbox
+                                            checked={resendSelection.has(contact.id)}
+                                            onCheckedChange={() => toggleContactSelection(contact.id)}
+                                          />
+                                        </td>
                                         <td className="px-6 py-4">
                                           <div className="flex items-center gap-3">
                                             <div className="relative w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">

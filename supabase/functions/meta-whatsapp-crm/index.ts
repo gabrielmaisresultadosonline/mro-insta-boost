@@ -4821,6 +4821,7 @@ async function fetchAndStoreIncomingMedia(
     }
 
     if (action === 'syncPendingToGoogle') {
+      const targetAccountId: string | undefined = params?.targetAccountId;
       // Push contacts that are NOT yet on Google up to active Google accounts.
       // Does NOT pull from Google (avoid duplication caused by re-importing).
       const { data: accounts } = await supabase
@@ -4835,12 +4836,79 @@ async function fetchAndStoreIncomingMedia(
 
       // Prioriza contas com Auto Sync ligado; as demais contas conectadas
       // funcionam como destino extra quando a principal enche ou falha.
-      const ordered = [...accounts].sort(
+      const scoped = targetAccountId
+        ? accounts.filter((a: any) => a.id === targetAccountId)
+        : accounts;
+      if (scoped.length === 0) {
+        return jsonResponse({ success: false, error: 'Conta Google de destino não encontrada' }, 400);
+      }
+      const ordered = [...scoped].sort(
         (a: any, b: any) => Number(!!b.auto_sync) - Number(!!a.auto_sync)
       );
 
       const result = await pushPendingContactsToGoogle(supabase, userId, settings, ordered, 500);
       return jsonResponse(result);
+    }
+
+    // Reenviar contatos JÁ sincronizados pela ferramenta para OUTRA conta Google.
+    // Estratégia: soltar o vínculo atual (account id + resourceName + timestamp)
+    // para que a rotina padrão de push trate esses contatos como pendentes,
+    // e então empurrar apenas para a conta de destino escolhida.
+    if (action === 'resendGoogleContacts') {
+      const targetAccountId: string | undefined = params?.targetAccountId;
+      const contactIds: string[] = Array.isArray(params?.contactIds) ? params.contactIds : [];
+      const sourceAccountId: string | undefined = params?.sourceAccountId;
+
+      if (!targetAccountId) {
+        return jsonResponse({ success: false, error: 'Selecione a conta Google de destino' }, 400);
+      }
+
+      const { data: accounts } = await supabase
+        .from('crm_google_accounts')
+        .select('*')
+        .eq('user_id', userId);
+
+      const target = (accounts || []).find((a: any) => a.id === targetAccountId);
+      if (!target) {
+        return jsonResponse({ success: false, error: 'Conta Google de destino não encontrada' }, 400);
+      }
+
+      // Seleciona os contatos que já foram salvos/sincronizados pelo sistema.
+      let query = supabase
+        .from('crm_contacts')
+        .select('id, metadata, google_sync_account_id')
+        .eq('user_id', userId)
+        .not('google_sync_account_id', 'is', null);
+
+      if (contactIds.length > 0) query = query.in('id', contactIds);
+      else if (sourceAccountId) query = query.eq('google_sync_account_id', sourceAccountId);
+
+      const { data: rows, error: rowsError } = await query.limit(5000);
+      if (rowsError) {
+        return jsonResponse({ success: false, error: rowsError.message }, 500);
+      }
+
+      const selected = (rows || []).filter((r: any) => r.google_sync_account_id !== targetAccountId);
+      let detached = 0;
+
+      for (const row of selected) {
+        const nextMeta = { ...((row as any).metadata || {}) };
+        delete nextMeta.google_resource_name;
+        nextMeta.google_dirty = true;
+        const { error: updErr } = await supabase
+          .from('crm_contacts')
+          .update({
+            google_sync_account_id: null,
+            google_synced_at: null,
+            metadata: nextMeta,
+          })
+          .eq('id', row.id)
+          .eq('user_id', userId);
+        if (!updErr) detached++;
+      }
+
+      const result = await pushPendingContactsToGoogle(supabase, userId, settings, [target], 500);
+      return jsonResponse({ ...result, detached, targetAccountId });
     }
     // Legacy action block removed to prevent duplication with main processScheduled at line 332
 
