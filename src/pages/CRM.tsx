@@ -591,6 +591,11 @@ const CRM = () => {
   const [allScheduledMessages, setAllScheduledMessages] = useState<any[]>([]);
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [showAllGoogleContacts, setShowAllGoogleContacts] = useState(false);
+  // Reenvio de contatos já salvos/sincronizados pela ferramenta para outra conta Google
+  const [resendSelection, setResendSelection] = useState<Set<string>>(new Set());
+  const [resendSourceFilter, setResendSourceFilter] = useState<string>('all');
+  const [resendTargetAccount, setResendTargetAccount] = useState<string>('');
+  const [isResendingGoogle, setIsResendingGoogle] = useState(false);
 
   // States for custom statuses
   const [kanbanStatuses, setKanbanStatuses] = useState<any[]>([]);
