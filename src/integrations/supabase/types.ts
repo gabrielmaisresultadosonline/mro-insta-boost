@@ -852,6 +852,8 @@ export type Database = {
           flow_timeout_minutes: number | null
           flow_timeout_node_id: string | null
           google_sync_account_id: string | null
+          google_sync_claim_token: string | null
+          google_sync_claimed_at: string | null
           id: string
           is_qualified: boolean | null
           last_ai_strategy: string | null
@@ -887,6 +889,8 @@ export type Database = {
           flow_timeout_minutes?: number | null
           flow_timeout_node_id?: string | null
           google_sync_account_id?: string | null
+          google_sync_claim_token?: string | null
+          google_sync_claimed_at?: string | null
           id?: string
           is_qualified?: boolean | null
           last_ai_strategy?: string | null
@@ -922,6 +926,8 @@ export type Database = {
           flow_timeout_minutes?: number | null
           flow_timeout_node_id?: string | null
           google_sync_account_id?: string | null
+          google_sync_claim_token?: string | null
+          google_sync_claimed_at?: string | null
           id?: string
           is_qualified?: boolean | null
           last_ai_strategy?: string | null
@@ -5269,6 +5275,52 @@ export type Database = {
       }
     }
     Functions: {
+      claim_crm_contacts_for_google_sync: {
+        Args: { p_claim_token: string; p_limit: number; p_user_id: string }
+        Returns: {
+          ai_active: boolean | null
+          ai_agent_prompt: string | null
+          ai_analysis_history: Json | null
+          ai_strategy_active: boolean | null
+          ai_strategy_history: Json | null
+          countdown_trigger_sent_at: string | null
+          created_at: string | null
+          current_flow_id: string | null
+          current_node_id: string | null
+          current_step_index: number | null
+          custom_labels: string[] | null
+          flow_state: string | null
+          flow_timeout_minutes: number | null
+          flow_timeout_node_id: string | null
+          google_sync_account_id: string | null
+          google_sync_claim_token: string | null
+          google_sync_claimed_at: string | null
+          id: string
+          is_qualified: boolean | null
+          last_ai_strategy: string | null
+          last_flow_interaction: string | null
+          last_interaction: string | null
+          last_message_received_at: string | null
+          last_read_at: string | null
+          metadata: Json | null
+          name: string | null
+          next_execution_time: string | null
+          sale_closed: boolean | null
+          source_type: string | null
+          status: string | null
+          total_messages_received: number | null
+          total_messages_sent: number | null
+          updated_at: string | null
+          user_id: string | null
+          wa_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "crm_contacts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       crm_is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       get_whatsapp_public_config: { Args: never; Returns: Json }
       grant_crm_access: {
