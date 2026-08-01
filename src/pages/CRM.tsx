@@ -2064,6 +2064,45 @@ const CRM = () => {
     }
   };
 
+  /**
+   * Reenvia contatos que já foram salvos/sincronizados pela ferramenta
+   * para OUTRA conta Google escolhida pelo usuário.
+   */
+  const handleResendGoogleContacts = async (contactIds: string[]) => {
+    if (!resendTargetAccount) {
+      toast({ title: 'Selecione a conta Google de destino', variant: 'destructive' });
+      return;
+    }
+    setIsResendingGoogle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: {
+          action: 'resendGoogleContacts',
+          targetAccountId: resendTargetAccount,
+          contactIds,
+          sourceAccountId: resendSourceFilter !== 'all' && contactIds.length === 0 ? resendSourceFilter : undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.success === false) throw new Error(data.error || 'Falha ao reenviar contatos');
+
+      toast({
+        title: 'Reenvio iniciado',
+        description: `${data?.detached || 0} contatos marcados para reenvio. ${data?.pushed || 0} já subiram para a conta de destino.`,
+      });
+      setResendSelection(new Set());
+      await fetchContacts();
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao reenviar contatos',
+        description: err.message || 'Não foi possível reenviar para a outra conta.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResendingGoogle(false);
+    }
+  };
+
   // Sincronização automática em tempo real com Google Contatos
   // Executa silenciosamente a cada 2 minutos quando ativado, e uma vez ao montar.
   const [googleAccountFull, setGoogleAccountFull] = useState(false);
