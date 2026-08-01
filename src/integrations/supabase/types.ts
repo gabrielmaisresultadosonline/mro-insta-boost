@@ -854,6 +854,7 @@ export type Database = {
           google_sync_account_id: string | null
           google_sync_claim_token: string | null
           google_sync_claimed_at: string | null
+          google_synced_at: string | null
           id: string
           is_qualified: boolean | null
           last_ai_strategy: string | null
@@ -891,6 +892,7 @@ export type Database = {
           google_sync_account_id?: string | null
           google_sync_claim_token?: string | null
           google_sync_claimed_at?: string | null
+          google_synced_at?: string | null
           id?: string
           is_qualified?: boolean | null
           last_ai_strategy?: string | null
@@ -928,6 +930,7 @@ export type Database = {
           google_sync_account_id?: string | null
           google_sync_claim_token?: string | null
           google_sync_claimed_at?: string | null
+          google_synced_at?: string | null
           id?: string
           is_qualified?: boolean | null
           last_ai_strategy?: string | null
@@ -5295,6 +5298,7 @@ export type Database = {
           google_sync_account_id: string | null
           google_sync_claim_token: string | null
           google_sync_claimed_at: string | null
+          google_synced_at: string | null
           id: string
           is_qualified: boolean | null
           last_ai_strategy: string | null
