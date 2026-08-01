@@ -7578,10 +7578,19 @@ const CRM = () => {
                     const synced = contacts.filter(isSynced);
                     const pendingNamed = contacts.filter(c => hasRealName(c) && (!isSynced(c) || isDirty(c)));
                     const filtered = synced.filter(c => {
+                      if (resendSourceFilter !== 'all' && c.google_sync_account_id !== resendSourceFilter) return false;
                       if (contactListSearch === 'all') return true;
                       const q = contactListSearch.toLowerCase();
                       return c.name?.toLowerCase().includes(q) || c.wa_id?.includes(contactListSearch);
                     });
+                    const allFilteredSelected = filtered.length > 0 && filtered.every(c => resendSelection.has(c.id));
+                    const toggleContactSelection = (id: string) => {
+                      setResendSelection(prev => {
+                        const next = new Set(prev);
+                        if (next.has(id)) next.delete(id); else next.add(id);
+                        return next;
+                      });
+                    };
 
                     return (
                       <>
