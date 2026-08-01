@@ -7683,6 +7683,72 @@ const CRM = () => {
                           </div>
                         )}
 
+                        {/* Reenvio dos contatos salvos pela ferramenta para outra conta Google */}
+                        <div className="bg-card rounded-2xl border shadow-sm p-4 md:p-6 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <RefreshCcw className="w-4 h-4 text-primary" />
+                            <h3 className="text-sm font-bold">Reenviar contatos salvos pela ferramenta</h3>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Filtre os contatos que já foram salvos e sincronizados pelo sistema e reenvie todos (ou só os selecionados) para outra conta Google conectada.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-muted-foreground">Origem (conta atual)</label>
+                              <Select value={resendSourceFilter} onValueChange={(v) => { setResendSourceFilter(v); setResendSelection(new Set()); }}>
+                                <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Todas as contas" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">Todas as contas</SelectItem>
+                                  {googleAccounts.map(acc => (
+                                    <SelectItem key={acc.id} value={acc.id}>{acc.email}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-muted-foreground">Destino (novo email)</label>
+                              <Select value={resendTargetAccount} onValueChange={setResendTargetAccount}>
+                                <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Escolha a conta destino" /></SelectTrigger>
+                                <SelectContent>
+                                  {googleAccounts
+                                    .filter(acc => acc.id !== resendSourceFilter)
+                                    .map(acc => (
+                                      <SelectItem key={acc.id} value={acc.id}>{acc.email}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1 flex flex-col justify-end">
+                              <Button
+                                className="h-10 rounded-xl font-bold text-xs"
+                                disabled={isResendingGoogle || !resendTargetAccount}
+                                onClick={() => handleResendGoogleContacts(Array.from(resendSelection))}
+                              >
+                                <RefreshCcw className={cn("w-3.5 h-3.5 mr-2", isResendingGoogle && "animate-spin")} />
+                                {resendSelection.size > 0
+                                  ? `Reenviar ${resendSelection.size} selecionados`
+                                  : `Reenviar todos (${filtered.length})`}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 pt-1">
+                            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                              <Checkbox
+                                checked={allFilteredSelected}
+                                onCheckedChange={(checked) => {
+                                  setResendSelection(checked ? new Set(filtered.map(c => c.id)) : new Set());
+                                }}
+                              />
+                              Selecionar todos os listados ({filtered.length})
+                            </label>
+                            {resendSelection.size > 0 && (
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setResendSelection(new Set())}>
+                                Limpar seleção
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="bg-card rounded-2xl border shadow-sm overflow-hidden">
                           {filtered.length === 0 ? (
                             <div className="p-12 text-center text-muted-foreground text-sm italic">
