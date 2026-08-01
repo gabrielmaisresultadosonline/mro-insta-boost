@@ -4780,37 +4780,44 @@ async function fetchAndStoreIncomingMedia(
     }
 
     if (action === 'saveToGoogle') {
-        const { contactId, accountId } = params;
-        const { data: contact } = await supabase.from('crm_contacts').select('*').eq('id', contactId).single();
-        if (!contact) throw new Error('Contato não encontrado');
+      // Never create a Google contact directly here. The previous direct path
+      // did not persist google_sync_account_id/resourceName, so Auto Sync saw
+      // the same row as pending and created it again. Route manual requests
+      // through the same atomic claim + bookkeeping used by Auto Sync.
+      const { contactId, accountId } = params;
+      const { data: contact, error: contactError } = await supabase
+        .from('crm_contacts')
+        .select('id, google_sync_account_id')
+        .eq('id', contactId)
+        .eq('user_id', userId)
+        .single();
 
-        let account;
-        if (accountId || contact.google_sync_account_id) {
-            const { data } = await supabase.from('crm_google_accounts').select('*').eq('id', accountId || contact.google_sync_account_id).single();
-            account = data;
-        }
+      if (contactError || !contact) {
+        return jsonResponse({ success: false, error: 'Contato não encontrado' }, 404);
+      }
 
-        if (!account) throw new Error('Nenhuma conta Google vinculada a este contato');
+      if (contact.google_sync_account_id) {
+        return jsonResponse({ success: true, alreadySynced: true, pushed: 0 });
+      }
 
-        // Refresh token logic (simplified for briefness, would normally reuse the refresh logic above)
-        let accessToken = account.access_token;
+      const { data: connectedAccounts } = await supabase
+        .from('crm_google_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
 
-        const createResponse = await fetch('https://people.googleapis.com/v1/people:createContact', {
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                names: [{ givenName: contact.name || contact.wa_id }],
-                phoneNumbers: [{ value: contact.wa_id, type: 'mobile' }]
-            })
-        });
+      const selectedAccounts = (connectedAccounts || []).filter((account: any) =>
+        accountId ? account.id === accountId : true
+      );
+      if (selectedAccounts.length === 0) {
+        return jsonResponse({ success: false, error: 'Nenhuma conta Google vinculada a este contato' }, 400);
+      }
 
-        const result = await createResponse.json();
-        return new Response(JSON.stringify({ success: createResponse.ok, result }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      const orderedAccounts = [...selectedAccounts].sort(
+        (a: any, b: any) => Number(!!b.auto_sync) - Number(!!a.auto_sync)
+      );
+      const result = await pushPendingContactsToGoogle(supabase, userId, settings, orderedAccounts, 500);
+      return jsonResponse(result);
     }
 
     if (action === 'syncPendingToGoogle') {
