@@ -1722,20 +1722,37 @@ function getGoogleOAuthCredentials(settings?: any) {
 }
 
 async function pushPendingContactsToGoogle(supabase: any, userId: string, settings: any, accounts: any[], limit = 500) {
-  const { data: pendingNew } = await supabase
-    .from('crm_contacts')
-    .select('id, name, wa_id, google_sync_account_id, metadata')
-    .eq('user_id', userId)
-    .is('google_sync_account_id', null)
-    .limit(limit);
+  // Claim pending rows atomically before calling Google. processScheduled can
+  // overlap with a manual sync or a previous slow cron invocation; a plain
+  // SELECT allowed both executions to create the same Google contact.
+  const claimToken = crypto.randomUUID();
+  const { data: claimedContacts, error: claimError } = await supabase.rpc(
+    'claim_crm_contacts_for_google_sync',
+    {
+      p_user_id: userId,
+      p_limit: Math.min(Math.max(limit, 1), 500),
+      p_claim_token: claimToken,
+    },
+  );
 
-  const { data: pendingDirty } = await supabase
-    .from('crm_contacts')
-    .select('id, name, wa_id, google_sync_account_id, metadata')
-    .eq('user_id', userId)
-    .not('google_sync_account_id', 'is', null)
-    .eq('metadata->>google_dirty', 'true')
-    .limit(limit);
+  if (claimError) {
+    throw new Error(`Não foi possível reservar os contatos pendentes: ${claimError.message}`);
+  }
+
+  if (!claimedContacts || claimedContacts.length === 0) {
+    return {
+      success: true,
+      pushed: 0,
+      failed: 0,
+      pending: 0,
+      remaining: 0,
+      lastError: null,
+      accountFull: false,
+      fullAccounts: [],
+      requiresReconnect: false,
+      reconnectAccounts: [],
+    };
+  }
 
   // Only accounts passed into this function are allowed to receive/update
   // Google contacts. A contact already linked to another Google account must
@@ -1746,7 +1763,7 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
   // (Auto Sync turned OFF, or the account was disconnected) would otherwise
   // be stuck forever. Treat them as unassigned so they get pushed to one of
   // the currently active Auto Sync accounts on this cycle.
-  let remaining = ([...(pendingNew || []), ...(pendingDirty || [])])
+  let remaining = claimedContacts
     .filter((c: any) => {
       const name = (c.name || '').trim();
       if (!name) return false;
@@ -1884,7 +1901,11 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
               google_sync_account_id: account.id,
               google_synced_at: nowIso,
               metadata: nextMeta,
-            }).eq('id', c.id);
+              google_sync_claim_token: null,
+              google_sync_claimed_at: null,
+            })
+              .eq('id', c.id)
+              .eq('google_sync_claim_token', claimToken);
             if (upErr) {
               console.error('[GOOGLE-SYNC] Erro ao marcar contato como sincronizado:', c.id, upErr.message);
               failed++;
@@ -1934,7 +1955,11 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
                       google_sync_account_id: account.id,
                       google_synced_at: new Date().toISOString(),
                       metadata: nextMeta,
-                    }).eq('id', single.id);
+                      google_sync_claim_token: null,
+                      google_sync_claimed_at: null,
+                    })
+                      .eq('id', single.id)
+                      .eq('google_sync_claim_token', claimToken);
                     if (upErr) { failed++; } else { pushed++; }
                     singleOverflowStreak = 0;
                   } else {
@@ -1981,6 +2006,17 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
     lastError = `Contas cheias: ${fullAccounts.join(', ')}. Conecte outra conta Google para continuar.`;
   } else if (requiresReconnect) {
     lastError = `Reconecte a(s) conta(s) Google: ${[...new Set(reconnectAccounts)].join(', ')}. A permissão antiga era somente leitura.`;
+  }
+
+  // Release only this execution's unfinished claims. Successful rows already
+  // cleared their claim above; failures can be retried by the next cycle.
+  const { error: releaseError } = await supabase
+    .from('crm_contacts')
+    .update({ google_sync_claim_token: null, google_sync_claimed_at: null })
+    .eq('user_id', userId)
+    .eq('google_sync_claim_token', claimToken);
+  if (releaseError) {
+    console.error('[GOOGLE-SYNC] Falha ao liberar reservas pendentes:', releaseError.message);
   }
 
   console.log(`[GOOGLE-SYNC] Concluído: ${pushed} enviados, ${remaining.length} ainda pendentes de ${totalPending}.`);
