@@ -7766,6 +7766,10 @@ const CRM = () => {
                                 {filtered.slice(0, showAllGoogleContacts ? undefined : 50).map((contact) => (
                                   <div key={contact.id} className="p-4 flex items-center justify-between gap-3 hover:bg-muted/30">
                                     <div className="flex items-center gap-3 min-w-0">
+                                      <Checkbox
+                                        checked={resendSelection.has(contact.id)}
+                                        onCheckedChange={() => toggleContactSelection(contact.id)}
+                                      />
                                       <div className="relative w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
                                         {contact.name?.charAt(0).toUpperCase() || <User className="w-5 h-5" />}
                                         <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#4285F4] rounded-full flex items-center justify-center border-2 border-card">
@@ -7789,6 +7793,12 @@ const CRM = () => {
                                 <table className="w-full text-left border-collapse min-w-[700px]">
                                   <thead>
                                     <tr className="bg-muted/50 text-[10px] uppercase font-bold text-muted-foreground tracking-wider border-b">
+                                      <th className="px-4 py-4 w-10">
+                                        <Checkbox
+                                          checked={allFilteredSelected}
+                                          onCheckedChange={(checked) => setResendSelection(checked ? new Set(filtered.map(c => c.id)) : new Set())}
+                                        />
+                                      </th>
                                       <th className="px-6 py-4">Nome</th>
                                       <th className="px-6 py-4">WhatsApp</th>
                                       <th className="px-6 py-4">Conta Google</th>
@@ -7799,6 +7809,12 @@ const CRM = () => {
                                   <tbody className="divide-y">
                                     {filtered.slice(0, showAllGoogleContacts ? undefined : 50).map((contact) => (
                                       <tr key={contact.id} className="hover:bg-muted/30 transition-colors group">
+                                        <td className="px-4 py-4">
+                                          <Checkbox
+                                            checked={resendSelection.has(contact.id)}
+                                            onCheckedChange={() => toggleContactSelection(contact.id)}
+                                          />
+                                        </td>
                                         <td className="px-6 py-4">
                                           <div className="flex items-center gap-3">
                                             <div className="relative w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
