@@ -262,6 +262,18 @@ const getAdReferral = (message: unknown): AdReferral | null => {
   return ref && typeof ref === 'object' ? ref as AdReferral : null;
 };
 
+const getWindowInfo = (lastReceivedAt: string | null | undefined) => {
+  if (!lastReceivedAt) return null;
+  const elapsed = Date.now() - new Date(lastReceivedAt).getTime();
+  const limit = 24.5 * 60 * 60 * 1000;
+  if (elapsed >= limit) return { isExpired: true, label: 'Janela expirada' };
+  
+  const remainingMs = limit - elapsed;
+  const h = Math.floor(remainingMs / (60 * 60 * 1000));
+  const m = Math.floor((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+  return { isExpired: false, label: `${h}h ${m}m restantes` };
+};
+
 type ConnectionLogEntry = {
   id: string;
   at: string;
@@ -298,7 +310,17 @@ const CRM = () => {
     contactId: string;
     contactName: string;
   } | null>(null);
-   const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState(() => {
+      try {
+        const saved = localStorage.getItem('crm_active_tab');
+        return saved || 'dashboard';
+      } catch {
+        return 'dashboard';
+      }
+    });
+    useEffect(() => {
+      try { localStorage.setItem('crm_active_tab', activeTab); } catch {}
+    }, [activeTab]);
    const [userRole, setUserRole] = useState<string | null>(null);
   const [isMyDataOpen, setIsMyDataOpen] = useState(false);
   const [myDataEmail, setMyDataEmail] = useState('');
@@ -2559,7 +2581,7 @@ const CRM = () => {
         const { data: contactsData } = await supabase.from('crm_contacts').select('id, last_message_received_at').in('id', finalContactIds);
         const coldContacts = contactsData?.filter(c => {
           if (!c.last_message_received_at) return true;
-          return (Date.now() - new Date(c.last_message_received_at).getTime() > 24 * 60 * 60 * 1000);
+          return (Date.now() - new Date(c.last_message_received_at).getTime() > 24.5 * 60 * 60 * 1000);
         }) || [];
 
         if (coldContacts.length > 0) {
@@ -5228,7 +5250,7 @@ const CRM = () => {
                                   )}
                                   <span className={cn(
                                     "text-[10px] whitespace-nowrap opacity-70",
-                                    contact.last_message_received_at && (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000) ? "text-[#25D366] font-bold opacity-100" : "text-muted-foreground"
+                                    contact.last_message_received_at && (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24.5 * 60 * 60 * 1000) ? "text-[#25D366] font-bold opacity-100" : "text-muted-foreground"
                                   )}>
                                     {contact.last_interaction ? new Date(contact.last_interaction).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
                                   </span>
@@ -5264,7 +5286,7 @@ const CRM = () => {
                                     
                                     {contact.last_message_received_at && (() => {
                                       const elapsed = Date.now() - new Date(contact.last_message_received_at).getTime();
-                                      const DAY = 24 * 60 * 60 * 1000;
+                                      const DAY = 24.5 * 60 * 60 * 1000;
                                       if (elapsed >= DAY) return null;
                                       const remainingMs = DAY - elapsed;
                                       const h = Math.floor(remainingMs / (60 * 60 * 1000));
@@ -5277,7 +5299,7 @@ const CRM = () => {
                                       );
                                     })()}
                                     
-                                    {contact.flow_state && contact.flow_state !== 'idle' && (!contact.last_message_received_at || (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000)) && (
+                                    {contact.flow_state && contact.flow_state !== 'idle' && (!contact.last_message_received_at || (Date.now() - new Date(contact.last_message_received_at).getTime()) < (24.5 * 60 * 60 * 1000)) && (
                                       <div className="flex items-center gap-1 min-w-0">
                                         <Badge 
                                           variant="secondary" 
@@ -5425,7 +5447,7 @@ const CRM = () => {
                                       </span>
                                     </div>
                                   )}
-                                  {(countdown !== null && countdown > 0 || selectedContact.flow_state === 'waiting_response') && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000)) && (
+                                  {(countdown !== null && countdown > 0 || selectedContact.flow_state === 'waiting_response') && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24.5 * 60 * 60 * 1000)) && (
                                     <div className="text-[8px] font-black bg-red-600 text-white tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded-sm shrink-0 shadow-sm flex items-center gap-1">
                                       <Clock className="w-2.5 h-2.5" />
                                       {(() => {
@@ -5445,7 +5467,7 @@ const CRM = () => {
                               </div>
                             </div>
 
-                            {(() => { const aiFunctional = selectedContact.ai_active && (metaSettings.ai_agent_enabled || (selectedContact.metadata as any)?.manual_ai_activation === true); return ((selectedContact.flow_state && selectedContact.flow_state !== 'idle') || aiFunctional) && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24 * 60 * 60 * 1000)) && (
+                            {(() => { const aiFunctional = selectedContact.ai_active && (metaSettings.ai_agent_enabled || (selectedContact.metadata as any)?.manual_ai_activation === true); return ((selectedContact.flow_state && selectedContact.flow_state !== 'idle') || aiFunctional) && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24.5 * 60 * 60 * 1000)) && (
                               <div className={cn(
                                 "flex items-center justify-between gap-2 px-2 py-1 rounded-lg border",
                                 aiFunctional ? "bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30" : "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30"
