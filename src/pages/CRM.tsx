@@ -2569,7 +2569,7 @@ const CRM = () => {
         const { data: contactsData } = await supabase.from('crm_contacts').select('id, last_message_received_at').in('id', finalContactIds);
         const coldContacts = contactsData?.filter(c => {
           if (!c.last_message_received_at) return true;
-          return (Date.now() - new Date(c.last_message_received_at).getTime() > 24 * 60 * 60 * 1000);
+          return (Date.now() - new Date(c.last_message_received_at).getTime() > 24.5 * 60 * 60 * 1000);
         }) || [];
 
         if (coldContacts.length > 0) {
