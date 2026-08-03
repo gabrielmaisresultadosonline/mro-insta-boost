@@ -11,6 +11,34 @@ import { Checkbox } from '@/components/ui/checkbox';
 import MetaApiTermsDialog from '@/components/MetaApiTermsDialog';
 import FirstTutorialVideo from '@/components/sales/FirstTutorialVideo';
 
+const LOGIN_TIMEOUT_MS = 15000;
+
+type SignInResult = Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
+
+const isTransientNetworkError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return message.includes('failed to fetch') || message.includes('network') || message.includes('fetch');
+};
+
+const signInWithTimeout = async (email: string, password: string): Promise<SignInResult> => {
+  let timeoutId: number | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error('A conexão com o servidor demorou demais. Verifique sua internet e tente novamente.'));
+    }, LOGIN_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([
+      supabase.auth.signInWithPassword({ email, password }),
+      timeout,
+    ]);
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  }
+};
+
 const CRMLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -114,10 +142,20 @@ const CRMLogin = () => {
         setIsRegistering(false);
         setTermsAccepted(false);
       } else {
-        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password: password,
-        });
+        const normalizedEmail = email.trim();
+        let signInResult: SignInResult;
+
+        try {
+          signInResult = await signInWithTimeout(normalizedEmail, password);
+        } catch (firstError) {
+          if (!isTransientNetworkError(firstError) || !navigator.onLine) throw firstError;
+
+          // Uma queda breve de rede não deve obrigar o usuário a clicar novamente.
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
+          signInResult = await signInWithTimeout(normalizedEmail, password);
+        }
+
+        const { data: authData, error: signInError } = signInResult;
         
         if (signInError) throw signInError;
         
@@ -164,8 +202,13 @@ const CRMLogin = () => {
           return;
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Ocorreu um erro';
+      setError(
+        isTransientNetworkError(err)
+          ? 'Não foi possível conectar ao servidor de login. Verifique sua internet e tente novamente.'
+          : message
+      );
     } finally {
       setIsLoading(false);
     }
