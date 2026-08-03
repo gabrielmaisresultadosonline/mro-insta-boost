@@ -1480,11 +1480,13 @@ const CRM = () => {
       const activeContactId = selectedContactRef.current?.id;
       // Heurística de auto-refresh para evitar que o CRM "trave" após longo tempo aberto:
       // Se o CRM estiver aberto há muito tempo ou houver falha persistente de realtime,
-      // recarregamos a lista de contatos a cada 5 minutos.
+      // recarregamos a lista de contatos em segundo plano (via fetchContacts) a cada 5 minutos.
+      // Isso é uma atualização interna de dados e NÃO recarrega a página inteira,
+      // portanto você não perde o que está digitando ou editando no fluxo.
       const now = Date.now();
       const lastFullSync = lastContactsSyncRef.current ? new Date(lastContactsSyncRef.current).getTime() : 0;
       if (now - lastFullSync > 5 * 60 * 1000 && document.visibilityState === 'visible') {
-        console.log('[CRM] Executando refresh periódico preventivo...');
+        console.log('[CRM] Executando refresh periódico preventivo de dados...');
         fetchContacts();
       }
 
