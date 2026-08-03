@@ -137,15 +137,19 @@ const CRMLogin = () => {
             user_agent: navigator.userAgent
           }).then();
           
-          // Re-fetch session directly after login to ensure it's hydrated
-          await supabase.auth.getSession();
-          
-          // Check if admin to redirect correctly
-          const { data: profile } = await supabase
-            .from('crm_profiles')
-            .select('role')
-            .eq('user_id', authData.user.id)
-            .maybeSingle();
+          // O login já devolve uma sessão válida. A consulta de perfil não pode
+          // manter o botão em "Processando" caso o backend esteja momentaneamente lento.
+          const profileResult = await Promise.race([
+            supabase
+              .from('crm_profiles')
+              .select('role')
+              .eq('user_id', authData.user.id)
+              .maybeSingle(),
+            new Promise<{ data: null }>((resolve) => {
+              window.setTimeout(() => resolve({ data: null }), 3000);
+            }),
+          ]);
+          const profile = profileResult.data;
 
           toast({
             title: "Login realizado!",

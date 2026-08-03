@@ -16,16 +16,25 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
     let cancel = false;
     async function check() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // Use the already validated login session here. Calling /user on every
+        // route entry could hang the whole screen when that endpoint was slow.
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) {
           if (!cancel) setStatus({ kind: "no-auth" });
           return;
         }
-        const { data: profile, error: profileError } = await supabase
-          .from("crm_profiles")
-          .select("role, trial_ends_at, access_until, is_paid")
-          .eq("user_id", user.id)
-          .maybeSingle();
+        const profileResult = await Promise.race([
+          supabase
+            .from("crm_profiles")
+            .select("role, trial_ends_at, access_until, is_paid")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+          new Promise<{ data: null; error: null }>((resolve) => {
+            window.setTimeout(() => resolve({ data: null, error: null }), 5000);
+          }),
+        ]);
+        const { data: profile, error: profileError } = profileResult;
 
         if (profileError) {
           console.error("[AccessGate] Erro ao carregar perfil:", profileError);
