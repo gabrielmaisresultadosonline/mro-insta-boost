@@ -335,12 +335,13 @@ const CRMLogin = () => {
              </Label>
              <Input
                id="email"
-               type="email"
-               value={email}
-               onChange={(e) => setEmail(e.target.value)}
-               placeholder="Digite seu email"
-                className="bg-green-50/50 border-green-100 focus:border-green-400 focus:ring-green-400 h-12 rounded-xl text-black"
-               required
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Digite seu email"
+                 className="bg-green-50/50 border-green-100 focus:border-green-400 focus:ring-green-400 h-12 rounded-xl text-black"
+                required
+                autoComplete="email"
              />
           </div>
 
