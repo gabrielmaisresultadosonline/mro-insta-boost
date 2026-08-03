@@ -36,7 +36,10 @@ const signInWithTimeout = async (email: string, password: string): Promise<SignI
 
   try {
     return await Promise.race([
-      supabase.auth.signInWithPassword({ email, password }),
+      supabase.auth.signInWithPassword({ email, password }).then(res => {
+        console.log("Supabase respondeu login:", res.error ? res.error.message : "Sucesso");
+        return res;
+      }),
       timeout,
     ]);
   } finally {
