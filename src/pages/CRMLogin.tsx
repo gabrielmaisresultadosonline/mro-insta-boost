@@ -151,13 +151,15 @@ const CRMLogin = () => {
         let signInResult: SignInResult;
 
         try {
+          console.log("Iniciando tentativa de login para:", normalizedEmail);
           signInResult = await signInWithTimeout(normalizedEmail, password);
         } catch (firstError) {
           console.error("Erro na primeira tentativa de login:", firstError);
           // Se for erro de rede ou timeout e o navegador estiver online, tentamos de novo 1 vez
-          if (!isTransientNetworkError(firstError) || !navigator.onLine) throw firstError;
+          if (!isTransientNetworkError(firstError)) throw firstError;
 
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 1000));
+          console.log("Falha transiente detectada, tentando novamente em 2s...");
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 2000));
           signInResult = await signInWithTimeout(normalizedEmail, password);
         }
 
