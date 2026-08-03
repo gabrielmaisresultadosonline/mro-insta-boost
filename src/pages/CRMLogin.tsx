@@ -115,8 +115,8 @@ const CRMLogin = () => {
         setTermsAccepted(false);
       } else {
         const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: email.trim(),
+          password: password,
         });
         if (signInError) throw signInError;
         
@@ -154,11 +154,11 @@ const CRMLogin = () => {
           // Small delay before redirecting to ensure auth state is propagated
           setTimeout(() => {
             if (profile?.role === 'super_admin') {
-              window.location.href = '/admincentral';
+              window.location.replace('/admincentral');
             } else {
-              window.location.href = '/crm';
+              window.location.replace('/crm');
             }
-          }, 100);
+          }, 500);
         }
       }
     } catch (err: any) {
