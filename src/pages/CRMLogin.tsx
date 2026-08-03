@@ -235,7 +235,7 @@ const CRMLogin = () => {
       const message = err instanceof Error ? err.message : 'Ocorreu um erro';
       setError(
         isTransientNetworkError(err)
-          ? 'Não foi possível conectar ao servidor de login. Verifique sua internet e tente novamente.'
+          ? 'Não foi possível conectar ao servidor. Isso geralmente ocorre por instabilidade momentânea ou bloqueio de rede (CORS/VPN). Tente novamente em instantes.'
           : message
       );
     } finally {
