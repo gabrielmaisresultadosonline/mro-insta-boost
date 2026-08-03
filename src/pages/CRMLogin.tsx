@@ -206,7 +206,13 @@ const CRMLogin = () => {
           // Redirect to home if no specific role or to the correct dashboard
           const targetPath = profile?.role === 'super_admin' ? '/admincentral' : '/crm';
           
-          // Use replace to avoid back button issues and ensure clean state
+          console.log("Login OK, redirecionando para:", targetPath);
+          
+          // Fallback final: se replace falhar após 3s, tentamos location.href puro
+          const fallbackTimeout = window.setTimeout(() => {
+            window.location.href = targetPath;
+          }, 3000);
+
           window.location.replace(targetPath);
           return;
         }
