@@ -129,11 +129,15 @@ const CRMLogin = () => {
               localStorage.removeItem('crm_remember_email');
             }
           } catch {}
-          // Log access
-          await supabase.from('crm_access_logs').insert({
+
+          // Log access (opcional, não bloqueante)
+          supabase.from('crm_access_logs').insert({
             user_id: authData.user.id,
             user_agent: navigator.userAgent
-          });
+          }).then();
+          
+          // Re-fetch session directly after login to ensure it's hydrated for the next page
+          const { data: { session } } = await supabase.auth.getSession();
           
           // Check if admin to redirect correctly
           const { data: profile } = await supabase
@@ -147,11 +151,14 @@ const CRMLogin = () => {
             description: "Bem-vindo ao CRM Meta SaaS",
           });
 
-          if (profile?.role === 'super_admin') {
-            navigate('/admincentral');
-          } else {
-            navigate('/crm');
-          }
+          // Small delay before redirecting to ensure auth state is propagated
+          setTimeout(() => {
+            if (profile?.role === 'super_admin') {
+              window.location.href = '/admincentral';
+            } else {
+              window.location.href = '/crm';
+            }
+          }, 100);
         }
       }
     } catch (err: any) {
