@@ -1535,6 +1535,7 @@ const CRM = () => {
         } catch {}
       }
       const cacheKey = contactsCacheKeyRef.current;
+      const now = Date.now();
 
       // Seed from cache only on the first call this session
       if (!contactsSeededRef.current && cacheKey) {
@@ -1542,12 +1543,17 @@ const CRM = () => {
           const raw = localStorage.getItem(cacheKey);
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed?.rows) && parsed.rows.length > 0) {
+            if (Array.isArray(parsed?.rows)) {
+              console.log(`[CRM] Restaurando ${parsed.rows.length} contatos do cache...`);
               setContacts(parsed.rows);
               lastContactsSyncRef.current = parsed.lastSyncedAt || null;
+              // Se restauramos do cache, podemos tirar o loading inicial para a UI aparecer logo
+              setLoading(false);
             }
           }
-        } catch {}
+        } catch (e) {
+          console.warn('[CRM] Erro ao ler cache de contatos:', e);
+        }
         contactsSeededRef.current = true;
       }
 
