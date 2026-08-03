@@ -18,14 +18,19 @@ type SignInResult = Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>
 const isTransientNetworkError = (error: unknown): boolean => {
   if (!(error instanceof Error)) return false;
   const message = error.message.toLowerCase();
-  return message.includes('failed to fetch') || message.includes('network') || message.includes('fetch');
+  // Incluímos "timeout" como erro transiente para permitir o retry automático
+  return message.includes('failed to fetch') || 
+         message.includes('network') || 
+         message.includes('fetch') ||
+         message.includes('timeout') ||
+         message.includes('demorou demais');
 };
 
 const signInWithTimeout = async (email: string, password: string): Promise<SignInResult> => {
   let timeoutId: number | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = window.setTimeout(() => {
-      reject(new Error('A conexão com o servidor demorou demais. Verifique sua internet e tente novamente.'));
+      reject(new Error('timeout: A conexão com o servidor demorou demais. Verifique sua internet e tente novamente.'));
     }, LOGIN_TIMEOUT_MS);
   });
 
@@ -148,10 +153,11 @@ const CRMLogin = () => {
         try {
           signInResult = await signInWithTimeout(normalizedEmail, password);
         } catch (firstError) {
+          console.error("Erro na primeira tentativa de login:", firstError);
+          // Se for erro de rede ou timeout e o navegador estiver online, tentamos de novo 1 vez
           if (!isTransientNetworkError(firstError) || !navigator.onLine) throw firstError;
 
-          // Uma queda breve de rede não deve obrigar o usuário a clicar novamente.
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 1000));
           signInResult = await signInWithTimeout(normalizedEmail, password);
         }
 
@@ -159,7 +165,9 @@ const CRMLogin = () => {
         
         if (signInError) throw signInError;
         
-        if (authData.user) {
+        if (authData.session && authData.user) {
+          // Garante que a sessão está ativa no cliente antes de prosseguir
+          await supabase.auth.setSession(authData.session);
           // Persist or clear remembered email
           try {
             if (rememberMe) {
@@ -184,10 +192,11 @@ const CRMLogin = () => {
               .eq('user_id', authData.user.id)
               .maybeSingle(),
             new Promise<{ data: null }>((resolve) => {
-              window.setTimeout(() => resolve({ data: null }), 3000);
+              window.setTimeout(() => resolve({ data: null }), 2000);
             }),
-          ]);
-          const profile = profileResult.data;
+          ]).catch(() => ({ data: null }));
+          
+          const profile = profileResult?.data;
 
           toast({
             title: "Login realizado!",
