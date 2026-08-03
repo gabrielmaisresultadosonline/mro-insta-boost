@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import MetaApiTermsDialog from '@/components/MetaApiTermsDialog';
 import FirstTutorialVideo from '@/components/sales/FirstTutorialVideo';
 
-const LOGIN_TIMEOUT_MS = 15000;
+const LOGIN_TIMEOUT_MS = 60000;
 
 type SignInResult = Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
 
@@ -36,7 +36,10 @@ const signInWithTimeout = async (email: string, password: string): Promise<SignI
 
   try {
     return await Promise.race([
-      supabase.auth.signInWithPassword({ email, password }),
+      supabase.auth.signInWithPassword({ email, password }).then(res => {
+        console.log("Supabase respondeu login:", res.error ? res.error.message : "Sucesso");
+        return res;
+      }),
       timeout,
     ]);
   } finally {
@@ -151,13 +154,15 @@ const CRMLogin = () => {
         let signInResult: SignInResult;
 
         try {
+          console.log("Iniciando tentativa de login para:", normalizedEmail);
           signInResult = await signInWithTimeout(normalizedEmail, password);
         } catch (firstError) {
           console.error("Erro na primeira tentativa de login:", firstError);
           // Se for erro de rede ou timeout e o navegador estiver online, tentamos de novo 1 vez
-          if (!isTransientNetworkError(firstError) || !navigator.onLine) throw firstError;
+          if (!isTransientNetworkError(firstError)) throw firstError;
 
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 1000));
+          console.log("Falha transiente detectada, tentando novamente em 2s...");
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 2000));
           signInResult = await signInWithTimeout(normalizedEmail, password);
         }
 
@@ -167,7 +172,11 @@ const CRMLogin = () => {
         
         if (authData.session && authData.user) {
           // Garante que a sessão está ativa no cliente antes de prosseguir
-          await supabase.auth.setSession(authData.session);
+          const { error: sessionError } = await supabase.auth.setSession(authData.session);
+          if (sessionError) {
+             console.error("Erro ao persistir sessão:", sessionError);
+             throw sessionError;
+          }
           // Persist or clear remembered email
           try {
             if (rememberMe) {
@@ -206,8 +215,19 @@ const CRMLogin = () => {
           // Redirect to home if no specific role or to the correct dashboard
           const targetPath = profile?.role === 'super_admin' ? '/admincentral' : '/crm';
           
-          // Use replace to avoid back button issues and ensure clean state
-          window.location.replace(targetPath);
+          console.log("Login OK, redirecionando para:", targetPath);
+          
+          // Fallback final: se replace falhar após 1s, tentamos location.href puro
+          const fallbackTimeout = window.setTimeout(() => {
+            console.log("Fallback de redirecionamento ativado para:", targetPath);
+            window.location.href = targetPath;
+          }, 1000);
+
+          try {
+            window.location.replace(targetPath);
+          } catch (e) {
+            window.location.href = targetPath;
+          }
           return;
         }
       }
@@ -317,12 +337,13 @@ const CRMLogin = () => {
              </Label>
              <Input
                id="email"
-               type="email"
-               value={email}
-               onChange={(e) => setEmail(e.target.value)}
-               placeholder="Digite seu email"
-                className="bg-green-50/50 border-green-100 focus:border-green-400 focus:ring-green-400 h-12 rounded-xl text-black"
-               required
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Digite seu email"
+                 className="bg-green-50/50 border-green-100 focus:border-green-400 focus:ring-green-400 h-12 rounded-xl text-black"
+                required
+                autoComplete="email"
              />
           </div>
 
