@@ -118,13 +118,14 @@ const CRMLogin = () => {
           email: email.trim(),
           password: password,
         });
+        
         if (signInError) throw signInError;
         
         if (authData.user) {
           // Persist or clear remembered email
           try {
             if (rememberMe) {
-              localStorage.setItem('crm_remember_email', email);
+              localStorage.setItem('crm_remember_email', email.trim());
             } else {
               localStorage.removeItem('crm_remember_email');
             }
@@ -136,8 +137,8 @@ const CRMLogin = () => {
             user_agent: navigator.userAgent
           }).then();
           
-          // Re-fetch session directly after login to ensure it's hydrated for the next page
-          const { data: { session } } = await supabase.auth.getSession();
+          // Re-fetch session directly after login to ensure it's hydrated
+          await supabase.auth.getSession();
           
           // Check if admin to redirect correctly
           const { data: profile } = await supabase
@@ -151,14 +152,12 @@ const CRMLogin = () => {
             description: "Bem-vindo ao CRM Meta SaaS",
           });
 
-          // Small delay before redirecting to ensure auth state is propagated
-          setTimeout(() => {
-            if (profile?.role === 'super_admin') {
-              window.location.replace('/admincentral');
-            } else {
-              window.location.replace('/crm');
-            }
-          }, 500);
+          // Redirect to home if no specific role or to the correct dashboard
+          const targetPath = profile?.role === 'super_admin' ? '/admincentral' : '/crm';
+          
+          // Use replace to avoid back button issues and ensure clean state
+          window.location.replace(targetPath);
+          return;
         }
       }
     } catch (err: any) {
