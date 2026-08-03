@@ -772,7 +772,8 @@ const CRM = () => {
           addConnectionLog('error', 'Falha ao salvar conexão retornada pelo servidor', data || error);
           throw new Error(data?.error || error?.message || 'Falha ao conectar');
         }
-        const { data: { user } } = await supabase.auth.getUser();
+           const { data: { session } } = await supabase.auth.getSession();
+           const user = session?.user;
         if (user) localStorage.setItem(`crm_whatsapp_connected_${user.id}`, 'true');
         // Ativa o teste grátis de 2 dias no momento em que o WhatsApp é conectado
         // (apenas se o usuário ainda não tem trial ativo e não é pago).
@@ -1762,7 +1763,8 @@ const CRM = () => {
      if (isInitialLoad) setLoading(true);
 
      try {
-       const { data: { user } } = await supabase.auth.getUser();
+       const { data: { session } } = await supabase.auth.getSession();
+       const user = session?.user;
        if (!user) return;
 
  
