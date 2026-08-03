@@ -167,7 +167,11 @@ const CRMLogin = () => {
         
         if (authData.session && authData.user) {
           // Garante que a sessão está ativa no cliente antes de prosseguir
-          await supabase.auth.setSession(authData.session);
+          const { error: sessionError } = await supabase.auth.setSession(authData.session);
+          if (sessionError) {
+             console.error("Erro ao persistir sessão:", sessionError);
+             throw sessionError;
+          }
           // Persist or clear remembered email
           try {
             if (rememberMe) {
