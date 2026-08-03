@@ -262,6 +262,18 @@ const getAdReferral = (message: unknown): AdReferral | null => {
   return ref && typeof ref === 'object' ? ref as AdReferral : null;
 };
 
+const getWindowInfo = (lastReceivedAt: string | null | undefined) => {
+  if (!lastReceivedAt) return null;
+  const elapsed = Date.now() - new Date(lastReceivedAt).getTime();
+  const limit = 24.5 * 60 * 60 * 1000;
+  if (elapsed >= limit) return { isExpired: true, label: 'Janela expirada' };
+  
+  const remainingMs = limit - elapsed;
+  const h = Math.floor(remainingMs / (60 * 60 * 1000));
+  const m = Math.floor((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+  return { isExpired: false, label: `${h}h ${m}m restantes` };
+};
+
 type ConnectionLogEntry = {
   id: string;
   at: string;
