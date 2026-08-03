@@ -856,8 +856,7 @@ const CRM = () => {
         .from('crm_messages')
         .select('contact_id, direction, created_at, metadata')
         .gte('created_at', startOfMonth)
-        .order('created_at', { ascending: true })
-        .limit(2000);
+        .order('created_at', { ascending: true });
 
       const byContact: Record<string, any[]> = {};
       (monthMsgs || []).forEach((m: any) => {
@@ -904,8 +903,7 @@ const CRM = () => {
         .from('crm_messages')
         .select('contact_id, direction, created_at')
         .eq('direction', 'inbound')
-        .gte('created_at', since24h)
-        .limit(1000);
+        .gte('created_at', since24h);
 
       const activeSet = new Set<string>();
       (recent || []).forEach((m: any) => m.contact_id && activeSet.add(m.contact_id));
@@ -914,8 +912,7 @@ const CRM = () => {
         .from('crm_messages')
         .select('contact_id')
         .eq('direction', 'inbound')
-        .gte('created_at', startOfWeek)
-        .limit(1000);
+        .gte('created_at', startOfWeek);
       const activeWeekSet = new Set<string>();
       (recentWeek || []).forEach((m: any) => m.contact_id && activeWeekSet.add(m.contact_id));
 
@@ -1108,8 +1105,7 @@ const CRM = () => {
         .from('crm_messages')
         .select('*')
         .gt('created_at', firstCursor)
-        .order('created_at', { ascending: true })
-        .limit(50);
+        .order('created_at', { ascending: true });
 
       const rows = data || [];
       realtimeFallbackCursorRef.current = rows.length > 0
@@ -1567,8 +1563,7 @@ const CRM = () => {
         let q = supabase
           .from('crm_contacts')
           .select('*')
-          .order('updated_at', { ascending: true, nullsFirst: true })
-          .range(from, from + pageSize - 1);
+          .order('updated_at', { ascending: true, nullsFirst: true });
         
         // Se já temos um sync anterior, buscamos apenas o que mudou
         if (lastContactsSyncRef.current) {
@@ -1631,8 +1626,7 @@ const CRM = () => {
         .select('contact_id, created_at')
         .eq('direction', 'inbound')
         .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(5000);
+        .order('created_at', { ascending: false });
       const map: Record<string, string[]> = {};
       (data || []).forEach((m: any) => {
         if (!m.contact_id) return;
