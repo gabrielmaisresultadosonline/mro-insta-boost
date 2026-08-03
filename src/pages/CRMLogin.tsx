@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import MetaApiTermsDialog from '@/components/MetaApiTermsDialog';
 import FirstTutorialVideo from '@/components/sales/FirstTutorialVideo';
 
-const LOGIN_TIMEOUT_MS = 15000;
+const LOGIN_TIMEOUT_MS = 60000;
 
 type SignInResult = Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
 
