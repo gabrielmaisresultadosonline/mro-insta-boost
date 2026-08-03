@@ -1562,9 +1562,12 @@ const CRM = () => {
           .select('*')
           .order('updated_at', { ascending: true, nullsFirst: true })
           .range(from, from + pageSize - 1);
+        
+        // Se já temos um sync anterior, buscamos apenas o que mudou
         if (lastContactsSyncRef.current) {
           q = q.gt('updated_at', lastContactsSyncRef.current);
         }
+        
         const { data, error } = await q;
         if (error) break;
         if (!data || data.length === 0) break;
@@ -1576,25 +1579,35 @@ const CRM = () => {
       if (newRows.length > 0 || !lastContactsSyncRef.current) {
         setContacts(prev => {
           const map = new Map<string, any>();
+          // Preservar contatos existentes
           for (const c of prev) map.set(c.id, c);
-          for (const c of newRows) map.set(c.id, { ...map.get(c.id), ...c });
+          // Atualizar com novos dados (upsert local)
+          for (const c of newRows) {
+            const existing = map.get(c.id);
+            map.set(c.id, existing ? { ...existing, ...c } : c);
+          }
+          
           const merged = Array.from(map.values()).sort((a, b) => {
             const aT = a.last_interaction ? new Date(a.last_interaction).getTime() : 0;
             const bT = b.last_interaction ? new Date(b.last_interaction).getTime() : 0;
             return bT - aT;
           });
+
           if (cacheKey) {
             try {
               localStorage.setItem(cacheKey, JSON.stringify({
                 rows: merged,
                 lastSyncedAt: fetchStartedAt,
               }));
-            } catch {}
+            } catch (e) {
+              console.warn('[CRM] Erro ao salvar cache de contatos:', e);
+            }
           }
           return merged;
         });
       }
       lastContactsSyncRef.current = fetchStartedAt;
+      setLoading(false); // Garante que o loading saia após o fetch bem sucedido
     } finally {
       contactsInFlightRef.current = false;
     }
