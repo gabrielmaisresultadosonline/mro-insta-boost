@@ -217,12 +217,11 @@ const CRMLogin = () => {
           
           console.log("Login OK, redirecionando para:", targetPath);
           
-          // Fallback final: se replace falhar após 3s, tentamos location.href puro
-          // Isso resolve problemas onde o roteador do React intercepta o replace.
+          // Fallback final: se replace falhar após 1s, tentamos location.href puro
           const fallbackTimeout = window.setTimeout(() => {
             console.log("Fallback de redirecionamento ativado para:", targetPath);
             window.location.href = targetPath;
-          }, 2500);
+          }, 1000);
 
           try {
             window.location.replace(targetPath);
