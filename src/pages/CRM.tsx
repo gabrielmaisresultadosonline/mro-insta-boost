@@ -1478,6 +1478,16 @@ const CRM = () => {
 
     const activeChatSyncInterval = setInterval(() => {
       const activeContactId = selectedContactRef.current?.id;
+      // Heurística de auto-refresh para evitar que o CRM "trave" após longo tempo aberto:
+      // Se o CRM estiver aberto há muito tempo ou houver falha persistente de realtime,
+      // recarregamos a lista de contatos a cada 5 minutos.
+      const now = Date.now();
+      const lastFullSync = lastContactsSyncRef.current ? new Date(lastContactsSyncRef.current).getTime() : 0;
+      if (now - lastFullSync > 5 * 60 * 1000 && document.visibilityState === 'visible') {
+        console.log('[CRM] Executando refresh periódico preventivo...');
+        fetchContacts();
+      }
+
       if (activeContactId && document.visibilityState === 'visible') {
         fetchRecentActiveMessages(activeContactId);
       }
