@@ -15,46 +15,58 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     let cancel = false;
     async function check() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          if (!cancel) setStatus({ kind: "no-auth" });
+          return;
+        }
+        const { data: profile, error: profileError } = await supabase
+          .from("crm_profiles")
+          .select("role, trial_ends_at, access_until, is_paid")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error("[AccessGate] Erro ao carregar perfil:", profileError);
+          // Se houver erro no banco, permitimos acesso temporário ou forçamos logout se for fatal
+          // Aqui vamos assumir grandfathered se não conseguirmos ler, para não travar o usuário
+        }
+
+        if (profile?.role === "super_admin" || profile?.role === "admin") {
+          if (!cancel) setStatus({ kind: "allowed", mode: "admin" });
+          return;
+        }
+
+        const now = Date.now();
+        const accessUntil = profile?.access_until ? new Date(profile.access_until).getTime() : 0;
+        const trialEnds = profile?.trial_ends_at ? new Date(profile.trial_ends_at).getTime() : 0;
+
+        if (profile?.is_paid && accessUntil > now) {
+          const daysLeft = Math.ceil((accessUntil - now) / 86400000);
+          if (!cancel) setStatus({ kind: "allowed", mode: "paid", daysLeft });
+          return;
+        }
+        if (profile?.is_paid && accessUntil <= now && accessUntil > 0) {
+          if (!cancel) setStatus({ kind: "blocked", reason: "paid" });
+          return;
+        }
+        if (!profile?.trial_ends_at) {
+          // Grandfathered (registered before trial system)
+          if (!cancel) setStatus({ kind: "allowed", mode: "grandfathered" });
+          return;
+        }
+        if (trialEnds > now) {
+          const daysLeft = Math.ceil((trialEnds - now) / 86400000);
+          if (!cancel) setStatus({ kind: "allowed", mode: "trial", daysLeft });
+          return;
+        }
+        if (!cancel) setStatus({ kind: "blocked", reason: "trial" });
+      } catch (err) {
+        console.error("[AccessGate] Erro crítico no check:", err);
+        // Fallback para não travar na tela verde se algo quebrar no código
         if (!cancel) setStatus({ kind: "no-auth" });
-        return;
       }
-      const { data: profile } = await supabase
-        .from("crm_profiles")
-        .select("role, trial_ends_at, access_until, is_paid")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (profile?.role === "super_admin" || profile?.role === "admin") {
-        if (!cancel) setStatus({ kind: "allowed", mode: "admin" });
-        return;
-      }
-
-      const now = Date.now();
-      const accessUntil = profile?.access_until ? new Date(profile.access_until).getTime() : 0;
-      const trialEnds = profile?.trial_ends_at ? new Date(profile.trial_ends_at).getTime() : 0;
-
-      if (profile?.is_paid && accessUntil > now) {
-        const daysLeft = Math.ceil((accessUntil - now) / 86400000);
-        if (!cancel) setStatus({ kind: "allowed", mode: "paid", daysLeft });
-        return;
-      }
-      if (profile?.is_paid && accessUntil <= now && accessUntil > 0) {
-        if (!cancel) setStatus({ kind: "blocked", reason: "paid" });
-        return;
-      }
-      if (!profile?.trial_ends_at) {
-        // Grandfathered (registered before trial system)
-        if (!cancel) setStatus({ kind: "allowed", mode: "grandfathered" });
-        return;
-      }
-      if (trialEnds > now) {
-        const daysLeft = Math.ceil((trialEnds - now) / 86400000);
-        if (!cancel) setStatus({ kind: "allowed", mode: "trial", daysLeft });
-        return;
-      }
-      if (!cancel) setStatus({ kind: "blocked", reason: "trial" });
     }
     check();
     return () => { cancel = true; };
