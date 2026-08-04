@@ -437,8 +437,6 @@ const CRM = () => {
     activeThisWeek: 0
   });
   const CONVERSATION_COST = 0.33;
-  const messagesCacheRef = useRef<Record<string, { messages: any[], timestamp: number }>>({});
-  const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutos
   // Cache de mensagens para melhorar a performance de abertura de conversas
   const messagesCacheRef = useRef<Record<string, { messages: any[], timestamp: number }>>({});
   const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutos
