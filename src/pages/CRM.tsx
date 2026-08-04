@@ -2295,13 +2295,40 @@ const CRM = () => {
 
   const fetchMessages = async (contactId: string, silent = false) => {
     if (!contactId) return;
-    if (!silent) setLoadingChat(true);
-    const { data } = await supabase.from('crm_messages').select('*').eq('contact_id', contactId).or('is_deleted.is.null,is_deleted.eq.false').order('created_at', { ascending: true });
     
-    // Only update the UI if the contact is still the one selected
-    if (selectedContactRef.current?.id === contactId) {
-      setChatMessages(data || []);
+    // Tentar restaurar do cache imediatamente se for o carregamento inicial da conversa
+    const cached = messagesCacheRef.current[contactId];
+    if (!silent) {
+      if (cached) {
+        setChatMessages(cached.messages);
+      } else {
+        setChatMessages([]);
+      }
+      setLoadingChat(true);
+    }
+
+    try {
+      const { data } = await supabase
+        .from('crm_messages')
+        .select('*')
+        .eq('contact_id', contactId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
+        .order('created_at', { ascending: true });
+
+      if (selectedContactRef.current?.id === contactId && data) {
+        // Atualizar cache
+        messagesCacheRef.current[contactId] = {
+          messages: data,
+          timestamp: Date.now()
+        };
+        setChatMessages(data);
+      }
+    } catch (error) {
+      console.error('[CRM] Erro ao carregar histórico:', error);
+    } finally {
       if (!silent) setLoadingChat(false);
+    }
+  };
       
       // Backfill: derive last_message_received_at from actual inbound messages
       // (regra oficial WhatsApp: a janela de 24h só reseta quando o cliente responde)
