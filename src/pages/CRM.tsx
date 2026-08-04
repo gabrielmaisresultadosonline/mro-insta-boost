@@ -437,6 +437,9 @@ const CRM = () => {
     activeThisWeek: 0
   });
   const CONVERSATION_COST = 0.33;
+  // Cache de mensagens para melhorar a performance de abertura de conversas
+  const messagesCacheRef = useRef<Record<string, { messages: any[], timestamp: number }>>({});
+  const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutos
   const [flows, setFlows] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   // Per-contact inbound message timestamps (last 7 days) used to compute
@@ -2292,39 +2295,68 @@ const CRM = () => {
 
   const fetchMessages = async (contactId: string, silent = false) => {
     if (!contactId) return;
-    if (!silent) setLoadingChat(true);
-    const { data } = await supabase.from('crm_messages').select('*').eq('contact_id', contactId).or('is_deleted.is.null,is_deleted.eq.false').order('created_at', { ascending: true });
     
-    // Only update the UI if the contact is still the one selected
-    if (selectedContactRef.current?.id === contactId) {
-      setChatMessages(data || []);
-      if (!silent) setLoadingChat(false);
-      
-      // Backfill: derive last_message_received_at from actual inbound messages
-      // (regra oficial WhatsApp: a janela de 24h só reseta quando o cliente responde)
-      const lastInboundMsg = [...(data || [])].reverse().find((m: any) => m.direction === 'inbound');
-      if (lastInboundMsg) {
-        const inboundIso = lastInboundMsg.created_at;
-        const inboundT = new Date(inboundIso).getTime();
-        const currentLast = selectedContactRef.current?.last_message_received_at
-          ? new Date(selectedContactRef.current.last_message_received_at).getTime()
-          : 0;
+    // Tentar restaurar do cache imediatamente se for o carregamento inicial da conversa
+    const cached = messagesCacheRef.current[contactId];
+    if (!silent) {
+      if (cached) {
+        setChatMessages(cached.messages);
+      } else {
+        setChatMessages([]);
+      }
+      setLoadingChat(true);
+    }
+
+    try {
+      const { data } = await supabase
+        .from('crm_messages')
+        .select('*')
+        .eq('contact_id', contactId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
+        .order('created_at', { ascending: true });
+
+      if (selectedContactRef.current?.id === contactId && data) {
+        // Atualizar cache
+        messagesCacheRef.current[contactId] = {
+          messages: data,
+          timestamp: Date.now()
+        };
+        setChatMessages(data);
         
-        if (inboundT > currentLast) {
-          setSelectedContact((prev: any) => prev && prev.id === contactId
-            ? { ...prev, last_message_received_at: inboundIso }
-            : prev);
-          setContacts((prev: any[]) => prev.map(c =>
-            c.id === contactId ? { ...c, last_message_received_at: inboundIso } : c
-          ));
+        // Backfill: derive last_message_received_at from actual inbound messages
+        const lastInboundMsg = [...data].reverse().find((m: any) => m.direction === 'inbound');
+        if (lastInboundMsg) {
+          const inboundIso = lastInboundMsg.created_at;
+          const inboundT = new Date(inboundIso).getTime();
+          const currentLast = selectedContactRef.current?.last_message_received_at
+            ? new Date(selectedContactRef.current.last_message_received_at).getTime()
+            : 0;
+          
+          if (inboundT > currentLast) {
+            setSelectedContact((prev: any) => prev && prev.id === contactId
+              ? { ...prev, last_message_received_at: inboundIso }
+              : prev);
+            setContacts((prev: any[]) => prev.map(c =>
+              c.id === contactId ? { ...c, last_message_received_at: inboundIso } : c
+            ));
+          }
         }
       }
       
       await supabase.from('crm_contacts').update({ last_read_at: new Date().toISOString() }).eq('id', contactId);
+    } catch (error) {
+      console.error('[CRM] Erro ao carregar histórico:', error);
+    } finally {
+      if (!silent) setLoadingChat(false);
     }
   };
 
   const fetchRecentActiveMessages = async (contactId: string) => {
+    const cached = messagesCacheRef.current[contactId];
+    const now = Date.now();
+    // Se o cache é muito recente (menos de 10s), pular o fetch de background
+    if (cached && (now - cached.timestamp < 10000)) return;
+
     if (!contactId) return;
     const latestPersistedTime = chatMessagesRef.current
       .filter((m: any) => !m.isOptimistic && m.created_at)
@@ -2344,7 +2376,15 @@ const CRM = () => {
     setChatMessages(prev => {
       const byId = new Map(prev.map((m: any) => [m.id, m]));
       rows.forEach((m: any) => byId.set(m.id, m));
-      return Array.from(byId.values()).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const sorted = Array.from(byId.values()).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      
+      // Atualizar cache com o estado mesclado
+      messagesCacheRef.current[contactId] = {
+        messages: sorted,
+        timestamp: Date.now()
+      };
+      
+      return sorted;
     });
 
     const lastInbound = [...rows].reverse().find((m: any) => m.direction === 'inbound');
