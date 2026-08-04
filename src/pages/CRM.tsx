@@ -2322,37 +2322,32 @@ const CRM = () => {
           timestamp: Date.now()
         };
         setChatMessages(data);
-      }
-    } catch (error) {
-      console.error('[CRM] Erro ao carregar histórico:', error);
-    } finally {
-      if (!silent) setLoadingChat(false);
-    }
-  };
-      
-      // Backfill: derive last_message_received_at from actual inbound messages
-      // (regra oficial WhatsApp: a janela de 24h só reseta quando o cliente responde)
-      const lastInboundMsg = [...(data || [])].reverse().find((m: any) => m.direction === 'inbound');
-      if (lastInboundMsg && selectedContactRef.current?.id === contactId) {
-        const inboundIso = lastInboundMsg.created_at;
-        const inboundT = new Date(inboundIso).getTime();
-        const currentLast = selectedContactRef.current?.last_message_received_at
-          ? new Date(selectedContactRef.current.last_message_received_at).getTime()
-          : 0;
         
-        if (inboundT > currentLast) {
-          setSelectedContact((prev: any) => prev && prev.id === contactId
-            ? { ...prev, last_message_received_at: inboundIso }
-            : prev);
-          setContacts((prev: any[]) => prev.map(c =>
-            c.id === contactId ? { ...c, last_message_received_at: inboundIso } : c
-          ));
+        // Backfill: derive last_message_received_at from actual inbound messages
+        const lastInboundMsg = [...data].reverse().find((m: any) => m.direction === 'inbound');
+        if (lastInboundMsg) {
+          const inboundIso = lastInboundMsg.created_at;
+          const inboundT = new Date(inboundIso).getTime();
+          const currentLast = selectedContactRef.current?.last_message_received_at
+            ? new Date(selectedContactRef.current.last_message_received_at).getTime()
+            : 0;
+          
+          if (inboundT > currentLast) {
+            setSelectedContact((prev: any) => prev && prev.id === contactId
+              ? { ...prev, last_message_received_at: inboundIso }
+              : prev);
+            setContacts((prev: any[]) => prev.map(c =>
+              c.id === contactId ? { ...c, last_message_received_at: inboundIso } : c
+            ));
+          }
         }
       }
       
       await supabase.from('crm_contacts').update({ last_read_at: new Date().toISOString() }).eq('id', contactId);
     } catch (error) {
-      console.error('[CRM] fetchMessages logic error:', error);
+      console.error('[CRM] Erro ao carregar histórico:', error);
+    } finally {
+      if (!silent) setLoadingChat(false);
     }
   };
 
