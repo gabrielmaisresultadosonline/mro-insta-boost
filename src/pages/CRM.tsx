@@ -437,6 +437,8 @@ const CRM = () => {
     activeThisWeek: 0
   });
   const CONVERSATION_COST = 0.33;
+  const messagesCacheRef = useRef<Record<string, { messages: any[], timestamp: number }>>({});
+  const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutos
   // Cache de mensagens para melhorar a performance de abertura de conversas
   const messagesCacheRef = useRef<Record<string, { messages: any[], timestamp: number }>>({});
   const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutos
@@ -2328,6 +2330,11 @@ const CRM = () => {
   };
 
   const fetchRecentActiveMessages = async (contactId: string) => {
+    const cached = messagesCacheRef.current[contactId];
+    const now = Date.now();
+    // Se o cache é muito recente (menos de 10s), pular o fetch de background
+    if (cached && (now - cached.timestamp < 10000)) return;
+
     if (!contactId) return;
     const latestPersistedTime = chatMessagesRef.current
       .filter((m: any) => !m.isOptimistic && m.created_at)
@@ -2347,7 +2354,15 @@ const CRM = () => {
     setChatMessages(prev => {
       const byId = new Map(prev.map((m: any) => [m.id, m]));
       rows.forEach((m: any) => byId.set(m.id, m));
-      return Array.from(byId.values()).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const sorted = Array.from(byId.values()).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      
+      // Atualizar cache com o estado mesclado
+      messagesCacheRef.current[contactId] = {
+        messages: sorted,
+        timestamp: Date.now()
+      };
+      
+      return sorted;
     });
 
     const lastInbound = [...rows].reverse().find((m: any) => m.direction === 'inbound');
