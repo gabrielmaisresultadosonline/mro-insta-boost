@@ -2333,7 +2333,7 @@ const CRM = () => {
       // Backfill: derive last_message_received_at from actual inbound messages
       // (regra oficial WhatsApp: a janela de 24h só reseta quando o cliente responde)
       const lastInboundMsg = [...(data || [])].reverse().find((m: any) => m.direction === 'inbound');
-      if (lastInboundMsg) {
+      if (lastInboundMsg && selectedContactRef.current?.id === contactId) {
         const inboundIso = lastInboundMsg.created_at;
         const inboundT = new Date(inboundIso).getTime();
         const currentLast = selectedContactRef.current?.last_message_received_at
@@ -2351,6 +2351,8 @@ const CRM = () => {
       }
       
       await supabase.from('crm_contacts').update({ last_read_at: new Date().toISOString() }).eq('id', contactId);
+    } catch (error) {
+      console.error('[CRM] fetchMessages logic error:', error);
     }
   };
 
