@@ -10,7 +10,19 @@ type Status =
   | { kind: "blocked"; reason: "trial" | "paid" };
 
 export default function AccessGate({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<Status>({ kind: "loading" });
+  const [status, setStatus] = useState<Status>(() => {
+    // Tenta recuperar estado cacheado para evitar flash verde em refreshes
+    try {
+      const cached = localStorage.getItem('crm_access_status');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return { kind: "loading" };
+  });
+
+  useEffect(() => {
+    // Persiste status para navegação instantânea
+    try { localStorage.setItem('crm_access_status', JSON.stringify(status)); } catch {}
+  }, [status]);
 
   useEffect(() => {
     let cancel = false;
@@ -31,7 +43,7 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
             .eq("user_id", user.id)
             .maybeSingle(),
           new Promise<{ data: null; error: null }>((resolve) => {
-            window.setTimeout(() => resolve({ data: null, error: null }), 5000);
+            window.setTimeout(() => resolve({ data: null, error: null }), 3000);
           }),
         ]);
         const { data: profile, error: profileError } = profileResult;

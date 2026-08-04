@@ -201,7 +201,7 @@ const CRMLogin = () => {
               .eq('user_id', authData.user.id)
               .maybeSingle(),
             new Promise<{ data: null }>((resolve) => {
-              window.setTimeout(() => resolve({ data: null }), 2000);
+              window.setTimeout(() => resolve({ data: null }), 1000); // Reduzido para 1s
             }),
           ]).catch(() => ({ data: null }));
           
