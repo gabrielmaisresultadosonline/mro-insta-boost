@@ -1127,7 +1127,8 @@ const CRM = () => {
         .from('crm_messages')
         .select('*')
         .gt('created_at', firstCursor)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(100); // Limite de segurança para evitar sobrecarga no realtime fallback
 
       const rows = data || [];
       realtimeFallbackCursorRef.current = rows.length > 0
@@ -1499,12 +1500,12 @@ const CRM = () => {
       const activeContactId = selectedContactRef.current?.id;
       // Heurística de auto-refresh para evitar que o CRM "trave" após longo tempo aberto:
       // Se o CRM estiver aberto há muito tempo ou houver falha persistente de realtime,
-      // recarregamos a lista de contatos em segundo plano (via fetchContacts) a cada 5 minutos.
+      // recarregamos a lista de contatos em segundo plano (via fetchContacts) a cada 10 minutos (reduzido de 5 para economizar recursos).
       // Isso é uma atualização interna de dados e NÃO recarrega a página inteira,
       // portanto você não perde o que está digitando ou editando no fluxo.
       const now = Date.now();
       const lastFullSync = lastContactsSyncRef.current ? new Date(lastContactsSyncRef.current).getTime() : 0;
-      if (now - lastFullSync > 5 * 60 * 1000 && document.visibilityState === 'visible') {
+      if (now - lastFullSync > 10 * 60 * 1000 && document.visibilityState === 'visible') {
         console.log('[CRM] Executando refresh periódico preventivo de dados...');
         fetchContacts();
       }
@@ -1581,23 +1582,23 @@ const CRM = () => {
       const newRows: any[] = [];
       const fetchStartedAt = new Date().toISOString();
       let from = 0;
-      while (from < 100000) {
-        let q = supabase
-          .from('crm_contacts')
-          .select('*')
-          .order('updated_at', { ascending: true, nullsFirst: true });
-        
-        // Se já temos um sync anterior, buscamos apenas o que mudou
-        if (lastContactsSyncRef.current) {
-          q = q.gt('updated_at', lastContactsSyncRef.current);
-        }
-        
-        const { data, error } = await q;
-        if (error) break;
-        if (!data || data.length === 0) break;
+      
+      // Realizamos apenas uma busca das alterações mais recentes ou do estado inicial
+      // Removendo o loop "while" agressivo que poderia causar gargalos se houverem muitos contatos
+      let q = supabase
+        .from('crm_contacts')
+        .select('*')
+        .order('updated_at', { ascending: false }) // Buscamos os mais recentes primeiro
+        .limit(pageSize);
+      
+      // Se já temos um sync anterior, buscamos apenas o que mudou
+      if (lastContactsSyncRef.current) {
+        q = q.gt('updated_at', lastContactsSyncRef.current);
+      }
+      
+      const { data, error } = await q;
+      if (!error && data) {
         newRows.push(...data);
-        if (data.length < pageSize) break;
-        from += pageSize;
       }
 
       if (newRows.length > 0 || !lastContactsSyncRef.current) {
