@@ -463,6 +463,9 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 
     console.log(`[AI-AGENT] Calling OpenAI for ${waId}. Model: gpt-4o-mini. System prompt length: ${systemPrompt.length}`);
     
+    // Log the prompt being used for debugging
+    console.log(`[AI-AGENT-PROMPT] User instructions for ${waId}: ${aiPrompt.slice(0, 200)}...`);
+    
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -472,13 +475,15 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: `${systemPrompt}\n\nInstruções específicas para o negócio:\n${aiSettings?.business_description || ""}\n\nInstruções específicas para este cliente:\n${aiPrompt}` },
           { role: 'user', content: userContent }
         ],
         temperature: 0.7,
         n: 1
       }),
     });
+
+
 
     const aiData = await aiResponse.json();
     
@@ -1108,7 +1113,29 @@ else if (message.type === "unsupported") {
   const _flowState = contact?.flow_state;
   const _isFlowEnded = !_flowState || _flowState === 'idle' || _flowState === 'completed' || _flowState === 'ended' || _flowState === 'finished';
   const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded;
+
+  // --- GLOBAL ACTIONS (NO CONTACT REQUIRED OR HANDLED INTERNALLY) ---
+  if (action === 'processAiAgent' && body.contactId) {
+    const { data: contactData } = await supabase.from('crm_contacts').select('*').eq('id', body.contactId).single();
+    if (!contactData) return jsonResponse({ success: false, error: 'Contact not found' }, 404);
+    
+    if (body.manualTrigger) {
+      await supabase.from('crm_contacts').update({ 
+        ai_active: true,
+        flow_state: 'ai_handling',
+        last_interaction: new Date().toISOString()
+      }).eq('id', body.contactId);
+      
+      contactData.ai_active = true;
+      contactData.flow_state = 'ai_handling';
+    }
+
+    const res = await processAiAgentResponse(supabase, contactData, body.waId, undefined, undefined, userId);
+    return jsonResponse(res);
+  }
+
   if (contact?.current_flow_id && _isFlowEnded) {
+
     console.log(`[TRIGGER-GUARD] Contact ${contact.id} has stale current_flow_id with flow_state=${_flowState}. Clearing to allow new triggers.`);
     await supabase.from('crm_contacts').update({
       current_flow_id: null,
@@ -1319,7 +1346,12 @@ else if (message.type === "unsupported") {
 
   // ====== AUTO-TRIGGER FLOWS ON INBOUND MESSAGES ======
   // Only try to start a flow if there's no active flow and contact is not in AI handling
+  const isGlobalAiEnabled = settings?.ai_agent_enabled === true;
+  
   if (contact && !hasActiveFlow && !isAiHandling && !isAiActive) {
+    // Check if Global AI is enabled - it should trigger if no specific flow matches
+    let flowTriggered = false;
+
     try {
       const { data: activeFlows } = await supabase
         .from('crm_flows')
@@ -1447,12 +1479,29 @@ else if (message.type === "unsupported") {
             }
             
             console.log('[TRIGGER] Flow started and sequence executed. Result:', JSON.stringify(currentRes));
+            flowTriggered = true;
             return jsonResponse({ success: true, triggered_flow: chosen.id, execution: currentRes });
           }
         } else {
           console.log(`[TRIGGER] No matching flow for ${waId}. candidates=${JSON.stringify(allCandidateTexts)} firstEver=${isFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
+          
+          // Se não casou com nenhum fluxo e a IA Global está ativa, ativa a IA para este contato
+          if (isGlobalAiEnabled) {
+            console.log(`[TRIGGER-AI] No flow matched, activating Global AI for ${waId}`);
+            await supabase.from('crm_contacts').update({ 
+              ai_active: true,
+              flow_state: 'ai_handling',
+              last_interaction: new Date().toISOString()
+            }).eq('id', contact.id);
+            
+            // Re-fetch e processa agora
+            const { data: updatedContact } = await supabase.from('crm_contacts').select('*').eq('id', contact.id).single();
+            const result = await processAiAgentResponse(supabase, updatedContact, waId, text, message.id, userId);
+            return jsonResponse(result);
+          }
         }
       }
+
     } catch (trigErr) {
       console.error('[TRIGGER] Error evaluating triggers:', trigErr);
     }
