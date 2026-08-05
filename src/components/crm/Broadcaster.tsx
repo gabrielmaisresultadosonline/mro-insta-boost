@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import MetaPricingCalculator from "@/components/whatsapp/MetaPricingCalculator";
+import BroadcastFailureLogs from "@/components/crm/BroadcastFailureLogs";
 
 
 
@@ -91,6 +92,8 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [savingCountdown, setSavingCountdown] = useState(false);
   const [countdownStatusFilter, setCountdownStatusFilter] = useState<string[]>([]);
   const [countdownHistory, setCountdownHistory] = useState<any[]>([]);
+  // Campanha selecionada para exibir os logs de falha detalhados
+  const [logsBroadcast, setLogsBroadcast] = useState<any | null>(null);
 
   useEffect(() => {
     fetchBroadcasts();
@@ -1486,6 +1489,13 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                               <span className="text-[#8696a0]">/ {b.total_contacts} total</span>
                             </div>
                             <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setLogsBroadcast(b)}
+                                className="text-[9px] px-2 h-5 rounded bg-white/5 text-[#8696a0] hover:text-[#e9edef] hover:bg-white/10 flex items-center gap-1"
+                                title="Ver logs e motivos das falhas"
+                              >
+                                <AlertCircle className="w-2.5 h-2.5" /> Logs
+                              </button>
                               {b.status === 'running' && (
                                 <button
                                   onClick={() => cancelBroadcast(b.id)}
@@ -1541,6 +1551,12 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           </Card>
         </div>
       </div>
+
+      <BroadcastFailureLogs
+        broadcast={logsBroadcast}
+        open={!!logsBroadcast}
+        onOpenChange={(o) => { if (!o) setLogsBroadcast(null); }}
+      />
     </div>
   );
 };
