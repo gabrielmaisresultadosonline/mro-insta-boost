@@ -4593,6 +4593,61 @@ async function fetchAndStoreIncomingMedia(
     }
     
 
+    if (action === 'checkWhatsappNumbers') {
+      const { numbers } = params;
+      if (!Array.isArray(numbers) || numbers.length === 0) {
+        throw new Error('Lista de números inválida');
+      }
+
+      console.log(`[CHECK-WHATSAPP] Checking ${numbers.length} numbers for user ${userId}...`);
+      
+      const { meta_phone_number_id, meta_access_token } = settings;
+      if (!meta_phone_number_id || !meta_access_token) {
+        throw new Error('Configurações da Meta (Phone ID / Token) incompletas');
+      }
+
+      const results = [];
+      // Processamos em lotes pequenos para evitar timeouts da Cloud e rate limits
+      const batchSize = 10;
+      for (let i = 0; i < numbers.length; i += batchSize) {
+        const batch = numbers.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch.map(async (num) => {
+          try {
+            const response = await fetch(
+              `https://graph.facebook.com/v20.0/${meta_phone_number_id}/contacts`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${meta_access_token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  blocking: 'wait',
+                  contacts: [num],
+                  force_check: false
+                }),
+              }
+            );
+
+            const result = await response.json();
+            const contact = result?.contacts?.[0];
+            return {
+              wa_id: num,
+              exists: contact?.status === 'valid'
+            };
+          } catch (err) {
+            console.error(`[CHECK-WHATSAPP] Error checking ${num}:`, err);
+            return { wa_id: num, exists: false };
+          }
+        }));
+        results.push(...batchResults);
+      }
+
+      return new Response(JSON.stringify({ success: true, results }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (action === 'getGoogleAuthUrl') {
       const { clientId } = getGoogleOAuthCredentials(settings);
       const google_client_id = clientId;
