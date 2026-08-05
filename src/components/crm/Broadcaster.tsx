@@ -1180,10 +1180,22 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     className="min-h-[100px] md:min-h-[120px] rounded-xl bg-[#202c33] border-none resize-none font-mono text-xs md:text-sm text-[#e9edef]"
                     value={uploadedNumbers}
                     onChange={e => setUploadedNumbers(e.target.value)}
+                    onBlur={() => normalizeUploadedList()}
+                    onPaste={e => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData('text');
+                      const merged = [uploadedNumbers, pasted].filter(Boolean).join('\n');
+                      normalizeUploadedList(merged);
+                    }}
                   />
-                  <p className="text-[9px] md:text-[10px] text-muted-foreground italic">
-                    Aceita com ou sem +55. Números brasileiros (10-11 dígitos) recebem o 55 automaticamente.
-                  </p>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-[9px] md:text-[10px] text-muted-foreground italic flex-1 min-w-[180px]">
+                      Correção automática: adiciona o 55, insere o 9º dígito em celulares, valida o DDD e remove duplicados.
+                    </p>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-[9px] md:text-[10px]" onClick={() => normalizeUploadedList()}>
+                      Corrigir números
+                    </Button>
+                  </div>
                 </div>
               )}
 
