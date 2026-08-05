@@ -1525,24 +1525,7 @@ else if (message.type === "unsupported") {
     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     return jsonResponse(result);
   }
-          
-          if (reply) {
-            await handleInternalSendMessage(
-              supabase, 
-              settings.meta_phone_number_id, 
-              settings.meta_access_token, 
-              { to: waId, text: reply }, 
-              contact,
-              settings.vps_transcoder_url
-            );
-          }
-        } catch (aiErr) {
-          console.error("Erro na resposta da IA Global:", aiErr);
-        }
-      }
-    }
-    return jsonResponse({ success: true });
-  }
+
   return jsonResponse({ success: true });
 }
 
