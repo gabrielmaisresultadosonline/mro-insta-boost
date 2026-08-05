@@ -491,13 +491,13 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       
       try {
         // Send actual message
-        const payload: any = { action: 'sendMessage', to: number };
+        const payload: any = { action: 'sendMessage', to: number, broadcastId };
         if (type === 'message') payload.text = messageText;
         else if (type === 'template') {
           const t = templates.find(temp => temp.id === selectedTemplate);
           payload.action = 'sendTemplate';
           payload.templateName = t?.name;
-          payload.language = t?.language || 'pt_BR';
+          payload.languageCode = t?.language || 'pt_BR';
         } else if (type === 'flow') {
           // Find contact or create one (flows require a contactId)
           let { data: contact } = await supabase
@@ -519,7 +519,11 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           if (contact) payload.contactId = contact.id;
         }
 
-        await supabase.functions.invoke('meta-whatsapp-crm', { body: payload });
+        const { data: sendResult, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', { body: payload });
+        if (invokeError) throw invokeError;
+        if (sendResult?.success === false) {
+          throw new Error(sendResult?.message || sendResult?.error || 'A Meta recusou o envio');
+        }
         
         await supabase.from('crm_broadcasts')
           .update({ sent_count: i + 1 })
@@ -529,6 +533,9 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
         console.error("Error sending to", number, err);
         // Update failed count
         await (supabase.rpc as any)('increment_broadcast_failed', { b_id: broadcastId });
+        await supabase.from('crm_broadcasts')
+          .update({ sent_count: i + 1 })
+          .eq('id', broadcastId);
       }
     }
     
@@ -1474,7 +1481,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                           </div>
                           <div className="flex justify-between items-center pt-1">
                             <div className="flex gap-2 text-[9px]">
-                              <span className="text-[#00a884]">{b.sent_count} ok</span>
+                              <span className="text-[#00a884]">{Math.max(0, b.sent_count - b.failed_count)} ok</span>
                               <span className="text-red-400">{b.failed_count || 0} erro</span>
                               <span className="text-[#8696a0]">/ {b.total_contacts} total</span>
                             </div>

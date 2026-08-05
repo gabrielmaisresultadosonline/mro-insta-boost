@@ -2133,7 +2133,7 @@ async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusE
 
   const { data: existing, error: lookupError } = await supabase
     .from('crm_messages')
-    .select('id, user_id, metadata, message_type, media_url')
+    .select('id, user_id, metadata, message_type, media_url, status')
     .eq('meta_message_id', metaMessageId)
     .or(`user_id.eq.${userId},user_id.is.null`)
     .order('created_at', { ascending: false })
@@ -2182,6 +2182,17 @@ async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusE
   if (updateError) {
     console.error('[META-STATUS] Falha ao atualizar status local', { userId, metaMessageId, localId: existing.id, error: updateError.message });
     return { updated: false, reason: updateError.message };
+  }
+
+  const broadcastId = existing.metadata?.broadcast_id;
+  if (broadcastId && nextStatus === 'failed' && existing.status !== 'failed') {
+    const { error: broadcastError } = await supabase.rpc('increment_broadcast_failed', { b_id: broadcastId });
+    if (broadcastError) {
+      console.error('[META-STATUS] Falha ao atualizar contadores da campanha', {
+        broadcastId,
+        error: broadcastError.message,
+      });
+    }
   }
 
   console.log('[META-STATUS] Status atualizado no CRM', { userId, metaMessageId, localId: existing.id, status: nextStatus, error: updateData.error_message || null });
@@ -2542,7 +2553,8 @@ async function internalSendTemplate(
   manualComponents: any[],
   contact: any,
   vpsTranscoderUrl?: string,
-  providedContactId?: string
+  providedContactId?: string,
+  broadcastId?: string
 ) {
   let dbTemplate: any = null;
   const normalizedTo = normalizePhone(to)
@@ -2565,6 +2577,7 @@ async function internalSendTemplate(
       .from('crm_templates')
       .select('components, is_carousel')
       .eq('name', templateName)
+      .eq('user_id', contact?.user_id)
       .single();
     
     dbTemplate = templateData;
@@ -2764,6 +2777,7 @@ async function internalSendTemplate(
         metadata: {
           template_name: templateName,
           source: 'api_automation',
+            broadcast_id: broadcastId || null,
           meta_error: result?.error || null,
           meta_error_details: normalizedError.details,
         },
@@ -2814,6 +2828,7 @@ async function internalSendTemplate(
       metadata: { 
         template_name: templateName,
         source: 'api_automation',
+        broadcast_id: broadcastId || null,
         ...(carouselMetadata || {})
       }
     }).select().single()
@@ -4120,15 +4135,19 @@ async function fetchAndStoreIncomingMedia(
     if (action === 'sendTemplate') {
       const { to, templateName, languageCode, components: manualComponents } = params
       
-      const { data: contact } = await supabase
+      const contactQuery = supabase
         .from('crm_contacts')
         .select('*')
-        .eq('wa_id', to)
-        .single();
+        .eq('wa_id', normalizePhone(to));
+      const scopedContactQuery = userId ? contactQuery.eq('user_id', userId) : contactQuery;
+      const { data: contact } = await scopedContactQuery
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (!contact) throw new Error('Contact not found');
 
-      const { contactId: providedContactId } = params;
+      const { contactId: providedContactId, broadcastId } = params;
       const response = await internalSendTemplate(
         supabase, 
         meta_phone_number_id || settings?.meta_phone_number_id || params.meta_phone_number_id, 
@@ -4139,7 +4158,8 @@ async function fetchAndStoreIncomingMedia(
         manualComponents, 
         contact,
         null,
-        providedContactId
+        providedContactId,
+        broadcastId
       );
 
 
