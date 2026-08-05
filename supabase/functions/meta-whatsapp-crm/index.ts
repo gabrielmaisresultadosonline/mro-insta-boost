@@ -1518,13 +1518,13 @@ else if (message.type === "unsupported") {
     }
   }
 
-  // MODIFICAÇÃO: Se o contato está ocioso mas tem IA ativa, usa processAiAgentResponse
-  // para garantir que os prompts completos (negócio + contato) sejam usados.
-  if (contact && contact.ai_active && (contact.flow_state === 'idle' || !contact.flow_state)) {
-    console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent via processAiAgentResponse...`);
+  // MODIFICAÇÃO: Se o contato está ocioso mas o AGENTE IA GLOBAL está ativo, ou se o contato 
+  // já tinha IA ativa, processa via processAiAgentResponse.
+  if (contact && (contact.ai_active || isGlobalAiEnabled)) {
+    console.log(`[WEBHOOK] Contact ${waId} AI processing: ai_active=${contact.ai_active}, global_enabled=${isGlobalAiEnabled}. Calling processAiAgentResponse...`);
     
-    // Se a ativação for global, garantimos que o contato tenha o estado correto
-    if (settings?.ai_agent_enabled && !contact.ai_active) {
+    // Se a IA ainda não estava ativa no contato mas o global está ligado, ativa agora.
+    if (isGlobalAiEnabled && !contact.ai_active) {
        await supabase.from('crm_contacts').update({ 
          ai_active: true,
          flow_state: 'ai_handling' 
