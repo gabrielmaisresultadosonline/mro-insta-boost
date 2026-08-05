@@ -1520,14 +1520,20 @@ else if (message.type === "unsupported") {
 
   // MODIFICAÇÃO: Se o contato está ocioso mas o AGENTE IA GLOBAL está ativo, ou se o contato 
   // já tinha IA ativa, processa via processAiAgentResponse.
-  if (contact && (contact.ai_active || isGlobalAiEnabled)) {
+  // IMPORTANTE: Adicionado bypass de verificação de 'idle' se o global estiver ativo, 
+  // para garantir que mesmo conversas novas ou recém-limpas sejam atendidas.
+  const shouldActivateAi = isGlobalAiEnabled || (contact && contact.ai_active);
+  
+  if (contact && shouldActivateAi) {
     console.log(`[WEBHOOK] Contact ${waId} AI processing: ai_active=${contact.ai_active}, global_enabled=${isGlobalAiEnabled}. Calling processAiAgentResponse...`);
     
     // Se a IA ainda não estava ativa no contato mas o global está ligado, ativa agora.
     if (isGlobalAiEnabled && !contact.ai_active) {
+       console.log(`[WEBHOOK] Activating AI for contact ${waId} due to Global Mode.`);
        await supabase.from('crm_contacts').update({ 
          ai_active: true,
-         flow_state: 'ai_handling' 
+         flow_state: 'ai_handling',
+         last_interaction: new Date().toISOString()
        }).eq('id', contact.id);
        
        // Update the local object so processAiAgentResponse knows it's active
@@ -1536,7 +1542,6 @@ else if (message.type === "unsupported") {
     }
 
     // CRITICAL: processAiAgentResponse is async and will handle the reply.
-    // We call it and return its result to complete the webhook.
     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     return jsonResponse(result);
   }

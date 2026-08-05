@@ -5551,9 +5551,9 @@ const CRM = () => {
                                   <div className={cn(
                                     "w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-300", 
                                     aiFunctional 
-                                      ? (isSending(selectedContact.id) ? "bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]" : "bg-blue-500") 
+                                      ? (isSending(selectedContact.id) ? "bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.8)] scale-125" : "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]") 
                                       : "bg-red-500",
-                                    selectedContact.flow_state === 'error' ? "animate-pulse" : (aiFunctional && isSending(selectedContact.id) ? "animate-pulse" : "animate-ping")
+                                    (aiFunctional && isSending(selectedContact.id)) ? "animate-pulse" : (selectedContact.flow_state === 'error' ? "animate-bounce" : "animate-ping")
                                   )} />
                                   <span className={cn(
                                     "text-[10px] font-bold truncate",
