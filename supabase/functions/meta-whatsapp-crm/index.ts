@@ -1003,6 +1003,10 @@ else if (message.type === "unsupported") {
 
   if (!contactForSave && !skipSave) {
     const profileName = message?.profile?.name || message?.contacts?.[0]?.profile?.name || waId;
+    
+    // ATENÇÃO: Prevenção de duplicidade de contatos.
+    // O webhook pode chegar em rajadas. Tentamos inserir, se falhar por conflito
+    // buscamos novamente o contato existente para garantir que usamos o ID correto.
     const { data: newContact, error: createContactError } = await supabase
       .from('crm_contacts')
       .insert({
@@ -1020,11 +1024,32 @@ else if (message.type === "unsupported") {
       .maybeSingle();
 
     if (createContactError) {
-      console.error('[WEBHOOK] Failed to create inbound contact', { waId, userId, error: createContactError.message });
-      return jsonResponse({ success: false, error: createContactError.message }, 500);
+      // Se deu erro de duplicidade, tentamos buscar uma última vez antes de desistir
+      if (String(createContactError.message).includes('duplicate') || createContactError.code === '23505') {
+        const { data: retryContact } = await supabase
+          .from('crm_contacts')
+          .select('id, total_messages_received, last_message_received_at')
+          .in('wa_id', variantsForSave)
+          .eq('user_id', userId)
+          .order('last_message_received_at', { ascending: false, nullsFirst: true })
+          .limit(1)
+          .maybeSingle();
+        
+        if (retryContact) {
+          contactForSave = retryContact;
+          console.log('[WEBHOOK] Contact duplicate race condition resolved', { waId, contact_id: contactForSave.id });
+        } else {
+          console.error('[WEBHOOK] Failed to resolve duplicate contact', { waId, userId, error: createContactError.message });
+          return jsonResponse({ success: false, error: createContactError.message }, 500);
+        }
+      } else {
+        console.error('[WEBHOOK] Failed to create inbound contact', { waId, userId, error: createContactError.message });
+        return jsonResponse({ success: false, error: createContactError.message }, 500);
+      }
+    } else {
+      contactForSave = newContact;
+      console.log('[WEBHOOK] Created inbound contact', { waId, userId, contact_id: contactForSave?.id });
     }
-    contactForSave = newContact;
-    console.log('[WEBHOOK] Created inbound contact', { waId, userId, contact_id: contactForSave?.id });
   }
 
   if (contactForSave && !skipSave) {
@@ -4616,11 +4641,6 @@ async function fetchAndStoreIncomingMedia(
       }
     }
     
-
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     if (action === 'getGoogleAuthUrl') {
       const { clientId } = getGoogleOAuthCredentials(settings);
       const google_client_id = clientId;
