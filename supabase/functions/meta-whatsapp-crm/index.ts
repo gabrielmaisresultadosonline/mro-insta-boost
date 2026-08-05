@@ -1320,7 +1320,7 @@ else if (message.type === "unsupported") {
   // Check if contact is in an AI node or AI state
   if (contact && (isAiHandling || isAiActive || (hasActiveFlow && isInAiNode))) {
     console.log(`[FLOW-LOG] WEBHOOK: Processing AI Agent for ${waId}. State: ${contact.flow_state}`);
-    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    const result = await processAiAgentResponse(supabase, contact, waId, text || extractedInboundText, message.id, userId);
     return jsonResponse(result);
   }
 
@@ -1507,7 +1507,7 @@ else if (message.type === "unsupported") {
             
             // Re-fetch e processa agora
             const { data: updatedContact } = await supabase.from('crm_contacts').select('*').eq('id', contact.id).single();
-            const result = await processAiAgentResponse(supabase, updatedContact, waId, text, message.id, userId);
+            const result = await processAiAgentResponse(supabase, updatedContact, waId, text || extractedInboundText, message.id, userId);
             return jsonResponse(result);
           }
         }
@@ -1542,7 +1542,8 @@ else if (message.type === "unsupported") {
     }
 
     // CRITICAL: processAiAgentResponse is async and will handle the reply.
-    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    // Garante que o texto enviado seja passado para a IA processar
+    const result = await processAiAgentResponse(supabase, contact, waId, text || extractedInboundText, message.id, userId);
     return jsonResponse(result);
   }
 
