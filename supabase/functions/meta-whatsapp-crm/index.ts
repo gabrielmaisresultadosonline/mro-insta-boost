@@ -466,6 +466,17 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
     // Log the prompt being used for debugging
     console.log(`[AI-AGENT-PROMPT] User instructions for ${waId}: ${aiPrompt.slice(0, 200)}...`);
     
+    // MODIFICAÇÃO: Unificando todos os prompts para garantir contexto completo
+    const fullSystemPrompt = `
+${systemPrompt}
+
+DESCRIÇÃO DO NEGÓCIO:
+${aiSettings?.business_description || "Não informada."}
+
+INSTRUÇÕES ESPECÍFICAS DESTE ATENDIMENTO/CONTATO:
+${aiPrompt}
+    `.trim();
+
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -475,7 +486,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `${systemPrompt}\n\nInstruções específicas para o negócio:\n${aiSettings?.business_description || ""}\n\nInstruções específicas para este cliente:\n${aiPrompt}` },
+          { role: 'system', content: fullSystemPrompt },
           { role: 'user', content: userContent }
         ],
         temperature: 0.7,
@@ -580,8 +591,8 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
           console.log(`[AI-AGENT] Sending reply to ${waId}: ${reply.substring(0, 50)}...`);
           
           // Split reply into multiple messages if it contains double newlines or is too long, 
-          // to simulate human typing multiple messages. Limit to max 3 messages.
-          const messageParts = reply.split(/\n\n+/).filter(p => p.trim()).slice(0, 3);
+          // to simulate human typing multiple messages. Limit to max 10 messages (user request: "5 10 partes").
+          const messageParts = reply.split(/\n\n+/).filter(p => p.trim()).slice(0, 10);
           
           for (const part of messageParts) {
             await handleInternalSendMessage(
@@ -1507,65 +1518,25 @@ else if (message.type === "unsupported") {
     }
   }
 
+  // MODIFICAÇÃO: Se o contato está ocioso mas tem IA ativa, usa processAiAgentResponse
+  // para garantir que os prompts completos (negócio + contato) sejam usados.
   if (contact && contact.ai_active && (contact.flow_state === 'idle' || !contact.flow_state)) {
-    console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent...`);
-
+    console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent via processAiAgentResponse...`);
     
-    const { data: recentMessages } = await supabase
-      .from('crm_messages')
-      .select('content, direction')
-      .eq('contact_id', contact.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-      
-    const history = (recentMessages || [])
-      .reverse()
-      .map((m: any) => `${m.direction === 'inbound' ? 'Cliente' : 'Assistente'}: ${m.content}`)
-      .join('\n');
-      
-    const settings = await getCrmSettings(supabase, userId);
-    if (settings && settings.ai_agent_enabled) {
-      const OPENAI_API_KEY = settings.openai_api_key || Deno.env.get('OPENAI_API_KEY');
-      if (OPENAI_API_KEY) {
-        const systemPrompt = settings.ai_system_prompt || "Você é um assistente prestativo.";
-        
-        try {
-          const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Histórico:\n${history}\n\nCliente: ${text}` }
-              ],
-              temperature: 0.7
-            }),
-          });
-          
-          const aiData = await aiResponse.json();
-          const reply = aiData.choices?.[0]?.message?.content || "";
-          
-          if (reply) {
-            await handleInternalSendMessage(
-              supabase, 
-              settings.meta_phone_number_id, 
-              settings.meta_access_token, 
-              { to: waId, text: reply }, 
-              contact,
-              settings.vps_transcoder_url
-            );
-          }
-        } catch (aiErr) {
-          console.error("Erro na resposta da IA Global:", aiErr);
-        }
-      }
+    // Se a ativação for global, garantimos que o contato tenha o estado correto
+    if (settings?.ai_agent_enabled && !contact.ai_active) {
+       await supabase.from('crm_contacts').update({ 
+         ai_active: true,
+         flow_state: 'ai_handling' 
+       }).eq('id', contact.id);
+       contact.ai_active = true;
+       contact.flow_state = 'ai_handling';
     }
-    return jsonResponse({ success: true });
+
+    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    return jsonResponse(result);
   }
+
   return jsonResponse({ success: true });
 }
 
