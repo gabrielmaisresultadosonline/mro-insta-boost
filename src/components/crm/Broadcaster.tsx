@@ -247,44 +247,6 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       valid.push(normalized);
     }
 
-    // Inclusão da verificação de WhatsApp real via Meta API
-    if (valid.length > 0) {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-          body: { action: 'checkWhatsappNumbers', numbers: valid }
-        });
-
-        if (error) throw error;
-
-        const results: { wa_id: string; exists: boolean }[] = data.results || [];
-        const nonExistent = results.filter(r => !r.exists).map(r => r.wa_id);
-
-        if (nonExistent.length > 0) {
-          const confirmRemove = window.confirm(
-            `Encontramos ${nonExistent.length} números que não possuem WhatsApp. Deseja removê-los da lista?\n\n` +
-            `Números: ${nonExistent.slice(0, 5).join(', ')}${nonExistent.length > 5 ? '...' : ''}`
-          );
-
-          if (confirmRemove) {
-            const filtered = valid.filter(num => !nonExistent.includes(num));
-            setUploadedNumbers(filtered.join('\n'));
-            toast({
-              title: "Lista limpa",
-              description: `${nonExistent.length} números sem WhatsApp removidos.`
-            });
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (err: any) {
-        console.error('Erro ao verificar WhatsApp:', err);
-        // Não bloqueamos a normalização se a verificação falhar (fallback silencioso para manter UX)
-      } finally {
-        setLoading(false);
-      }
-    }
-
     setUploadedNumbers(valid.join('\n'));
 
     const duplicates = entries.length - invalid - valid.length;
