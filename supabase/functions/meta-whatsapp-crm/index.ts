@@ -1118,12 +1118,15 @@ else if (message.type === "unsupported") {
   const isAiHandling = contact?.flow_state === 'ai_handling';
   const isAiActive = contact?.ai_active === true;
   const isWaitingResponse = contact?.flow_state === 'waiting_response';
+  const isGlobalAiEnabled = settings?.ai_agent_enabled === true;
+  
   // Only treat as "active flow" when there's a flow AND the state is not idle/completed.
   // Without this, contacts whose previous flow ended but left `current_flow_id` set
   // would never trigger any new flow on inbound messages (silent stuck state).
   const _flowState = contact?.flow_state;
-  const _isFlowEnded = !_flowState || _flowState === 'idle' || _flowState === 'completed' || _flowState === 'ended' || _flowState === 'finished';
-  const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded;
+  const _isFlowEnded = !_flowState || _flowState === 'idle' || _flowState || 'completed' || _flowState === 'ended' || _flowState === 'finished';
+  // SE O MODO GLOBAL ESTIVER ATIVO, consideramos que não há fluxo impedindo a IA, a menos que esteja no meio de um fluxo rodando
+  const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded && (!isGlobalAiEnabled || _flowState === 'running');
 
   // --- GLOBAL ACTIONS (NO CONTACT REQUIRED OR HANDLED INTERNALLY) ---
   if (action === 'processAiAgent' && body.contactId) {
