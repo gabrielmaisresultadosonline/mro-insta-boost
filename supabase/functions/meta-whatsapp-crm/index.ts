@@ -463,8 +463,6 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 
     console.log(`[AI-AGENT] Calling OpenAI for ${waId}. Model: gpt-4o-mini. System prompt length: ${systemPrompt.length}`);
     
-    console.log(`[AI-AGENT] Calling OpenAI for ${waId}. Model: gpt-4o-mini. System prompt length: ${systemPrompt.length}`);
-    
     // Log the prompt being used for debugging
     console.log(`[AI-AGENT-PROMPT] User instructions for ${waId}: ${aiPrompt.slice(0, 200)}...`);
     
@@ -477,13 +475,14 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `${systemPrompt}\n\nInstruções específicas para este cliente:\n${aiPrompt}` },
+          { role: 'system', content: `${systemPrompt}\n\nInstruções específicas para o negócio:\n${aiSettings?.business_description || ""}\n\nInstruções específicas para este cliente:\n${aiPrompt}` },
           { role: 'user', content: userContent }
         ],
         temperature: 0.7,
         n: 1
       }),
     });
+
 
 
     const aiData = await aiResponse.json();
@@ -1114,7 +1113,29 @@ else if (message.type === "unsupported") {
   const _flowState = contact?.flow_state;
   const _isFlowEnded = !_flowState || _flowState === 'idle' || _flowState === 'completed' || _flowState === 'ended' || _flowState === 'finished';
   const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded;
+
+  // --- GLOBAL ACTIONS (NO CONTACT REQUIRED OR HANDLED INTERNALLY) ---
+  if (action === 'processAiAgent' && body.contactId) {
+    const { data: contactData } = await supabase.from('crm_contacts').select('*').eq('id', body.contactId).single();
+    if (!contactData) return jsonResponse({ success: false, error: 'Contact not found' }, 404);
+    
+    if (body.manualTrigger) {
+      await supabase.from('crm_contacts').update({ 
+        ai_active: true,
+        flow_state: 'ai_handling',
+        last_interaction: new Date().toISOString()
+      }).eq('id', body.contactId);
+      
+      contactData.ai_active = true;
+      contactData.flow_state = 'ai_handling';
+    }
+
+    const res = await processAiAgentResponse(supabase, contactData, body.waId, undefined, undefined, userId);
+    return jsonResponse(res);
+  }
+
   if (contact?.current_flow_id && _isFlowEnded) {
+
     console.log(`[TRIGGER-GUARD] Contact ${contact.id} has stale current_flow_id with flow_state=${_flowState}. Clearing to allow new triggers.`);
     await supabase.from('crm_contacts').update({
       current_flow_id: null,
