@@ -4641,11 +4641,6 @@ async function fetchAndStoreIncomingMedia(
       }
     }
     
-
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     if (action === 'getGoogleAuthUrl') {
       const { clientId } = getGoogleOAuthCredentials(settings);
       const google_client_id = clientId;
