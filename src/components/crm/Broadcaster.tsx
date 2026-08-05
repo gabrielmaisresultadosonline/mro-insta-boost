@@ -229,7 +229,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
 
   // Map wa_id -> minutes left in the 24h window (null when outside/unknown)
   const windowInfo = useMemo(() => {
-    // (helper de normalização declarado acima)
+    // (helper de normalização declarado abaixo)
     const DAY = 24 * 60 * 60 * 1000;
     const now = Date.now();
     const map = new Map<string, number>();
