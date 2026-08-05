@@ -1507,7 +1507,7 @@ else if (message.type === "unsupported") {
             
             // Re-fetch e processa agora
             const { data: updatedContact } = await supabase.from('crm_contacts').select('*').eq('id', contact.id).single();
-            const result = await processAiAgentResponse(supabase, updatedContact, waId, text, message.id, userId);
+            const result = await processAiAgentResponse(supabase, updatedContact, waId, text || extractedInboundText, message.id, userId);
             return jsonResponse(result);
           }
         }
