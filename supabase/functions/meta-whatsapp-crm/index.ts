@@ -2114,20 +2114,29 @@ const getBrazilianPhoneVariants = (raw: string) => {
   const normalized = normalizePhone(raw)
   const variants = new Set<string>([normalized])
 
-  if (normalized.startsWith('55') && (normalized.length === 12 || normalized.length === 13)) {
-    const country = normalized.slice(0, 2)
-    const areaCode = normalized.slice(2, 4)
-    const localNumber = normalized.slice(4)
+  // Lógica para números brasileiros (DDI 55)
+  if (normalized.startsWith('55')) {
+    // Caso 1: Tem 13 dígitos (formato 55 + DDD + 9 + número)
+    if (normalized.length === 13) {
+      const country = normalized.slice(0, 2)
+      const areaCode = normalized.slice(2, 4)
+      const localNumber = normalized.slice(4) // Começa com '9'
 
-    // Se tem 13 dígitos (com 9), gera variante com 12 (sem 9)
-    if (localNumber.length === 9 && localNumber.startsWith('9')) {
-      variants.add(`${country}${areaCode}${localNumber.slice(1)}`)
+      // Se começa com 9, gera variante com 12 dígitos (sem o 9)
+      if (localNumber.startsWith('9')) {
+        variants.add(`${country}${areaCode}${localNumber.slice(1)}`)
+      }
     }
+    // Caso 2: Tem 12 dígitos (formato 55 + DDD + número)
+    else if (normalized.length === 12) {
+      const country = normalized.slice(0, 2)
+      const areaCode = normalized.slice(2, 4)
+      const localNumber = normalized.slice(4)
 
-    // Se tem 12 dígitos (sem 9), gera variante com 13 (com 9)
-    // Mas apenas se for celular (DDD 11-99 e primeiro dígito 6-9)
-    if (localNumber.length === 8 && /^[6-9]/.test(localNumber)) {
-      variants.add(`${country}${areaCode}9${localNumber}`)
+      // Se o primeiro dígito do número local for 6, 7, 8 ou 9, é um celular que pode precisar do 9
+      if (/^[6-9]/.test(localNumber)) {
+        variants.add(`${country}${areaCode}9${localNumber}`)
+      }
     }
   }
 
@@ -4621,47 +4630,61 @@ async function fetchAndStoreIncomingMedia(
         throw new Error('Configurações da Meta (Phone ID / Token) incompletas');
       }
 
-      const results = [];
-      // Processamos em lotes pequenos para evitar timeouts da Cloud e rate limits
+      const results: any[] = [];
       const batchSize = 10;
+      
       for (let i = 0; i < numbers.length; i += batchSize) {
         const batch = numbers.slice(i, i + batchSize);
-        const batchResults = await Promise.all(batch.map(async (num) => {
-          try {
-            // Normalizamos para a Meta aceitar (remover + e garantir formato correto)
-            // A API de Contatos da Meta espera números sem o '+' inicial
-            const metaNum = num.replace(/\D/g, '');
-            
-            const response = await fetch(
-              `https://graph.facebook.com/v20.0/${meta_phone_number_id}/contacts`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${meta_access_token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  blocking: 'wait',
-                  contacts: [`+${metaNum}`],
-                  force_check: true
-                }),
-              }
-            );
-
-            const result = await response.json();
-            console.log(`[CHECK-WHATSAPP] Result for ${num}:`, JSON.stringify(result));
-            
-            const contact = result?.contacts?.[0];
-            return {
-              wa_id: num,
-              exists: contact?.status === 'valid'
-            };
-          } catch (err) {
-            console.error(`[CHECK-WHATSAPP] Error checking ${num}:`, err);
-            return { wa_id: num, exists: true }; // Em caso de erro, mantemos por segurança
-          }
+        
+        // Para cada número no lote, geramos variantes (com e sem 9) para verificar na Meta
+        const batchWithVariants = batch.map(num => ({
+          original: num,
+          variants: getBrazilianPhoneVariants(num)
         }));
-        results.push(...batchResults);
+
+        // Flatten all variants for a single batch request to Meta (max 10 inputs is usually safe)
+        const allVariantsInBatch = batchWithVariants.flatMap(v => v.variants);
+        
+        try {
+          const response = await fetch(
+            `https://graph.facebook.com/v20.0/${meta_phone_number_id}/contacts`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${meta_access_token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                blocking: 'wait',
+                contacts: allVariantsInBatch.map(v => `+${v.replace(/\D/g, '')}`),
+                force_check: true
+              }),
+            }
+          );
+
+          const result = await response.json();
+          const metaContacts = result?.contacts || [];
+          
+          // Mapeia quais variantes são válidas
+          const validVariants = new Set(
+            metaContacts
+              .filter((c: any) => c.status === 'valid')
+              .map((c: any) => c.input.replace(/\+/g, ''))
+          );
+
+          // Agora associamos de volta aos números originais
+          batchWithVariants.forEach(item => {
+            const exists = item.variants.some(v => validVariants.has(v));
+            results.push({
+              wa_id: item.original,
+              exists: exists
+            });
+          });
+        } catch (err) {
+          console.error(`[CHECK-WHATSAPP] Error in batch starting at ${i}:`, err);
+          // Em caso de falha no lote, assumimos que existem para não remover por erro de rede
+          batch.forEach(num => results.push({ wa_id: num, exists: true }));
+        }
       }
 
       return new Response(JSON.stringify({ success: true, results }), {
