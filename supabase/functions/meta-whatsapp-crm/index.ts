@@ -466,6 +466,17 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
     // Log the prompt being used for debugging
     console.log(`[AI-AGENT-PROMPT] User instructions for ${waId}: ${aiPrompt.slice(0, 200)}...`);
     
+    // MODIFICAÇÃO: Unificando todos os prompts para garantir contexto completo
+    const fullSystemPrompt = `
+${systemPrompt}
+
+DESCRIÇÃO DO NEGÓCIO:
+${aiSettings?.business_description || "Não informada."}
+
+INSTRUÇÕES ESPECÍFICAS DESTE ATENDIMENTO/CONTATO:
+${aiPrompt}
+    `.trim();
+
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -475,7 +486,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `${systemPrompt}\n\nInstruções específicas para o negócio:\n${aiSettings?.business_description || ""}\n\nInstruções específicas para este cliente:\n${aiPrompt}` },
+          { role: 'system', content: fullSystemPrompt },
           { role: 'user', content: userContent }
         ],
         temperature: 0.7,
