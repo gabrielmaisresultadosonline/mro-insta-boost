@@ -1542,7 +1542,8 @@ else if (message.type === "unsupported") {
     }
 
     // CRITICAL: processAiAgentResponse is async and will handle the reply.
-    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    // Garante que o texto enviado seja passado para a IA processar
+    const result = await processAiAgentResponse(supabase, contact, waId, text || extractedInboundText, message.id, userId);
     return jsonResponse(result);
   }
 
