@@ -4613,6 +4613,10 @@ async function fetchAndStoreIncomingMedia(
         const batch = numbers.slice(i, i + batchSize);
         const batchResults = await Promise.all(batch.map(async (num) => {
           try {
+            // Normalizamos para a Meta aceitar (remover + e garantir formato correto)
+            // A API de Contatos da Meta espera números sem o '+' inicial
+            const metaNum = num.replace(/\D/g, '');
+            
             const response = await fetch(
               `https://graph.facebook.com/v20.0/${meta_phone_number_id}/contacts`,
               {
@@ -4623,13 +4627,15 @@ async function fetchAndStoreIncomingMedia(
                 },
                 body: JSON.stringify({
                   blocking: 'wait',
-                  contacts: [num],
-                  force_check: false
+                  contacts: [`+${metaNum}`],
+                  force_check: true
                 }),
               }
             );
 
             const result = await response.json();
+            console.log(`[CHECK-WHATSAPP] Result for ${num}:`, JSON.stringify(result));
+            
             const contact = result?.contacts?.[0];
             return {
               wa_id: num,
@@ -4637,7 +4643,7 @@ async function fetchAndStoreIncomingMedia(
             };
           } catch (err) {
             console.error(`[CHECK-WHATSAPP] Error checking ${num}:`, err);
-            return { wa_id: num, exists: false };
+            return { wa_id: num, exists: true }; // Em caso de erro, mantemos por segurança
           }
         }));
         results.push(...batchResults);

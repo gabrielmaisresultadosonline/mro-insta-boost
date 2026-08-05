@@ -1265,7 +1265,15 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     <p className="text-[9px] md:text-[10px] text-muted-foreground italic flex-1 min-w-[180px]">
                       Correção automática: adiciona o 55, insere o 9º dígito em celulares, valida o DDD e remove duplicados.
                     </p>
-                    <Button type="button" variant="outline" size="sm" className="h-7 text-[9px] md:text-[10px]" onClick={() => normalizeUploadedList()}>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-7 text-[9px] md:text-[10px]" 
+                      onClick={() => normalizeUploadedList()}
+                      disabled={loading}
+                    >
+                      {loading ? <RefreshCcw className="w-3 h-3 animate-spin mr-1" /> : null}
                       Corrigir números
                     </Button>
                   </div>
