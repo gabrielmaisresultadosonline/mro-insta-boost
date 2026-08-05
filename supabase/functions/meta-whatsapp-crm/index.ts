@@ -1518,47 +1518,13 @@ else if (message.type === "unsupported") {
     }
   }
 
+  // MODIFICAÇÃO: Se o contato está ocioso mas tem IA ativa, usa processAiAgentResponse
+  // para garantir que os prompts completos (negócio + contato) sejam usados.
   if (contact && contact.ai_active && (contact.flow_state === 'idle' || !contact.flow_state)) {
-    console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent...`);
-
-    
-    const { data: recentMessages } = await supabase
-      .from('crm_messages')
-      .select('content, direction')
-      .eq('contact_id', contact.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-      
-    const history = (recentMessages || [])
-      .reverse()
-      .map((m: any) => `${m.direction === 'inbound' ? 'Cliente' : 'Assistente'}: ${m.content}`)
-      .join('\n');
-      
-    const settings = await getCrmSettings(supabase, userId);
-    if (settings && settings.ai_agent_enabled) {
-      const OPENAI_API_KEY = settings.openai_api_key || Deno.env.get('OPENAI_API_KEY');
-      if (OPENAI_API_KEY) {
-        const systemPrompt = settings.ai_system_prompt || "Você é um assistente prestativo.";
-        
-        try {
-          const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Histórico:\n${history}\n\nCliente: ${text}` }
-              ],
-              temperature: 0.7
-            }),
-          });
-          
-          const aiData = await aiResponse.json();
-          const reply = aiData.choices?.[0]?.message?.content || "";
+    console.log(`[WEBHOOK] Contact ${waId} has AI active and is idle. Calling Global AI Agent via processAiAgentResponse...`);
+    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    return jsonResponse(result);
+  }
           
           if (reply) {
             await handleInternalSendMessage(
