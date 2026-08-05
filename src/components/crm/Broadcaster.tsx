@@ -533,6 +533,9 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
         console.error("Error sending to", number, err);
         // Update failed count
         await (supabase.rpc as any)('increment_broadcast_failed', { b_id: broadcastId });
+        await supabase.from('crm_broadcasts')
+          .update({ sent_count: i + 1 })
+          .eq('id', broadcastId);
       }
     }
     
