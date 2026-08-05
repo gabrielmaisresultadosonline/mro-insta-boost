@@ -4843,7 +4843,7 @@ const CRM = () => {
                                       variant="destructive" 
                                       size="sm" 
                                       className="h-9 px-4 font-bold shadow-sm"
-                                      onClick={() => handleCancelFlow(contact.id)}
+                                      onClick={() => handleStopFlow(contact.id)}
                                     >
                                       <StopCircle className="w-4 h-4 mr-2" />
                                       PARAR FLUXO
@@ -5416,7 +5416,7 @@ const CRM = () => {
                                           <button 
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleCancelFlow(contact.id);
+                                              handleStopFlow(contact.id);
                                             }}
                                             className="text-red-400 hover:text-red-600 p-0.5 rounded-full hover:bg-red-50"
                                             title="Parar Fluxo"
@@ -5578,7 +5578,7 @@ const CRM = () => {
                                       {(selectedContact.flow_state === 'error' || selectedContact.flow_state === 'waiting_response') && (
                                         <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30" onClick={(e) => { e.stopPropagation(); handleResumeFlow(selectedContact.id); }}><PlayCircle className="h-4 w-4" /></Button>
                                       )}
-                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30" onClick={(e) => { e.stopPropagation(); handleCancelFlow(selectedContact.id); }}><XCircle className="h-4 w-4" /></Button>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30" onClick={(e) => { e.stopPropagation(); handleStopFlow(selectedContact.id); }}><XCircle className="h-4 w-4" /></Button>
                                     </>
                                   )}
                                 </div>
