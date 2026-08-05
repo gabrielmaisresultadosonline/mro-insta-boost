@@ -4134,18 +4134,65 @@ async function fetchAndStoreIncomingMedia(
 
     if (action === 'sendTemplate') {
       const { to, templateName, languageCode, components: manualComponents } = params
-      
+      const normalizedTo = normalizePhone(to);
+
       const contactQuery = supabase
         .from('crm_contacts')
         .select('*')
-        .eq('wa_id', normalizePhone(to));
+        .eq('wa_id', normalizedTo);
       const scopedContactQuery = userId ? contactQuery.eq('user_id', userId) : contactQuery;
-      const { data: contact } = await scopedContactQuery
+      const { data: existingContact, error: contactLookupError } = await scopedContactQuery
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (!contact) throw new Error('Contact not found');
+      if (contactLookupError) {
+        console.error('[TEMPLATE] Falha ao localizar contato:', contactLookupError.message);
+      }
+
+      // Listas frias podem conter números que ainda não existem no CRM. O envio
+      // de template é permitido fora da janela de 24h, portanto criamos o
+      // contato antes de chamar a Meta para manter histórico e logs de falha.
+      let contact = existingContact;
+      if (!contact && userId) {
+        const { data: createdContact, error: createContactError } = await supabase
+          .from('crm_contacts')
+          .insert({
+            wa_id: normalizedTo,
+            name: normalizedTo,
+            user_id: userId,
+            status: 'new',
+            source_type: 'broadcast',
+          })
+          .select('*')
+          .maybeSingle();
+
+        if (createContactError) {
+          console.error('[TEMPLATE] Falha ao criar contato da lista fria:', createContactError.message);
+
+          // Proteção para uma possível criação concorrente do mesmo número.
+          const { data: concurrentContact } = await supabase
+            .from('crm_contacts')
+            .select('*')
+            .eq('wa_id', normalizedTo)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          contact = concurrentContact;
+        } else {
+          contact = createdContact;
+          console.log('[TEMPLATE] Contato da lista fria criado para o envio:', normalizedTo);
+        }
+      }
+
+      if (!contact) {
+        return jsonResponse({
+          success: false,
+          error: 'Não foi possível preparar o contato para o envio do template',
+          code: 'CONTACT_PREPARATION_FAILED',
+        }, 200);
+      }
 
       const { contactId: providedContactId, broadcastId } = params;
       const response = await internalSendTemplate(
