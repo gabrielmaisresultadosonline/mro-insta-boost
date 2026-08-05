@@ -6711,8 +6711,18 @@ const CRM = () => {
                       <Switch 
                         id="ai-agent-enabled"
                         checked={metaSettings.ai_agent_enabled}
-                        onCheckedChange={(val) => {
+                        onCheckedChange={async (val) => {
                           if (val) {
+                            // Check if API key is present
+                            if (!metaSettings.openai_api_key) {
+                              toast({
+                                title: "Token não configurado",
+                                description: "Por favor, insira uma OpenAI API Key na seção 'Motor da IA' e clique em 'Salvar Motor' antes de ativar.",
+                                variant: "destructive"
+                              });
+                              return;
+                            }
+
                             if (!metaSettings.business_description || metaSettings.business_description.length < 10) {
                               toast({
                                 title: "Cérebro não configurado",
@@ -6726,8 +6736,10 @@ const CRM = () => {
                               return;
                             }
                           }
-                          setMetaSettings({...metaSettings, ai_agent_enabled: val});
-                          handleSaveSettings({...metaSettings, ai_agent_enabled: val});
+                          
+                          // We use await here to ensure state consistency if handleSaveSettings re-fetches
+                          setMetaSettings(prev => ({ ...prev, ai_agent_enabled: val }));
+                          await handleSaveSettings({ ...metaSettings, ai_agent_enabled: val });
                         }}
                       />
                     </div>
