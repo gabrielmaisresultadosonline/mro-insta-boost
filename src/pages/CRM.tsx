@@ -3509,8 +3509,9 @@ const CRM = () => {
   };
 
   const handleManualAiReply = async (contactId: string) => {
-    if (contactSending[contactId]) return;
+    if (isSending(contactId)) return;
     setContactSending(contactId, true);
+
     try {
       const contact = contacts.find(c => c.id === contactId);
       if (!contact) throw new Error("Contato não encontrado");
