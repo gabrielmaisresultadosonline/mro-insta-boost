@@ -1529,10 +1529,14 @@ else if (message.type === "unsupported") {
          ai_active: true,
          flow_state: 'ai_handling' 
        }).eq('id', contact.id);
+       
+       // Update the local object so processAiAgentResponse knows it's active
        contact.ai_active = true;
        contact.flow_state = 'ai_handling';
     }
 
+    // CRITICAL: processAiAgentResponse is async and will handle the reply.
+    // We call it and return its result to complete the webhook.
     const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
     return jsonResponse(result);
   }

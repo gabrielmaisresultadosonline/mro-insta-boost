@@ -5549,15 +5549,21 @@ const CRM = () => {
                               )}>
                                 <div className="flex items-center gap-2 min-w-0">
                                   <div className={cn(
-                                    "w-1.5 h-1.5 rounded-full shrink-0", 
-                                    aiFunctional ? "bg-blue-500" : "bg-red-500",
-                                    selectedContact.flow_state === 'error' ? "animate-pulse" : "animate-ping"
+                                    "w-1.5 h-1.5 rounded-full shrink-0 transition-colors duration-300", 
+                                    aiFunctional 
+                                      ? (isSending(selectedContact.id) ? "bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]" : "bg-blue-500") 
+                                      : "bg-red-500",
+                                    selectedContact.flow_state === 'error' ? "animate-pulse" : (aiFunctional && isSending(selectedContact.id) ? "animate-pulse" : "animate-ping")
                                   )} />
                                   <span className={cn(
                                     "text-[10px] font-bold truncate",
-                                    aiFunctional ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
+                                    aiFunctional 
+                                      ? (isSending(selectedContact.id) ? "text-yellow-600 dark:text-yellow-400" : "text-blue-600 dark:text-blue-400") 
+                                      : "text-red-600 dark:text-red-400"
                                   )}>
-                                    {aiFunctional ? 'Agente IA Ativado' : (selectedContact.flow_state === 'error' ? 'Erro no Fluxo' : 'Fluxo Ativo')}
+                                    {aiFunctional 
+                                      ? (isSending(selectedContact.id) ? 'IA Respondendo...' : 'Agente IA Ativado') 
+                                      : (selectedContact.flow_state === 'error' ? 'Erro no Fluxo' : 'Fluxo Ativo')}
                                     {selectedContact.current_step_name && <span className="ml-1 opacity-70">({selectedContact.current_step_name})</span>}
                                   </span>
                                 </div>
