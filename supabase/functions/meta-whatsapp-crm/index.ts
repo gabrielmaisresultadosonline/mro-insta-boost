@@ -903,11 +903,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     // Injecting the synthetic trigger text here caused active conversations
     // to fire the wrong flow when the customer's auto-reply arrived.
     const hasReferral = !!getReferralFromWebhookMessage(message);
+    const variants = getBrazilianPhoneVariants(waId);
     const { data: existingContactForCtwa } = await supabase
       .from('crm_contacts')
       .select('id, total_messages_received, last_message_received_at')
-      .eq('wa_id', waId)
+      .in('wa_id', variants)
       .eq('user_id', userId)
+      .order('last_message_received_at', { ascending: false, nullsFirst: true })
+      .limit(1)
       .maybeSingle();
     const isBrandNewContact =
       !existingContactForCtwa ||
@@ -988,11 +991,14 @@ else if (message.type === "unsupported") {
     text = `[Reação] ${message.reaction?.emoji || ""}`;
   }
 
+   const variantsForSave = getBrazilianPhoneVariants(waId);
    let { data: contactForSave } = await supabase
      .from('crm_contacts')
       .select('id, total_messages_received, last_message_received_at')
-     .eq('wa_id', waId)
+     .in('wa_id', variantsForSave)
      .eq('user_id', userId)
+     .order('last_message_received_at', { ascending: false, nullsFirst: true })
+     .limit(1)
      .maybeSingle();
 
   if (!contactForSave && !skipSave) {
@@ -1057,12 +1063,14 @@ else if (message.type === "unsupported") {
   }
 
 
-   const { data: contact } = await supabase
-     .from('crm_contacts')
-     .select('*')
-     .eq('wa_id', waId)
-     .eq('user_id', userId)
-     .maybeSingle();
+    const variants = getBrazilianPhoneVariants(waId);
+    const { data: contact } = await supabase
+      .from('crm_contacts')
+      .select('*')
+      .in('wa_id', variants)
+      .eq('user_id', userId)
+      .order('last_message_received_at', { ascending: false, nullsFirst: true })
+      .maybeSingle();
 
   // CRITICAL: Ensure we capture messages for AI processing if the contact is in any AI-related state
   const isInAiNode = contact?.current_node_id?.includes('aiAgent');
@@ -2111,11 +2119,14 @@ const getBrazilianPhoneVariants = (raw: string) => {
     const areaCode = normalized.slice(2, 4)
     const localNumber = normalized.slice(4)
 
+    // Se tem 13 dígitos (com 9), gera variante com 12 (sem 9)
     if (localNumber.length === 9 && localNumber.startsWith('9')) {
       variants.add(`${country}${areaCode}${localNumber.slice(1)}`)
     }
 
-    if (localNumber.length === 8) {
+    // Se tem 12 dígitos (sem 9), gera variante com 13 (com 9)
+    // Mas apenas se for celular (DDD 11-99 e primeiro dígito 6-9)
+    if (localNumber.length === 8 && /^[6-9]/.test(localNumber)) {
       variants.add(`${country}${areaCode}9${localNumber}`)
     }
   }
@@ -4135,14 +4146,14 @@ async function fetchAndStoreIncomingMedia(
     if (action === 'sendTemplate') {
       const { to, templateName, languageCode, components: manualComponents } = params
       const normalizedTo = normalizePhone(to);
+      const variants = getBrazilianPhoneVariants(normalizedTo);
 
-      const contactQuery = supabase
+      const { data: existingContact, error: contactLookupError } = await supabase
         .from('crm_contacts')
         .select('*')
-        .eq('wa_id', normalizedTo);
-      const scopedContactQuery = userId ? contactQuery.eq('user_id', userId) : contactQuery;
-      const { data: existingContact, error: contactLookupError } = await scopedContactQuery
-        .order('created_at', { ascending: false })
+        .in('wa_id', variants)
+        .eq('user_id', userId)
+        .order('last_message_received_at', { ascending: false, nullsFirst: true })
         .limit(1)
         .maybeSingle();
 
@@ -4215,12 +4226,16 @@ async function fetchAndStoreIncomingMedia(
 
     if (action === 'sendMessage') {
       console.log(`[ACTION] sendMessage iniciado para: ${params.to}. HasInteractive: ${!!params.interactive}`);
-      const contactQueryBuilder = supabase
+      const normalizedTo = normalizePhone(params.to);
+      const variants = getBrazilianPhoneVariants(normalizedTo);
+
+      const { data: contactRows } = await supabase
         .from('crm_contacts')
         .select('*')
-        .eq('wa_id', params.to);
-      const filteredQuery = userId ? contactQueryBuilder.eq('user_id', userId) : contactQueryBuilder;
-      const { data: contactRows } = await filteredQuery.order('created_at', { ascending: false }).limit(1);
+        .in('wa_id', variants)
+        .eq('user_id', userId)
+        .order('last_message_received_at', { ascending: false, nullsFirst: true })
+        .limit(1);
       let contact: any = contactRows && contactRows.length > 0 ? contactRows[0] : null;
 
       if (!contact && userId) {
