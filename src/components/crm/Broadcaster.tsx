@@ -1478,7 +1478,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                           </div>
                           <div className="flex justify-between items-center pt-1">
                             <div className="flex gap-2 text-[9px]">
-                              <span className="text-[#00a884]">{b.sent_count} ok</span>
+                              <span className="text-[#00a884]">{Math.max(0, b.sent_count - b.failed_count)} ok</span>
                               <span className="text-red-400">{b.failed_count || 0} erro</span>
                               <span className="text-[#8696a0]">/ {b.total_contacts} total</span>
                             </div>

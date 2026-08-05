@@ -2186,27 +2186,12 @@ async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusE
 
   const broadcastId = existing.metadata?.broadcast_id;
   if (broadcastId && nextStatus === 'failed' && existing.status !== 'failed') {
-    const { data: broadcast } = await supabase
-      .from('crm_broadcasts')
-      .select('sent_count, failed_count')
-      .eq('id', broadcastId)
-      .maybeSingle();
-
-    if (broadcast) {
-      const { error: broadcastError } = await supabase
-        .from('crm_broadcasts')
-        .update({
-          sent_count: Math.max(0, Number(broadcast.sent_count || 0) - 1),
-          failed_count: Number(broadcast.failed_count || 0) + 1,
-        })
-        .eq('id', broadcastId);
-
-      if (broadcastError) {
-        console.error('[META-STATUS] Falha ao atualizar contadores da campanha', {
-          broadcastId,
-          error: broadcastError.message,
-        });
-      }
+    const { error: broadcastError } = await supabase.rpc('increment_broadcast_failed', { b_id: broadcastId });
+    if (broadcastError) {
+      console.error('[META-STATUS] Falha ao atualizar contadores da campanha', {
+        broadcastId,
+        error: broadcastError.message,
+      });
     }
   }
 
