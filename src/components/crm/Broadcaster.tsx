@@ -491,7 +491,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       
       try {
         // Send actual message
-        const payload: any = { action: 'sendMessage', to: number };
+        const payload: any = { action: 'sendMessage', to: number, broadcastId };
         if (type === 'message') payload.text = messageText;
         else if (type === 'template') {
           const t = templates.find(temp => temp.id === selectedTemplate);
@@ -519,7 +519,11 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           if (contact) payload.contactId = contact.id;
         }
 
-        await supabase.functions.invoke('meta-whatsapp-crm', { body: payload });
+        const { data: sendResult, error: invokeError } = await supabase.functions.invoke('meta-whatsapp-crm', { body: payload });
+        if (invokeError) throw invokeError;
+        if (sendResult?.success === false) {
+          throw new Error(sendResult?.message || sendResult?.error || 'A Meta recusou o envio');
+        }
         
         await supabase.from('crm_broadcasts')
           .update({ sent_count: i + 1 })

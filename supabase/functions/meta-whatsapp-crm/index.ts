@@ -2133,7 +2133,7 @@ async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusE
 
   const { data: existing, error: lookupError } = await supabase
     .from('crm_messages')
-    .select('id, user_id, metadata, message_type, media_url')
+    .select('id, user_id, metadata, message_type, media_url, status')
     .eq('meta_message_id', metaMessageId)
     .or(`user_id.eq.${userId},user_id.is.null`)
     .order('created_at', { ascending: false })
@@ -2182,6 +2182,32 @@ async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusE
   if (updateError) {
     console.error('[META-STATUS] Falha ao atualizar status local', { userId, metaMessageId, localId: existing.id, error: updateError.message });
     return { updated: false, reason: updateError.message };
+  }
+
+  const broadcastId = existing.metadata?.broadcast_id;
+  if (broadcastId && nextStatus === 'failed' && existing.status !== 'failed') {
+    const { data: broadcast } = await supabase
+      .from('crm_broadcasts')
+      .select('sent_count, failed_count')
+      .eq('id', broadcastId)
+      .maybeSingle();
+
+    if (broadcast) {
+      const { error: broadcastError } = await supabase
+        .from('crm_broadcasts')
+        .update({
+          sent_count: Math.max(0, Number(broadcast.sent_count || 0) - 1),
+          failed_count: Number(broadcast.failed_count || 0) + 1,
+        })
+        .eq('id', broadcastId);
+
+      if (broadcastError) {
+        console.error('[META-STATUS] Falha ao atualizar contadores da campanha', {
+          broadcastId,
+          error: broadcastError.message,
+        });
+      }
+    }
   }
 
   console.log('[META-STATUS] Status atualizado no CRM', { userId, metaMessageId, localId: existing.id, status: nextStatus, error: updateData.error_message || null });
@@ -2542,7 +2568,8 @@ async function internalSendTemplate(
   manualComponents: any[],
   contact: any,
   vpsTranscoderUrl?: string,
-  providedContactId?: string
+  providedContactId?: string,
+  broadcastId?: string
 ) {
   let dbTemplate: any = null;
   const normalizedTo = normalizePhone(to)
@@ -2565,6 +2592,7 @@ async function internalSendTemplate(
       .from('crm_templates')
       .select('components, is_carousel')
       .eq('name', templateName)
+      .eq('user_id', contact?.user_id)
       .single();
     
     dbTemplate = templateData;
@@ -2764,6 +2792,7 @@ async function internalSendTemplate(
         metadata: {
           template_name: templateName,
           source: 'api_automation',
+            broadcast_id: broadcastId || null,
           meta_error: result?.error || null,
           meta_error_details: normalizedError.details,
         },
@@ -2814,6 +2843,7 @@ async function internalSendTemplate(
       metadata: { 
         template_name: templateName,
         source: 'api_automation',
+        broadcast_id: broadcastId || null,
         ...(carouselMetadata || {})
       }
     }).select().single()
@@ -4128,7 +4158,7 @@ async function fetchAndStoreIncomingMedia(
 
       if (!contact) throw new Error('Contact not found');
 
-      const { contactId: providedContactId } = params;
+      const { contactId: providedContactId, broadcastId } = params;
       const response = await internalSendTemplate(
         supabase, 
         meta_phone_number_id || settings?.meta_phone_number_id || params.meta_phone_number_id, 
@@ -4139,7 +4169,8 @@ async function fetchAndStoreIncomingMedia(
         manualComponents, 
         contact,
         null,
-        providedContactId
+        providedContactId,
+        broadcastId
       );
 
 
