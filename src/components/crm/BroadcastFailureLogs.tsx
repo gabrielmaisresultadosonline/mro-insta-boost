@@ -86,7 +86,7 @@ interface FailureRow {
   error_code: string | null;
   error_message: string | null;
   metadata: any;
-  contact: { name?: string | null; phone?: string | null } | null;
+  contact: { name?: string | null; wa_id?: string | null } | null;
 }
 
 interface BroadcastFailureLogsProps {
@@ -106,7 +106,7 @@ const BroadcastFailureLogs = ({ broadcast, open, onOpenChange }: BroadcastFailur
       const base = () =>
         supabase
           .from("crm_messages")
-          .select("id, created_at, error_code, error_message, metadata, contact_id, crm_contacts(name, phone)")
+          .select("id, created_at, error_code, error_message, metadata, contact_id, crm_contacts(name, wa_id)")
           .eq("status", "failed")
           .order("created_at", { ascending: false })
           .limit(300);
@@ -202,7 +202,7 @@ const BroadcastFailureLogs = ({ broadcast, open, onOpenChange }: BroadcastFailur
                       <div className="min-w-0">
                         <p className="text-xs font-bold truncate">
                           {r.contact?.name || "Sem nome"}{" "}
-                          <span className="text-[#8696a0] font-normal">{r.contact?.phone || ""}</span>
+                           <span className="text-[#8696a0] font-normal">{r.contact?.wa_id || ""}</span>
                         </p>
                         <p className="text-[9px] text-[#8696a0]">
                           {new Date(r.created_at).toLocaleString("pt-BR")}
