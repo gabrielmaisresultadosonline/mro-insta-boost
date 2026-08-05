@@ -227,9 +227,43 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     return [];
   }, [targetType, selectedStatus, contacts, uploadedNumbers, conversationTagFilter, selectedTags24h]);
 
+  /** Reescreve a caixa de números já corrigidos (55 + 9º dígito), sem duplicados. */
+  const normalizeUploadedList = (raw?: string) => {
+    const source = raw ?? uploadedNumbers;
+    const entries = source.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    if (entries.length === 0) return;
+
+    const seen = new Set<string>();
+    const valid: string[] = [];
+    let invalid = 0;
+    let fixed = 0;
+
+    for (const entry of entries) {
+      const normalized = normalizeBrWhatsappNumber(entry);
+      if (!normalized) { invalid++; continue; }
+      if (normalized !== entry.replace(/\D/g, '')) fixed++;
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+      valid.push(normalized);
+    }
+
+    setUploadedNumbers(valid.join('\n'));
+
+    const duplicates = entries.length - invalid - valid.length;
+    if (fixed || invalid || duplicates) {
+      toast({
+        title: `${valid.length} números prontos`,
+        description: [
+          fixed ? `${fixed} corrigidos (DDI 55 / 9º dígito)` : null,
+          duplicates ? `${duplicates} duplicados removidos` : null,
+          invalid ? `${invalid} inválidos descartados (DDD incorreto)` : null,
+        ].filter(Boolean).join(' • '),
+      });
+    }
+  };
+
   // Map wa_id -> minutes left in the 24h window (null when outside/unknown)
   const windowInfo = useMemo(() => {
-    // (helper de normalização declarado abaixo)
     const DAY = 24 * 60 * 60 * 1000;
     const now = Date.now();
     const map = new Map<string, number>();
