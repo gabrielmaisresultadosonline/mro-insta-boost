@@ -1025,46 +1025,44 @@ else if (message.type === "unsupported") {
     // buscamos novamente o contato existente para garantir que usamos o ID correto.
     const { data: newContact, error: createContactError } = await supabase
       .from('crm_contacts')
-      .insert({
+      .upsert({
         wa_id: waId,
+        user_id: userId,
         name: profileName,
         status: 'new',
         source_type: 'whatsapp_inbound',
-        user_id: userId,
         last_interaction: new Date().toISOString(),
         last_message_received_at: new Date().toISOString(),
         total_messages_received: 0,
         metadata: { source: 'meta_webhook', profile: message?.profile || null }
+      }, { 
+        onConflict: 'wa_id,user_id',
+        ignoreDuplicates: false 
       })
       .select('id, total_messages_received')
       .maybeSingle();
 
     if (createContactError) {
-      // Se deu erro de duplicidade, tentamos buscar uma última vez antes de desistir
-      if (String(createContactError.message).includes('duplicate') || createContactError.code === '23505') {
-        const { data: retryContact } = await supabase
-          .from('crm_contacts')
-          .select('id, total_messages_received, last_message_received_at')
-          .in('wa_id', variantsForSave)
-          .eq('user_id', userId)
-          .order('last_message_received_at', { ascending: false, nullsFirst: true })
-          .limit(1)
-          .maybeSingle();
-        
-        if (retryContact) {
-          contactForSave = retryContact;
-          console.log('[WEBHOOK] Contact duplicate race condition resolved', { waId, contact_id: contactForSave.id });
-        } else {
-          console.error('[WEBHOOK] Failed to resolve duplicate contact', { waId, userId, error: createContactError.message });
-          return jsonResponse({ success: false, error: createContactError.message }, 500);
-        }
+      // Fallback manual se o upsert falhar por qualquer motivo (ex: restrição complexa)
+      const { data: retryContact } = await supabase
+        .from('crm_contacts')
+        .select('id, total_messages_received, last_message_received_at')
+        .in('wa_id', variantsForSave)
+        .eq('user_id', userId)
+        .order('last_message_received_at', { ascending: false, nullsFirst: true })
+        .limit(1)
+        .maybeSingle();
+      
+      if (retryContact) {
+        contactForSave = retryContact;
+        console.log('[WEBHOOK] Contact duplicate resolved via retry', { waId, contact_id: contactForSave.id });
       } else {
-        console.error('[WEBHOOK] Failed to create inbound contact', { waId, userId, error: createContactError.message });
+        console.error('[WEBHOOK] Failed to resolve contact creation', { waId, userId, error: createContactError.message });
         return jsonResponse({ success: false, error: createContactError.message }, 500);
       }
     } else {
       contactForSave = newContact;
-      console.log('[WEBHOOK] Created inbound contact', { waId, userId, contact_id: contactForSave?.id });
+      console.log('[WEBHOOK] Handled inbound contact (upsert)', { waId, userId, contact_id: contactForSave?.id });
     }
   }
 
