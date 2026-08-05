@@ -5561,19 +5561,35 @@ const CRM = () => {
                                     {selectedContact.current_step_name && <span className="ml-1 opacity-70">({selectedContact.current_step_name})</span>}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1 shrink-0">
+                                <div className="flex items-center gap-2 shrink-0">
                                   {aiFunctional ? (
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-6 w-6 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30" 
-                                      onClick={async (e) => { 
-                                        e.stopPropagation(); 
-                                        await updateContactStatus(selectedContact.id, { ai_active: false }); 
-                                      }}
-                                    >
-                                      <XCircle className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 md:h-8 px-2 md:px-3 text-[9px] md:text-[10px] font-bold gap-1 border-[#00a884] text-[#00a884] hover:bg-[#00a884] hover:text-white transition-all shadow-sm"
+                                        onClick={(e) => { e.stopPropagation(); handleManualAiReply(selectedContact.id); }}
+                                        disabled={isSending(selectedContact.id)}
+                                        title="Forçar resposta da IA agora"
+                                      >
+                                        <Bot className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                        RESPONDER
+                                      </Button>
+                                      
+                                      <Button 
+                                        variant="destructive" 
+                                        size="sm" 
+                                        className="h-7 md:h-8 px-2 md:px-3 text-[9px] md:text-[10px] font-bold gap-1 shadow-sm"
+                                        onClick={async (e) => { 
+                                          e.stopPropagation(); 
+                                          await handleStopFlow(selectedContact.id);
+                                        }}
+                                        disabled={isSending(selectedContact.id)}
+                                      >
+                                        <StopCircle className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                        PARAR AGENTE IA
+                                      </Button>
+                                    </div>
                                   ) : (
                                     <>
                                       {(selectedContact.flow_state === 'error' || selectedContact.flow_state === 'waiting_response') && (
@@ -5583,6 +5599,7 @@ const CRM = () => {
                                     </>
                                   )}
                                 </div>
+
                               </div>
                             ); })()}
                           </div>
