@@ -6891,7 +6891,7 @@ const CRM = () => {
                                   onCheckedChange={(val) => setMetaSettings({...metaSettings, business_hours_enabled: val})}
                                 />
                               </div>
-                              <Button onClick={handleSaveSettings} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
+                              <Button onClick={() => handleSaveSettings()} disabled={saving} size="sm" className="bg-[#00875A] hover:bg-[#00875A]/90">
                                 {saving ? <RefreshCcw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                                 Salvar Horário
                               </Button>
@@ -8272,7 +8272,7 @@ const CRM = () => {
                   </div>
 
                   <div className="flex justify-end pt-4">
-                    <Button onClick={handleSaveSettings} disabled={saving} size="lg" className="px-10 h-14 rounded-2xl bg-primary text-white font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform">
+                    <Button onClick={() => handleSaveSettings()} disabled={saving} size="lg" className="px-10 h-14 rounded-2xl bg-primary text-white font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform">
                       {saving ? <RefreshCcw className="mr-3 h-5 w-5 animate-spin" /> : <Save className="mr-3 h-5 w-5" />}
                       Salvar Configurações
                     </Button>
