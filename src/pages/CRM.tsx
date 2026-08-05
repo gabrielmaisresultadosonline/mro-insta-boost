@@ -5834,7 +5834,10 @@ const CRM = () => {
                                     )}>
                                       {isTemplate && template ? (
                                         <div className="overflow-hidden rounded-xl bg-white dark:bg-zinc-900 shadow-lg border border-border/50 max-w-[300px]">
-                                          {template.components?.find((c: any) => c.type === 'HEADER')?.format !== 'NONE' && (
+                                          {(() => {
+                                            const h = template.components?.find((c: any) => c.type === 'HEADER');
+                                            return !!h && h.format !== 'NONE';
+                                          })() && (
                                             <div className="max-h-[150px] aspect-video bg-muted/20 flex items-center justify-center relative overflow-hidden border-b border-border/10">
                                               {(() => {
                                                 const header = template.components.find((c: any) => c.type === 'HEADER');
