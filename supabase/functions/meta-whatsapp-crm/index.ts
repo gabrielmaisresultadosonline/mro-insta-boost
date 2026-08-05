@@ -1118,12 +1118,15 @@ else if (message.type === "unsupported") {
   const isAiHandling = contact?.flow_state === 'ai_handling';
   const isAiActive = contact?.ai_active === true;
   const isWaitingResponse = contact?.flow_state === 'waiting_response';
+  const isGlobalAiEnabled = settings?.ai_agent_enabled === true;
+  
   // Only treat as "active flow" when there's a flow AND the state is not idle/completed.
   // Without this, contacts whose previous flow ended but left `current_flow_id` set
   // would never trigger any new flow on inbound messages (silent stuck state).
   const _flowState = contact?.flow_state;
-  const _isFlowEnded = !_flowState || _flowState === 'idle' || _flowState === 'completed' || _flowState === 'ended' || _flowState === 'finished';
-  const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded;
+  const _isFlowEnded = !_flowState || _flowState === 'idle' || _flowState || 'completed' || _flowState === 'ended' || _flowState === 'finished';
+  // SE O MODO GLOBAL ESTIVER ATIVO, consideramos que não há fluxo impedindo a IA, a menos que esteja no meio de um fluxo rodando
+  const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded && (!isGlobalAiEnabled || _flowState === 'running');
 
   // --- GLOBAL ACTIONS (NO CONTACT REQUIRED OR HANDLED INTERNALLY) ---
   if (action === 'processAiAgent' && body.contactId) {
@@ -1524,17 +1527,23 @@ else if (message.type === "unsupported") {
   // para garantir que mesmo conversas novas ou recém-limpas sejam atendidas.
   const shouldActivateAi = isGlobalAiEnabled || (contact && contact.ai_active);
   
+  // LOG PARA DEBUG: Verifica por que a IA não está disparando
   if (contact && shouldActivateAi) {
-    console.log(`[WEBHOOK] Contact ${waId} AI processing: ai_active=${contact.ai_active}, global_enabled=${isGlobalAiEnabled}. Calling processAiAgentResponse...`);
+    const inboundText = text || extractedInboundText;
+    console.log(`[WEBHOOK-AI-DEBUG] Contact ${waId} eligible for AI. ai_active=${contact.ai_active}, global_enabled=${isGlobalAiEnabled}, text="${inboundText?.slice(0,50)}..."`);
     
     // Se a IA ainda não estava ativa no contato mas o global está ligado, ativa agora.
     if (isGlobalAiEnabled && !contact.ai_active) {
-       console.log(`[WEBHOOK] Activating AI for contact ${waId} due to Global Mode.`);
-       await supabase.from('crm_contacts').update({ 
+       console.log(`[WEBHOOK-AI-DEBUG] Activating AI for contact ${waId} due to Global Mode.`);
+       const { error: updateErr } = await supabase.from('crm_contacts').update({ 
          ai_active: true,
          flow_state: 'ai_handling',
          last_interaction: new Date().toISOString()
        }).eq('id', contact.id);
+       
+       if (updateErr) {
+         console.error(`[WEBHOOK-AI-DEBUG] Error activating AI for contact ${waId}:`, updateErr);
+       }
        
        // Update the local object so processAiAgentResponse knows it's active
        contact.ai_active = true;
@@ -1542,9 +1551,12 @@ else if (message.type === "unsupported") {
     }
 
     // CRITICAL: processAiAgentResponse is async and will handle the reply.
-    // Garante que o texto enviado seja passado para a IA processar
-    const result = await processAiAgentResponse(supabase, contact, waId, text || extractedInboundText, message.id, userId);
+    // Passamos o texto extraído para garantir que a IA tenha o input correto.
+    console.log(`[WEBHOOK-AI-DEBUG] Calling processAiAgentResponse for ${waId} with messageId: ${message.id}`);
+    const result = await processAiAgentResponse(supabase, contact, waId, inboundText, message.id, userId);
     return jsonResponse(result);
+  } else if (contact) {
+    console.log(`[WEBHOOK-AI-DEBUG] Contact ${waId} NOT eligible for AI. ai_active=${contact.ai_active}, global_enabled=${isGlobalAiEnabled}, hasActiveFlow=${hasActiveFlow}`);
   }
 
   return jsonResponse({ success: true });
