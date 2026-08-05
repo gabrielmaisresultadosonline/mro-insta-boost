@@ -591,8 +591,8 @@ ${aiPrompt}
           console.log(`[AI-AGENT] Sending reply to ${waId}: ${reply.substring(0, 50)}...`);
           
           // Split reply into multiple messages if it contains double newlines or is too long, 
-          // to simulate human typing multiple messages. Limit to max 3 messages.
-          const messageParts = reply.split(/\n\n+/).filter(p => p.trim()).slice(0, 3);
+          // to simulate human typing multiple messages. Limit to max 10 messages (user request: "5 10 partes").
+          const messageParts = reply.split(/\n\n+/).filter(p => p.trim()).slice(0, 10);
           
           for (const part of messageParts) {
             await handleInternalSendMessage(
