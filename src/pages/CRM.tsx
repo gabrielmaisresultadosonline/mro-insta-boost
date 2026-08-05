@@ -3465,16 +3465,16 @@ const CRM = () => {
     }
   };
 
-  const handleCancelFlow = async (contactId: string) => {
+  const handleStopFlow = async (contactId: string) => {
     setContactSending(contactId, true);
     try {
       const { error } = await supabase
         .from('crm_contacts')
         .update({
-          flow_state: 'idle',
           current_flow_id: null,
-          current_step_index: null,
           current_node_id: null,
+          flow_state: 'idle',
+          ai_active: false,
           next_execution_time: null
         })
         .eq('id', contactId);
@@ -3487,7 +3487,7 @@ const CRM = () => {
         .eq('contact_id', contactId)
         .eq('status', 'pending');
 
-      toast({ title: "Fluxo interrompido com sucesso!" });
+      toast({ title: "Atendimento automático interrompido" });
       
       if (selectedContact?.id === contactId) {
         setSelectedContact((prev: any) => ({
@@ -3496,6 +3496,7 @@ const CRM = () => {
           current_flow_id: null,
           current_step_index: null,
           current_node_id: null,
+          ai_active: false,
           next_execution_time: null
         }));
       }
@@ -3506,6 +3507,38 @@ const CRM = () => {
       setContactSending(contactId, false);
     }
   };
+
+  const handleManualAiReply = async (contactId: string) => {
+    if (contactSending[contactId]) return;
+    setContactSending(contactId, true);
+    try {
+      const contact = contacts.find(c => c.id === contactId);
+      if (!contact) throw new Error("Contato não encontrado");
+
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: { 
+          action: 'processAiAgent',
+          contactId: contactId,
+          waId: contact.wa_id,
+          manualTrigger: true
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "IA não conseguiu responder agora.");
+
+      toast({ title: "IA processando resposta..." });
+    } catch (err: any) {
+      toast({ 
+        title: "Erro ao acionar IA", 
+        description: err.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setContactSending(contactId, false);
+    }
+  };
+
 
   const handleResumeFlow = async (contactId: string) => {
     setContactSending(contactId, true);
