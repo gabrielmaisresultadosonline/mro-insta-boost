@@ -903,11 +903,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     // Injecting the synthetic trigger text here caused active conversations
     // to fire the wrong flow when the customer's auto-reply arrived.
     const hasReferral = !!getReferralFromWebhookMessage(message);
+    const variants = getBrazilianPhoneVariants(waId);
     const { data: existingContactForCtwa } = await supabase
       .from('crm_contacts')
       .select('id, total_messages_received, last_message_received_at')
-      .eq('wa_id', waId)
+      .in('wa_id', variants)
       .eq('user_id', userId)
+      .order('last_message_received_at', { ascending: false, nullsFirst: true })
+      .limit(1)
       .maybeSingle();
     const isBrandNewContact =
       !existingContactForCtwa ||
@@ -988,11 +991,14 @@ else if (message.type === "unsupported") {
     text = `[Reação] ${message.reaction?.emoji || ""}`;
   }
 
+   const variantsForSave = getBrazilianPhoneVariants(waId);
    let { data: contactForSave } = await supabase
      .from('crm_contacts')
       .select('id, total_messages_received, last_message_received_at')
-     .eq('wa_id', waId)
+     .in('wa_id', variantsForSave)
      .eq('user_id', userId)
+     .order('last_message_received_at', { ascending: false, nullsFirst: true })
+     .limit(1)
      .maybeSingle();
 
   if (!contactForSave && !skipSave) {
