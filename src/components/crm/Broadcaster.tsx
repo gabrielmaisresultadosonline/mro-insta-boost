@@ -1551,6 +1551,12 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           </Card>
         </div>
       </div>
+
+      <BroadcastFailureLogs
+        broadcast={logsBroadcast}
+        open={!!logsBroadcast}
+        onOpenChange={(o) => { if (!o) setLogsBroadcast(null); }}
+      />
     </div>
   );
 };
