@@ -216,13 +216,13 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
         .map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
     }
     if (targetType === 'uploaded') {
-      return uploadedNumbers.split('\n').map(n => {
-        const digits = n.trim().replace(/\D/g, '');
-        if (digits.length < 10) return null;
-        // Auto add 55 if it's a Brazilian local number without country code
-        const wa = (digits.length === 10 || digits.length === 11) ? `55${digits}` : digits;
-        return { wa_id: wa, name: wa };
-      }).filter(Boolean) as { wa_id: string; name: string }[];
+      const seen = new Set<string>();
+      return uploadedNumbers
+        .split(/[\n,;]+/)
+        .map(n => normalizeBrWhatsappNumber(n))
+        .filter((wa): wa is string => !!wa)
+        .filter(wa => (seen.has(wa) ? false : (seen.add(wa), true)))
+        .map(wa => ({ wa_id: wa, name: wa }));
     }
     return [];
   }, [targetType, selectedStatus, contacts, uploadedNumbers, conversationTagFilter, selectedTags24h]);
