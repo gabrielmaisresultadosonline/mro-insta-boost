@@ -249,7 +249,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   console.log(`[AI-AGENT] Processing response for contact ${waId}. Flow AI Agent.`);
   let messageText = text;
 
-    const { data: aiSettings, error: settingsError } = await supabase.from('crm_settings').select('openai_api_key, meta_phone_number_id, meta_access_token, vps_transcoder_url, ai_agent_enabled').eq('user_id', userId).maybeSingle();
+    const { data: aiSettings, error: settingsError } = await supabase.from('crm_settings').select('openai_api_key, meta_phone_number_id, meta_access_token, vps_transcoder_url, ai_agent_enabled, business_description, ai_system_prompt').eq('user_id', userId).maybeSingle();
   
   if (settingsError) {
     console.error(`[AI-AGENT] Error fetching settings for user ${userId}:`, settingsError);
