@@ -5834,7 +5834,10 @@ const CRM = () => {
                                     )}>
                                       {isTemplate && template ? (
                                         <div className="overflow-hidden rounded-xl bg-white dark:bg-zinc-900 shadow-lg border border-border/50 max-w-[300px]">
-                                          {template.components?.find((c: any) => c.type === 'HEADER')?.format !== 'NONE' && (
+                                          {(() => {
+                                            const h = template.components?.find((c: any) => c.type === 'HEADER');
+                                            return !!h && h.format !== 'NONE';
+                                          })() && (
                                             <div className="max-h-[150px] aspect-video bg-muted/20 flex items-center justify-center relative overflow-hidden border-b border-border/10">
                                               {(() => {
                                                 const header = template.components.find((c: any) => c.type === 'HEADER');
@@ -5862,9 +5865,17 @@ const CRM = () => {
                                           )}
                                           <div className="p-3 space-y-2">
                                             <div className="text-[13px] md:text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">
-                                              {m.content?.includes('[Template:') 
-                                                ? m.content.replace(/\[Template: .*?\]\s*/, '') 
-                                                : (template?.components?.find((c: any) => c.type === 'BODY')?.text || m.content)}
+                                              {(() => {
+                                                // Texto real digitado/salvo (quando existir)
+                                                const raw = (m.content || '').replace(/\[Template: .*?\]\s*/, '').trim();
+                                                if (raw) return raw;
+                                                // Fallback: corpo aprovado do template na Meta
+                                                const bodyText = template?.components?.find((c: any) => c.type === 'BODY')?.text || '';
+                                                if (!bodyText) return m.content || '';
+                                                // Substitui variáveis pelos exemplos aprovados, se houver
+                                                const examples = template?.components?.find((c: any) => c.type === 'BODY')?.example?.body_text?.[0] || [];
+                                                return bodyText.replace(/\{\{(\d+)\}\}/g, (_: string, n: string) => examples[Number(n) - 1] ?? '');
+                                              })()}
                                             </div>
 
                                             {template.components?.find((c: any) => c.type === 'FOOTER') && (
