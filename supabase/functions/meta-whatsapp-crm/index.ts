@@ -4135,11 +4135,15 @@ async function fetchAndStoreIncomingMedia(
     if (action === 'sendTemplate') {
       const { to, templateName, languageCode, components: manualComponents } = params
       
-      const { data: contact } = await supabase
+      const contactQuery = supabase
         .from('crm_contacts')
         .select('*')
-        .eq('wa_id', to)
-        .single();
+        .eq('wa_id', normalizePhone(to));
+      const scopedContactQuery = userId ? contactQuery.eq('user_id', userId) : contactQuery;
+      const { data: contact } = await scopedContactQuery
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (!contact) throw new Error('Contact not found');
 

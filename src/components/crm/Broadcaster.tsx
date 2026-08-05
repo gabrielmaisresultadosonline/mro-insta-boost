@@ -497,7 +497,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           const t = templates.find(temp => temp.id === selectedTemplate);
           payload.action = 'sendTemplate';
           payload.templateName = t?.name;
-          payload.language = t?.language || 'pt_BR';
+          payload.languageCode = t?.language || 'pt_BR';
         } else if (type === 'flow') {
           // Find contact or create one (flows require a contactId)
           let { data: contact } = await supabase
