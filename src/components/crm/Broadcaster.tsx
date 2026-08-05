@@ -50,6 +50,67 @@ interface BroadcasterProps {
   statuses: any[];
 }
 
+/** DDDs válidos no Brasil (ANATEL) */
+const VALID_BR_DDD = new Set([
+  11,12,13,14,15,16,17,18,19,
+  21,22,24,27,28,
+  31,32,33,34,35,37,38,
+  41,42,43,44,45,46,47,48,49,
+  51,53,54,55,
+  61,62,63,64,65,66,67,68,69,
+  71,73,74,75,77,79,
+  81,82,83,84,85,86,87,88,89,
+  91,92,93,94,95,96,97,98,99,
+]);
+
+/**
+ * Normaliza um número para o formato E.164 do WhatsApp.
+ * - Remove máscara, "+" e zeros à esquerda (0800/DDD com 0)
+ * - Adiciona o DDI 55 quando for número brasileiro sem país
+ * - Adiciona o 9º dígito em celulares brasileiros de 8 dígitos (prefixo 6-9)
+ * - Valida o DDD; retorna null quando inválido
+ */
+export function normalizeBrWhatsappNumber(input: string): string | null {
+  if (!input) return null;
+  let digits = String(input).replace(/\D/g, '');
+  if (!digits) return null;
+
+  // Remove zeros à esquerda (ex.: 011 99999-9999)
+  digits = digits.replace(/^0+/, '');
+
+  // Se já vem com DDI 55 e tamanho compatível, isolamos o restante
+  let local = digits;
+  let hasCountry = false;
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+    local = digits.slice(2);
+    hasCountry = true;
+  }
+
+  // Números estrangeiros (não batem com o padrão BR) passam sem alteração
+  if (!hasCountry && local.length !== 10 && local.length !== 11) {
+    return local.length >= 8 ? local : null;
+  }
+
+  const ddd = Number(local.slice(0, 2));
+  if (!VALID_BR_DDD.has(ddd)) return null;
+
+  let subscriber = local.slice(2);
+
+  // Celular sem o 9º dígito -> adiciona
+  if (subscriber.length === 8 && /^[6-9]/.test(subscriber)) {
+    subscriber = `9${subscriber}`;
+  }
+
+  // Corrige duplicidade de 9 (ex.: 99 9 9999 9999 digitado errado)
+  if (subscriber.length === 10 && subscriber.startsWith('99') && /^9{2}/.test(subscriber)) {
+    subscriber = subscriber.slice(1);
+  }
+
+  if (subscriber.length !== 8 && subscriber.length !== 9) return null;
+
+  return `55${ddd}${subscriber}`;
+}
+
 const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -155,16 +216,51 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
         .map(c => ({ wa_id: c.wa_id, name: c.name || c.wa_id }));
     }
     if (targetType === 'uploaded') {
-      return uploadedNumbers.split('\n').map(n => {
-        const digits = n.trim().replace(/\D/g, '');
-        if (digits.length < 10) return null;
-        // Auto add 55 if it's a Brazilian local number without country code
-        const wa = (digits.length === 10 || digits.length === 11) ? `55${digits}` : digits;
-        return { wa_id: wa, name: wa };
-      }).filter(Boolean) as { wa_id: string; name: string }[];
+      const seen = new Set<string>();
+      return uploadedNumbers
+        .split(/[\n,;]+/)
+        .map(n => normalizeBrWhatsappNumber(n))
+        .filter((wa): wa is string => !!wa)
+        .filter(wa => (seen.has(wa) ? false : (seen.add(wa), true)))
+        .map(wa => ({ wa_id: wa, name: wa }));
     }
     return [];
   }, [targetType, selectedStatus, contacts, uploadedNumbers, conversationTagFilter, selectedTags24h]);
+
+  /** Reescreve a caixa de números já corrigidos (55 + 9º dígito), sem duplicados. */
+  const normalizeUploadedList = (raw?: string) => {
+    const source = raw ?? uploadedNumbers;
+    const entries = source.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    if (entries.length === 0) return;
+
+    const seen = new Set<string>();
+    const valid: string[] = [];
+    let invalid = 0;
+    let fixed = 0;
+
+    for (const entry of entries) {
+      const normalized = normalizeBrWhatsappNumber(entry);
+      if (!normalized) { invalid++; continue; }
+      if (normalized !== entry.replace(/\D/g, '')) fixed++;
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+      valid.push(normalized);
+    }
+
+    setUploadedNumbers(valid.join('\n'));
+
+    const duplicates = entries.length - invalid - valid.length;
+    if (fixed || invalid || duplicates) {
+      toast({
+        title: `${valid.length} números prontos`,
+        description: [
+          fixed ? `${fixed} corrigidos (DDI 55 / 9º dígito)` : null,
+          duplicates ? `${duplicates} duplicados removidos` : null,
+          invalid ? `${invalid} inválidos descartados (DDD incorreto)` : null,
+        ].filter(Boolean).join(' • '),
+      });
+    }
+  };
 
   // Map wa_id -> minutes left in the 24h window (null when outside/unknown)
   const windowInfo = useMemo(() => {
@@ -1119,10 +1215,22 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     className="min-h-[100px] md:min-h-[120px] rounded-xl bg-[#202c33] border-none resize-none font-mono text-xs md:text-sm text-[#e9edef]"
                     value={uploadedNumbers}
                     onChange={e => setUploadedNumbers(e.target.value)}
+                    onBlur={() => normalizeUploadedList()}
+                    onPaste={e => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData('text');
+                      const merged = [uploadedNumbers, pasted].filter(Boolean).join('\n');
+                      normalizeUploadedList(merged);
+                    }}
                   />
-                  <p className="text-[9px] md:text-[10px] text-muted-foreground italic">
-                    Aceita com ou sem +55. Números brasileiros (10-11 dígitos) recebem o 55 automaticamente.
-                  </p>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-[9px] md:text-[10px] text-muted-foreground italic flex-1 min-w-[180px]">
+                      Correção automática: adiciona o 55, insere o 9º dígito em celulares, valida o DDD e remove duplicados.
+                    </p>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-[9px] md:text-[10px]" onClick={() => normalizeUploadedList()}>
+                      Corrigir números
+                    </Button>
+                  </div>
                 </div>
               )}
 
