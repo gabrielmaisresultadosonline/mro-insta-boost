@@ -1320,7 +1320,7 @@ else if (message.type === "unsupported") {
   // Check if contact is in an AI node or AI state
   if (contact && (isAiHandling || isAiActive || (hasActiveFlow && isInAiNode))) {
     console.log(`[FLOW-LOG] WEBHOOK: Processing AI Agent for ${waId}. State: ${contact.flow_state}`);
-    const result = await processAiAgentResponse(supabase, contact, waId, text, message.id, userId);
+    const result = await processAiAgentResponse(supabase, contact, waId, text || extractedInboundText, message.id, userId);
     return jsonResponse(result);
   }
 
