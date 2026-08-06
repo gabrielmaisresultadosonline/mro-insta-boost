@@ -2371,6 +2371,19 @@ const CRM = () => {
   };
 
   const handleDragStart = (contact: any) => setDraggedContact(contact);
+
+  /**
+   * Define se o ícone do Agente I.A deve aparecer ativo (azul) na conversa.
+   * Regra: com o Agente I.A Global ligado, TODAS as conversas ficam ativas,
+   * a não ser que o usuário tenha desligado manualmente aquela conversa.
+   */
+  const isAiVisuallyActive = (contact: any): boolean => {
+    if (!contact) return false;
+    const meta = (contact.metadata as any) || {};
+    if (meta.manual_ai_off === true) return false;
+    if (metaSettings.ai_agent_enabled) return true;
+    return !!contact.ai_active && meta.manual_ai_activation === true;
+  };
   const handleDrop = async (status: string) => {
     if (!draggedContact || draggedContact.status === status) return;
     await updateContactStatus(draggedContact.id, { status });
