@@ -684,7 +684,11 @@ ${aiPrompt}
         last_interaction: new Date().toISOString(),
         metadata: { 
           ...(contact.metadata || {}),
-          has_waited_initial_response: true 
+          has_waited_initial_response: true,
+          // Marca que esta conversa realmente foi atendida pelo Agente I.A.
+          // Usado pelo Recuperador I.A. para nunca recuperar conversas antigas/externas.
+          ai_engaged: true,
+          ai_engaged_at: new Date().toISOString()
         }
       }).eq('id', contact.id);
       aiLog('reply_completed');
