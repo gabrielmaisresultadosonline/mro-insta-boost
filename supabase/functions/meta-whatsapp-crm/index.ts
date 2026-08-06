@@ -13,7 +13,8 @@ function describeMessageForHistory(message: any) {
   }
 
   if (message.message_type === 'audio') {
-    return `${content || '[Áudio recebido]'}${message.media_url ? ` (áudio anexado: ${message.media_url})` : ''}`;
+    // O áudio já chega transcrito internamente: entregue apenas o conteúdo falado.
+    return content || '[Áudio recebido]';
   }
 
   if (message.message_type === 'video') {
