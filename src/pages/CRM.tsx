@@ -6405,7 +6405,49 @@ const CRM = () => {
                                         )}>
                                           <AlertCircle className={cn("w-3 h-3 mt-0.5 shrink-0", isBusinessVerificationError(m) ? "text-zinc-950" : "text-destructive")} />
                                           <div className="flex-1">
-                                            <span>{getMetaDeliveryErrorMessage(m)}</span>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              <span>{getMetaDeliveryErrorMessage(m)}</span>
+                                              <button
+                                                type="button"
+                                                title="O que aconteceu?"
+                                                aria-label="Entenda o que aconteceu"
+                                                onClick={() => setExpandedErrorMessageId(prev => (prev === m.id ? null : m.id))}
+                                                className={cn(
+                                                  "inline-flex items-center justify-center rounded-full border p-0.5 transition-colors",
+                                                  isBusinessVerificationError(m)
+                                                    ? "border-zinc-300 text-zinc-900 hover:bg-zinc-100"
+                                                    : "border-destructive/40 text-destructive hover:bg-destructive/15"
+                                                )}
+                                              >
+                                                <LucideIcons.HelpCircle className="w-3 h-3" />
+                                              </button>
+                                              {m.message_type === 'text' && (
+                                                <button
+                                                  type="button"
+                                                  disabled={resendingMessageId === m.id}
+                                                  onClick={() => handleResendFailedMessage(m)}
+                                                  className={cn(
+                                                    "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-60",
+                                                    isBusinessVerificationError(m)
+                                                      ? "border-zinc-200 bg-zinc-50 text-zinc-900 hover:bg-zinc-100"
+                                                      : "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                                                  )}
+                                                >
+                                                  <LucideIcons.RefreshCw className={cn("w-3 h-3", resendingMessageId === m.id && "animate-spin")} />
+                                                  {resendingMessageId === m.id ? 'Reenviando...' : 'Reenviar'}
+                                                </button>
+                                              )}
+                                            </div>
+                                            {expandedErrorMessageId === m.id && (
+                                              <p className={cn(
+                                                "mt-1.5 rounded border p-1.5 text-[10px] leading-snug",
+                                                isBusinessVerificationError(m)
+                                                  ? "border-zinc-200 bg-zinc-50 text-zinc-700"
+                                                  : "border-destructive/30 bg-destructive/5 text-destructive/90"
+                                              )}>
+                                                {getMetaDeliveryErrorExplanation(m)}
+                                              </p>
+                                            )}
                                             {isBusinessVerificationError(m) && (
                                               <button
                                                 type="button"
