@@ -2140,7 +2140,7 @@ const CRM = () => {
     }
   };
 
-  const handleSyncPendingGoogleContacts = async () => {
+  const handleSyncPendingGoogleContacts = async (targetAccountId?: string) => {
     if (!googleContactsEnabled) {
       handleConnectGoogle();
       return;
@@ -2151,7 +2151,7 @@ const CRM = () => {
       googleAccountFullRef.current = false;
       setGoogleAccountFull(false);
       const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
-        body: { action: 'syncPendingToGoogle' }
+        body: { action: 'syncPendingToGoogle', targetAccountId }
       });
       if (error) throw error;
 
@@ -2171,14 +2171,14 @@ const CRM = () => {
         });
       } else {
         toast({
-          title: 'Sincronização enviada!',
+          title: 'Exportação concluída!',
           description: `${data?.pushed || 0} contatos subiram. ${data?.remaining || 0} ainda pendentes.`,
         });
       }
       await fetchContacts();
     } catch (err: any) {
       toast({
-        title: 'Erro ao subir contatos',
+        title: 'Erro ao exportar contatos',
         description: err.message || 'Não foi possível enviar os pendentes ao Google.',
         variant: 'destructive',
       });
@@ -7429,17 +7429,6 @@ const CRM = () => {
                           </div>
                         </div>
                         <div className="flex gap-2 flex-wrap">
-                          {googleContactsEnabled && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-9 text-[11px] font-semibold rounded-lg px-3 flex-1 sm:flex-none"
-                              onClick={handleSyncPendingGoogleContacts}
-                            >
-                              <RefreshCcw className="w-3.5 h-3.5 mr-1.5" />
-                              Sincronizar
-                            </Button>
-                          )}
                           {googleAccounts.length < MAX_GOOGLE_ACCOUNTS && (
                             <Button
                               size="sm"
@@ -7465,6 +7454,16 @@ const CRM = () => {
                                 </span>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-[10px] font-bold"
+                                  disabled={isSyncingContacts}
+                                  onClick={() => handleSyncPendingGoogleContacts(acc.id)}
+                                >
+                                  <FileUp className="w-3.5 h-3.5 mr-1" />
+                                  EXPORTAR
+                                </Button>
                                 <div className="flex items-center gap-1.5">
                                   <Switch
                                     id={`gsync-${acc.id}`}
