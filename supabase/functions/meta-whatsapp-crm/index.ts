@@ -709,19 +709,22 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
     }
 
     // Find or create contact
-    let { data: contact } = await supabase
+    // Busca por TODAS as variantes (com/sem 9º dígito) para nunca duplicar a conversa.
+    const echoVariants = getBrazilianPhoneVariants(waId);
+    const { data: echoContactRows } = await supabase
       .from('crm_contacts')
       .select('id')
-      .eq('wa_id', waId)
+      .in('wa_id', echoVariants)
       .eq('user_id', userId)
-      .maybeSingle();
+      .limit(1);
+    let contact: any = echoContactRows && echoContactRows.length > 0 ? echoContactRows[0] : null;
 
     if (!contact) {
       const { data: created, error: createErr } = await supabase
         .from('crm_contacts')
         .insert({
-          wa_id: waId,
-          name: waId,
+          wa_id: canonicalBrazilianWaId(waId),
+          name: canonicalBrazilianWaId(waId),
           status: 'new',
           source_type: 'whatsapp_echo',
           user_id: userId,
@@ -731,10 +734,22 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
         .select('id')
         .maybeSingle();
       if (createErr) {
-        console.error('[WEBHOOK-ECHO] Failed to create contact', { waId, error: createErr.message });
-        return { success: false, error: createErr.message };
+        // Corrida: outro processo criou o contato primeiro — reaproveita o existente.
+        const { data: retryRows } = await supabase
+          .from('crm_contacts')
+          .select('id')
+          .in('wa_id', echoVariants)
+          .eq('user_id', userId)
+          .limit(1);
+        if (retryRows && retryRows.length > 0) {
+          contact = retryRows[0];
+        } else {
+          console.error('[WEBHOOK-ECHO] Failed to create contact', { waId, error: createErr.message });
+          return { success: false, error: createErr.message };
+        }
+      } else {
+        contact = created;
       }
-      contact = created;
     }
 
     // Build content/type
