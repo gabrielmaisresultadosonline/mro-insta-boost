@@ -4756,20 +4756,12 @@ async function fetchAndStoreIncomingMedia(
                 if (sourceMessageId) {
                   const { data: currentInbound } = await supabase
                     .from('crm_messages')
-                    .select('content, message_type, media_url')
+                    .select('id, content, message_type, media_url')
                     .eq('meta_message_id', sourceMessageId)
                     .maybeSingle();
-                  
-                  if (currentInbound?.message_type === 'audio' && currentInbound.media_url) {
-                     console.log(`[AI-AGENT-DELAYED] Transcribing audio message ${sourceMessageId} during delayed response...`);
-                     const transcription = await transcribeAudioForAi(OPENAI_API_KEY, currentInbound.media_url);
-                     if (transcription) {
-                       finalAiText = transcription;
-                       await supabase.from('crm_messages').update({ content: transcription }).eq('meta_message_id', sourceMessageId);
-                     }
-                  } else if (currentInbound?.content) {
-                    finalAiText = currentInbound.content;
-                  }
+
+                  const resolvedText = await resolveInboundMessageText(supabase, OPENAI_API_KEY, currentInbound);
+                  if (resolvedText) finalAiText = resolvedText;
                 }
 
                 // Delay para parecer mais natural
