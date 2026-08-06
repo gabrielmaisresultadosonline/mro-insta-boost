@@ -1796,6 +1796,215 @@ async function processCountdownTriggers(supabase: any) {
   return summary;
 }
 
+// ---------------------------------------------------------------------------
+// RECUPERADOR IA
+// Reengaja conversas paradas (nenhuma mensagem nova por X minutos) usando o
+// mesmo cerebro/token do Agente IA. Antes de recuperar, a IA avalia se o
+// atendimento ja foi concluido; se sim, marca a conversa com a etiqueta
+// "Finalizado agente IA" e nunca mais recupera.
+// ---------------------------------------------------------------------------
+const AI_RECOVERY_DEFAULT_LABEL = 'Finalizado agente IA';
+
+async function ensureAiRecoveryStatus(supabase: any, userId: string, label: string) {
+  try {
+    const { data: existing } = await supabase
+      .from('crm_statuses')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('label', label)
+      .maybeSingle();
+    if (existing?.id) return;
+    await supabase.from('crm_statuses').insert({
+      user_id: userId,
+      label,
+      value: 'ai_finalizado',
+      color: '#16a34a',
+      sort_order: 99,
+    });
+  } catch (err) {
+    console.error('[AI-RECOVERY] Falha ao garantir etiqueta:', err);
+  }
+}
+
+async function processAiRecoveryForAllUsers(supabase: any, onlyUserId?: string | null) {
+  const summary = { users: 0, evaluated: 0, recovered: 0, finalized: 0 };
+
+  let settingsQuery = supabase
+    .from('crm_settings')
+    .select('user_id, openai_api_key, meta_phone_number_id, meta_access_token, vps_transcoder_url, ai_agent_enabled, ai_recovery_enabled, ai_recovery_delay_minutes, ai_recovery_max_attempts, ai_recovery_finalized_status, business_description, ai_system_prompt')
+    .eq('ai_agent_enabled', true)
+    .eq('ai_recovery_enabled', true);
+
+  if (onlyUserId) settingsQuery = settingsQuery.eq('user_id', onlyUserId);
+
+  const { data: settingsRows, error: settingsError } = await settingsQuery;
+
+  if (settingsError) {
+    console.error('[AI-RECOVERY] Erro ao carregar settings:', settingsError);
+    return summary;
+  }
+
+  for (const settings of settingsRows || []) {
+    const apiKey = settings.openai_api_key || Deno.env.get('OPENAI_API_KEY');
+    if (!apiKey || !settings.meta_phone_number_id || !settings.meta_access_token) continue;
+
+    summary.users += 1;
+
+    const delayMinutes = Math.max(5, Number(settings.ai_recovery_delay_minutes) || 60);
+    const maxAttempts = Math.max(1, Number(settings.ai_recovery_max_attempts) || 2);
+    const finalizedLabel = (settings.ai_recovery_finalized_status || '').trim() || AI_RECOVERY_DEFAULT_LABEL;
+
+    await ensureAiRecoveryStatus(supabase, settings.user_id, finalizedLabel);
+
+    const now = Date.now();
+    const cutoffIso = new Date(now - delayMinutes * 60 * 1000).toISOString();
+    // Janela de atendimento do WhatsApp (24h desde a ultima mensagem recebida).
+    const windowStartIso = new Date(now - 23.5 * 60 * 60 * 1000).toISOString();
+
+    const { data: contacts } = await supabase
+      .from('crm_contacts')
+      .select('*')
+      .eq('user_id', settings.user_id)
+      .not('last_message_received_at', 'is', null)
+      .lt('last_message_received_at', cutoffIso)
+      .gt('last_message_received_at', windowStartIso)
+      .limit(40);
+
+    for (const contact of contacts || []) {
+      try {
+        const metadata = (contact.metadata || {}) as Record<string, any>;
+
+        if (metadata.ai_recovery_finalized === true) continue;
+        if (contact.status === finalizedLabel) continue;
+        if (contact.flow_state && contact.flow_state !== 'idle') continue;
+
+        const lastRecoveryAt = metadata.ai_recovery_last_at ? new Date(metadata.ai_recovery_last_at).getTime() : 0;
+        if (lastRecoveryAt && now - lastRecoveryAt < delayMinutes * 60 * 1000) continue;
+
+        const lastInboundAt = contact.last_message_received_at ? new Date(contact.last_message_received_at).getTime() : 0;
+        // Se o cliente respondeu depois da ultima recuperacao, zera as tentativas.
+        const attempts = lastInboundAt > lastRecoveryAt ? 0 : Number(metadata.ai_recovery_attempts || 0);
+        if (attempts >= maxAttempts) continue;
+
+        const { data: history } = await supabase
+          .from('crm_messages')
+          .select('content, direction, message_type, created_at')
+          .eq('contact_id', contact.id)
+          .order('created_at', { ascending: false })
+          .limit(40);
+
+        if (!history || history.length === 0) continue;
+
+        const conversation = history
+          .slice()
+          .reverse()
+          .map((m: any) => `${m.direction === 'inbound' ? 'Cliente' : 'Atendente'}: ${describeMessageForHistory(m)}`)
+          .join('\n');
+
+        summary.evaluated += 1;
+
+        const evaluationPrompt = `Voce e o mesmo atendente humano que conduziu a conversa abaixo. A conversa esta parada ha ${delayMinutes} minutos.
+
+CONTEXTO DO NEGOCIO:
+${settings.business_description || 'Nao informado.'}
+
+INSTRUCOES DE ATENDIMENTO (CEREBRO):
+${settings.ai_system_prompt || 'Atenda com simpatia e objetividade.'}
+
+TAREFA (em duas etapas):
+1) AVALIE a conversa: ela ja foi FINALIZADA? Considere finalizada quando a venda/negocio foi fechado, o cliente recusou claramente, o assunto foi totalmente resolvido, o cliente pediu para nao receber mais mensagens, ou houve despedida final. Se ainda existe duvida em aberto, proposta sem resposta ou interesse nao resolvido, ela NAO esta finalizada.
+2) Se NAO estiver finalizada, escreva UMA unica mensagem curta e natural de recuperacao, baseada exatamente no que ja foi conversado (ex: retomar a proposta, perguntar se ficou alguma duvida). Nunca se apresente de novo, nunca repita mensagens ja enviadas, nunca diga que e um agente/IA/sistema, nunca use markdown.
+
+Responda SOMENTE com JSON valido no formato:
+{"finalizada": true|false, "motivo": "curto", "mensagem": "texto da recuperacao ou vazio se finalizada"}
+
+HISTORICO DA CONVERSA:
+${conversation}`;
+
+        const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'Voce avalia conversas de vendas e gera mensagens de recuperacao. Responda sempre em JSON valido.' },
+              { role: 'user', content: evaluationPrompt },
+            ],
+            temperature: 0.6,
+            response_format: { type: 'json_object' },
+          }),
+        });
+
+        if (!aiRes.ok) {
+          console.error('[AI-RECOVERY] OpenAI erro', aiRes.status, await aiRes.text());
+          continue;
+        }
+
+        const aiData = await aiRes.json();
+        let parsed: any = {};
+        try {
+          parsed = JSON.parse(aiData.choices?.[0]?.message?.content || '{}');
+        } catch {
+          parsed = {};
+        }
+
+        const nowIso = new Date().toISOString();
+
+        if (parsed.finalizada === true || !String(parsed.mensagem || '').trim()) {
+          await supabase
+            .from('crm_contacts')
+            .update({
+              status: finalizedLabel,
+              metadata: {
+                ...metadata,
+                ai_recovery_finalized: true,
+                ai_recovery_finalized_at: nowIso,
+                ai_recovery_reason: parsed.motivo || 'conversa concluida',
+              },
+              updated_at: nowIso,
+            })
+            .eq('id', contact.id);
+          summary.finalized += 1;
+          console.log(`[AI-RECOVERY] Conversa ${contact.wa_id} marcada como "${finalizedLabel}".`);
+          continue;
+        }
+
+        const recoveryText = String(parsed.mensagem).trim().slice(0, 900);
+
+        await handleInternalSendMessage(
+          supabase,
+          settings.meta_phone_number_id,
+          settings.meta_access_token,
+          { to: contact.wa_id, text: recoveryText, metadata: { ai_recovery: true } },
+          contact,
+          settings.vps_transcoder_url,
+          settings.user_id,
+        );
+
+        await supabase
+          .from('crm_contacts')
+          .update({
+            metadata: {
+              ...metadata,
+              ai_recovery_attempts: attempts + 1,
+              ai_recovery_last_at: nowIso,
+            },
+            updated_at: nowIso,
+          })
+          .eq('id', contact.id);
+
+        summary.recovered += 1;
+        console.log(`[AI-RECOVERY] Recuperacao enviada para ${contact.wa_id} (tentativa ${attempts + 1}/${maxAttempts}).`);
+      } catch (err) {
+        console.error('[AI-RECOVERY] Falha no contato', contact?.wa_id, err);
+      }
+    }
+  }
+
+  console.log('[AI-RECOVERY] Resumo:', JSON.stringify(summary));
+  return summary;
+}
+
 const DEFAULT_GOOGLE_CLIENT_ID = '474898024942-7kagkoc25n5osu9pj1as5g1kod7op7m0.apps.googleusercontent.com';
 const GOOGLE_CONTACTS_SCOPES = [
   'https://www.googleapis.com/auth/contacts',
@@ -5321,6 +5530,11 @@ async function fetchAndStoreIncomingMedia(
         }
       }
       return jsonResponse({ success: true });
+    }
+
+    if (action === 'processAiRecovery') {
+      const recoveryResult = await processAiRecoveryForAllUsers(supabase, params?.userId || userId || null);
+      return jsonResponse({ success: true, recovery: recoveryResult });
     }
 
     if (action === 'processCountdownTriggers') {

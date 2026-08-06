@@ -391,6 +391,10 @@ const CRM = () => {
     openai_api_key: '',
     ai_agent_enabled: false,
     ai_operation_mode: 'chat',
+    ai_recovery_enabled: false,
+    ai_recovery_delay_minutes: 60,
+    ai_recovery_max_attempts: 2,
+    ai_recovery_finalized_status: 'Finalizado agente IA',
     auto_generate_strategy: false,
     strategy_generation_prompt: 'Analise o histórico acima e gere uma análise detalhada. Destaque pontos positivos da conversa e sugira o que dizer daqui para frente para converter este cliente. Sugira também 2 perguntas que eliminem as principais dúvidas dele sob o cabeçalho \"### Perguntas para Eliminar Dúvidas\".',
     ai_system_prompt: 'Você é um assistente de vendas profissional para a empresa Mais Resultados Online. Responda em Português do Brasil.',
@@ -1975,6 +1979,7 @@ const CRM = () => {
            'meta_app_secret','meta_display_phone_number','meta_verified_name','meta_business_id',
            'google_client_id','google_client_secret','google_auto_sync',
            'openai_api_key','ai_agent_enabled','ai_operation_mode','ai_system_prompt',
+           'ai_recovery_enabled','ai_recovery_delay_minutes','ai_recovery_max_attempts','ai_recovery_finalized_status',
            'ai_agent_trigger','ai_agent_trigger_keyword','ai_agent_prompt','ai_agent_label_on_transfer',
            'auto_generate_strategy','strategy_generation_prompt',
            'initial_auto_response_enabled','initial_response_text','initial_response_buttons','initial_flow_id',
@@ -6878,6 +6883,99 @@ const CRM = () => {
                       />
                     </div>
                   </div>
+
+                  {/* RECUPERADOR IA — reengaja conversas paradas usando o mesmo cérebro do agente */}
+                  <Card className="rounded-2xl shadow-sm border overflow-hidden">
+                    <CardHeader className="bg-amber-50 dark:bg-amber-950/20 border-b p-4 md:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="min-w-0">
+                          <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-amber-500 shrink-0" /> Recuperador I.A.
+                          </CardTitle>
+                          <CardDescription className="text-xs md:text-sm">
+                            Se a conversa ficar parada por X tempo, a I.A. avalia o histórico e chama o cliente de volta automaticamente.
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Label htmlFor="ai-recovery-enabled" className="text-sm font-bold">Ativar</Label>
+                          <Switch
+                            id="ai-recovery-enabled"
+                            checked={!!metaSettings.ai_recovery_enabled}
+                            onCheckedChange={async (val) => {
+                              if (val && !metaSettings.ai_agent_enabled) {
+                                toast({
+                                  title: "Ative o Agente I.A. primeiro",
+                                  description: "O Recuperador I.A. funciona apenas com a Ativação Geral do Agente I.A. ligada.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              setMetaSettings(prev => ({ ...prev, ai_recovery_enabled: val }));
+                              await handleSaveSettings({ ...metaSettings, ai_recovery_enabled: val });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 md:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold">Inatividade (minutos)</Label>
+                        <Input
+                          type="number"
+                          min={5}
+                          value={metaSettings.ai_recovery_delay_minutes ?? 60}
+                          onChange={(e) => setMetaSettings({ ...metaSettings, ai_recovery_delay_minutes: Number(e.target.value) })}
+                        />
+                        <p className="text-[10px] text-muted-foreground italic">Tempo sem nenhuma mensagem nova antes da recuperação (ex: 60 = 1 hora).</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold">Máximo de tentativas</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={5}
+                          value={metaSettings.ai_recovery_max_attempts ?? 2}
+                          onChange={(e) => setMetaSettings({ ...metaSettings, ai_recovery_max_attempts: Number(e.target.value) })}
+                        />
+                        <p className="text-[10px] text-muted-foreground italic">Zera automaticamente quando o cliente volta a responder.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold">Etiqueta ao finalizar</Label>
+                        <Input
+                          value={metaSettings.ai_recovery_finalized_status ?? 'Finalizado agente IA'}
+                          onChange={(e) => setMetaSettings({ ...metaSettings, ai_recovery_finalized_status: e.target.value })}
+                        />
+                        <p className="text-[10px] text-muted-foreground italic">Criada no Kanban. Conversas já concluídas recebem essa etiqueta e não são mais recuperadas.</p>
+                      </div>
+                      <div className="sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:justify-end gap-2 pt-2 border-t">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full sm:w-auto"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase.functions.invoke('meta-whatsapp-crm', { body: { action: 'processAiRecovery' } });
+                              if (error) throw error;
+                              toast({ title: "Recuperador executado", description: "As conversas paradas foram avaliadas agora." });
+                            } catch (err: any) {
+                              toast({ title: "Erro ao executar", description: err?.message || 'Tente novamente.', variant: "destructive" });
+                            }
+                          }}
+                        >
+                          Rodar agora
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full sm:w-auto"
+                          onClick={() => handleSaveSettings(metaSettings)}
+                        >
+                          Salvar Recuperador
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   <Accordion type="single" collapsible className="w-full space-y-4">
                     <AccordionItem value="motor" className="border-none">
