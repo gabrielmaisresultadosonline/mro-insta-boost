@@ -1544,7 +1544,8 @@ const CRM = () => {
       if (document.visibilityState === 'visible') {
         syncRecentRealtimeMessages();
       }
-    }, 1000); // Ajustado para 1s para garantir sincronia constante
+    }, 1500); // Polling de fallback a cada 1.5s
+
 
 
     return () => {
