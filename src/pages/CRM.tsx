@@ -6966,6 +6966,27 @@ const CRM = () => {
                         />
                         <p className="text-[10px] text-muted-foreground italic">Criada no Kanban. Conversas já concluídas recebem essa etiqueta e não são mais recuperadas.</p>
                       </div>
+                      <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                        <Label className="text-sm font-bold">O que pode ser recuperado</Label>
+                        <Select
+                          value={metaSettings.ai_recovery_scope ?? 'ai_only'}
+                          onValueChange={async (val) => {
+                            setMetaSettings(prev => ({ ...prev, ai_recovery_scope: val }));
+                            await handleSaveSettings({ ...metaSettings, ai_recovery_scope: val });
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ai_only">Somente conversas atendidas pelo Agente I.A.</SelectItem>
+                            <SelectItem value="all">Todas as conversas dentro da janela de 24h</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-muted-foreground italic">
+                          No modo recomendado, o Recuperador ignora conversas antigas, atendidas por fora ou com o Agente I.A. desligado. Em qualquer modo, só recupera dentro da janela de 24h do WhatsApp.
+                        </p>
+                      </div>
                       <div className="sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:justify-end gap-2 pt-2 border-t">
                         <Button
                           type="button"
