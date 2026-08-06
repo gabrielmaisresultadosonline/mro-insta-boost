@@ -944,13 +944,15 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     <div className="space-y-1.5">
                       {countdownQueue.slice(0, 200).map((r, idx) => {
                         const st = statuses.find((s: any) => (s.value || s.name) === r.status);
-                        const willFire = r.minutesLeft <= countdownThreshold;
+                        const alreadySent = !!r.lastTriggerAt;
+                        const blockedByScope = alreadySent && countdownScope === 'once';
+                        const willFire = r.minutesLeft <= countdownThreshold && !blockedByScope;
                         return (
                           <div
                             key={r.wa_id + idx}
                             className={cn(
                               "flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[#111b21] border",
-                              willFire ? "border-[#00a884]/50" : "border-white/5"
+                              blockedByScope ? "border-yellow-500/40 opacity-70" : willFire ? "border-[#00a884]/50" : "border-white/5"
                             )}
                           >
                             <div className="flex items-center gap-2 min-w-0">
@@ -958,6 +960,11 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                               <div className="min-w-0">
                                 <div className="text-xs text-[#e9edef] truncate">{r.name}</div>
                                 <div className="text-[10px] text-white/40 truncate">{r.wa_id}</div>
+                                {alreadySent && (
+                                  <div className={cn("text-[9px] truncate", blockedByScope ? "text-yellow-500/90" : "text-white/40")}>
+                                    {blockedByScope ? '⚠ Já enviamos' : 'Já enviamos'} em {new Date(r.lastTriggerAt).toLocaleDateString('pt-BR')} às {new Date(r.lastTriggerAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
