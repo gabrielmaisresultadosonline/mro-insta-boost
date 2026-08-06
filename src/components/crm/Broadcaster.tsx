@@ -812,6 +812,23 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                 </div>
               </div>
 
+              <div className="space-y-2 p-3 bg-[#202c33] rounded-xl border border-white/5">
+                <Label className="text-xs md:text-sm text-white">Quem pode receber</Label>
+                <Select value={countdownScope} onValueChange={(val: any) => setCountdownScope(val)}>
+                  <SelectTrigger className="h-10 rounded-xl bg-[#111b21] border-none text-[#e9edef] text-xs md:text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="always">Sempre — todos os contatos, a cada nova janela de 24h</SelectItem>
+                    <SelectItem value="once">Somente quem nunca recebeu (1 vez por contato)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-white/40 italic">
+                  Em qualquer opção é enviada <b>somente 1 mensagem por janela de 24h</b> para cada contato.
+                  Na opção "somente quem nunca recebeu", contatos já disparados em dias anteriores são ignorados.
+                </p>
+              </div>
+
               {countdownType === 'message' && (
                 <div className="space-y-2 animate-in fade-in">
                   <Label className="text-xs md:text-sm">Texto do Disparo</Label>
