@@ -1819,6 +1819,12 @@ async function processCountdownTriggers(supabase: any) {
       } catch (err) {
         summary.failed += 1;
         console.error(`[COUNTDOWN] Error sending to ${contact.wa_id}:`, err);
+        // Libera o claim para nova tentativa no próximo ciclo (sem duplicar histórico).
+        await supabase.from('crm_contacts').update({
+          countdown_trigger_sent_at: null,
+          countdown_trigger_last_sent_at: contact.countdown_trigger_last_sent_at || null,
+          countdown_trigger_total_sent: contact.countdown_trigger_total_sent || 0,
+        }).eq('id', contact.id);
       }
     }
   }
