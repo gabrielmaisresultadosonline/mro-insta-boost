@@ -5325,6 +5325,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      crm_canon_wa_id: { Args: { _wa_id: string }; Returns: string }
       crm_is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       get_whatsapp_public_config: { Args: never; Returns: Json }
       grant_crm_access: {

@@ -709,19 +709,22 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
     }
 
     // Find or create contact
-    let { data: contact } = await supabase
+    // Busca por TODAS as variantes (com/sem 9º dígito) para nunca duplicar a conversa.
+    const echoVariants = getBrazilianPhoneVariants(waId);
+    const { data: echoContactRows } = await supabase
       .from('crm_contacts')
       .select('id')
-      .eq('wa_id', waId)
+      .in('wa_id', echoVariants)
       .eq('user_id', userId)
-      .maybeSingle();
+      .limit(1);
+    let contact: any = echoContactRows && echoContactRows.length > 0 ? echoContactRows[0] : null;
 
     if (!contact) {
       const { data: created, error: createErr } = await supabase
         .from('crm_contacts')
         .insert({
-          wa_id: waId,
-          name: waId,
+          wa_id: canonicalBrazilianWaId(waId),
+          name: canonicalBrazilianWaId(waId),
           status: 'new',
           source_type: 'whatsapp_echo',
           user_id: userId,
@@ -731,10 +734,22 @@ async function saveOutboundEcho(supabase: any, userId: string, echo: any, busine
         .select('id')
         .maybeSingle();
       if (createErr) {
-        console.error('[WEBHOOK-ECHO] Failed to create contact', { waId, error: createErr.message });
-        return { success: false, error: createErr.message };
+        // Corrida: outro processo criou o contato primeiro — reaproveita o existente.
+        const { data: retryRows } = await supabase
+          .from('crm_contacts')
+          .select('id')
+          .in('wa_id', echoVariants)
+          .eq('user_id', userId)
+          .limit(1);
+        if (retryRows && retryRows.length > 0) {
+          contact = retryRows[0];
+        } else {
+          console.error('[WEBHOOK-ECHO] Failed to create contact', { waId, error: createErr.message });
+          return { success: false, error: createErr.message };
+        }
+      } else {
+        contact = created;
       }
-      contact = created;
     }
 
     // Build content/type
@@ -1070,7 +1085,9 @@ else if (message.type === "unsupported") {
     const { data: newContact, error: createContactError } = await supabase
       .from('crm_contacts')
       .upsert({
-        wa_id: waId,
+        // Sempre gravamos a forma canônica para nunca criar duas conversas
+        // do mesmo contato (com e sem o 9º dígito).
+        wa_id: canonicalBrazilianWaId(waId),
         user_id: userId,
         name: profileName,
         status: 'new',
@@ -1153,6 +1170,7 @@ else if (message.type === "unsupported") {
       .in('wa_id', variants)
       .eq('user_id', userId)
       .order('last_message_received_at', { ascending: false, nullsFirst: true })
+      .limit(1)
       .maybeSingle();
 
   // CRITICAL: Ensure we capture messages for AI processing if the contact is in any AI-related state
@@ -2263,6 +2281,23 @@ const getBrazilianPhoneVariants = (raw: string) => {
   }
 
   return Array.from(variants)
+}
+
+/**
+ * Forma canônica de um número brasileiro (sempre COM o 9º dígito).
+ * Espelha exatamente a função `public.crm_canon_wa_id` do banco, que garante
+ * unicidade de contato por usuário — 1 número = 1 conversa, sempre.
+ */
+const canonicalBrazilianWaId = (raw: string) => {
+  const normalized = normalizePhone(raw)
+  if (
+    normalized.startsWith('55') &&
+    normalized.length === 12 &&
+    /^[6-9]/.test(normalized.slice(4))
+  ) {
+    return `${normalized.slice(0, 4)}9${normalized.slice(4)}`
+  }
+  return normalized
 }
 
 async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusEvent: any) {
@@ -4300,8 +4335,8 @@ async function fetchAndStoreIncomingMedia(
         const { data: createdContact, error: createContactError } = await supabase
           .from('crm_contacts')
           .insert({
-            wa_id: normalizedTo,
-            name: normalizedTo,
+            wa_id: canonicalBrazilianWaId(normalizedTo),
+            name: canonicalBrazilianWaId(normalizedTo),
             user_id: userId,
             status: 'new',
             source_type: 'broadcast',
@@ -4316,7 +4351,7 @@ async function fetchAndStoreIncomingMedia(
           const { data: concurrentContact } = await supabase
             .from('crm_contacts')
             .select('*')
-            .eq('wa_id', normalizedTo)
+            .in('wa_id', variants)
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -4372,11 +4407,19 @@ async function fetchAndStoreIncomingMedia(
       if (!contact && userId) {
         const insertResult = await supabase
           .from('crm_contacts')
-          .insert({ wa_id: params.to, name: params.to, user_id: userId, status: 'new', source_type: 'manual_send' })
+          .insert({ wa_id: canonicalBrazilianWaId(normalizedTo), name: canonicalBrazilianWaId(normalizedTo), user_id: userId, status: 'new', source_type: 'manual_send' })
           .select('*')
           .maybeSingle();
         if (insertResult.error) {
-          console.error('[ACTION] Failed to create contact:', insertResult.error.message);
+          // Pode ser corrida ou variante já existente — reaproveita a conversa existente.
+          const { data: retryRows } = await supabase
+            .from('crm_contacts')
+            .select('*')
+            .in('wa_id', variants)
+            .eq('user_id', userId)
+            .limit(1);
+          contact = retryRows && retryRows.length > 0 ? retryRows[0] : null;
+          if (!contact) console.error('[ACTION] Failed to create contact:', insertResult.error.message);
         } else {
           contact = insertResult.data;
           console.log('[ACTION] Created contact for sendMessage');
@@ -4894,6 +4937,31 @@ async function fetchAndStoreIncomingMedia(
       let count = 0;
       let totalFetched = 0;
       let nextPageToken = null;
+
+      // Conjunto canônico (com 9º dígito) dos números já existentes para este usuário.
+      // Sem isto, a sincronização criava DUAS conversas para o mesmo contato
+      // (uma com o 9º dígito e outra sem).
+      const existingCanonWaIds = new Set<string>();
+      {
+        let from = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data: existingRows, error: existingErr } = await supabase
+            .from('crm_contacts')
+            .select('wa_id')
+            .eq('user_id', userId)
+            .range(from, from + pageSize - 1);
+          if (existingErr) {
+            console.error('[SYNC] Falha ao carregar contatos existentes:', existingErr.message);
+            break;
+          }
+          for (const row of existingRows || []) {
+            existingCanonWaIds.add(canonicalBrazilianWaId(row.wa_id));
+          }
+          if (!existingRows || existingRows.length < pageSize) break;
+          from += pageSize;
+        }
+      }
       
       console.log("[SYNC] Iniciando busca de contatos na People API...");
       
@@ -4940,22 +5008,22 @@ async function fetchAndStoreIncomingMedia(
                 if (!phone.startsWith('55')) phone = `55${phone}`;
               }
 
-              for (const phoneVariant of getBrazilianPhoneVariants(phone)) {
-                // Check for duplicates within the same batch to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
-                if (seenWaIds.has(phoneVariant)) {
-                  console.log(`[SYNC] Skipping duplicate phone in batch: ${phoneVariant}`);
-                  continue;
-                }
-                seenWaIds.add(phoneVariant);
+              // Um único registro por contato: sempre a forma canônica do número.
+              const canonPhone = canonicalBrazilianWaId(phone);
 
-                upsertBatch.push({
-                  wa_id: phoneVariant,
-                  name: name || null,
-                  google_sync_account_id: account.id,
-                  user_id: userId,
-                  updated_at: new Date().toISOString()
-                });
+              // Já existe no banco (em qualquer variante) ou já entrou neste lote? ignora.
+              if (existingCanonWaIds.has(canonPhone) || seenWaIds.has(canonPhone)) {
+                continue;
               }
+              seenWaIds.add(canonPhone);
+
+              upsertBatch.push({
+                wa_id: canonPhone,
+                name: name || null,
+                google_sync_account_id: account.id,
+                user_id: userId,
+                updated_at: new Date().toISOString()
+              });
             }
           }
 
