@@ -152,6 +152,9 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [countdownFlow, setCountdownFlow] = useState('');
   const [savingCountdown, setSavingCountdown] = useState(false);
   const [countdownStatusFilter, setCountdownStatusFilter] = useState<string[]>([]);
+  // 'always' = dispara sempre que o contato entrar na janela de 24h.
+  // 'once'   = dispara apenas para quem nunca recebeu em nenhum dia.
+  const [countdownScope, setCountdownScope] = useState<'always' | 'once'>('always');
   const [countdownHistory, setCountdownHistory] = useState<any[]>([]);
   // Campanha selecionada para exibir os logs de falha detalhados
   const [logsBroadcast, setLogsBroadcast] = useState<any | null>(null);
@@ -316,6 +319,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           name: c.name || c.wa_id,
           status: c.status,
           minutesLeft: Math.max(0, Math.round(msLeft / 60000)),
+          lastTriggerAt: c.countdown_trigger_last_sent_at || null,
         };
       })
       .sort((a, b) => a.minutesLeft - b.minutesLeft);
@@ -395,15 +399,16 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       setCountdownTemplate(settings.countdown_trigger_template_id || '');
       setCountdownFlow(settings.countdown_trigger_flow_id || '');
       setCountdownStatusFilter(Array.isArray((settings as any).countdown_trigger_status_filter) ? (settings as any).countdown_trigger_status_filter : []);
+      setCountdownScope(((settings as any).countdown_trigger_scope === 'once' ? 'once' : 'always'));
     }
   };
 
   const fetchCountdownHistory = async () => {
     const { data } = await supabase
       .from('crm_contacts')
-      .select('wa_id, name, status, countdown_trigger_sent_at')
-      .not('countdown_trigger_sent_at', 'is', null)
-      .order('countdown_trigger_sent_at', { ascending: false })
+      .select('wa_id, name, status, countdown_trigger_sent_at, countdown_trigger_last_sent_at, countdown_trigger_total_sent')
+      .not('countdown_trigger_last_sent_at', 'is', null)
+      .order('countdown_trigger_last_sent_at', { ascending: false })
       .limit(100);
     setCountdownHistory(data || []);
   };
@@ -421,6 +426,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           countdown_trigger_template_id: countdownTemplate,
           countdown_trigger_flow_id: countdownFlow || null,
           countdown_trigger_status_filter: countdownStatusFilter,
+          countdown_trigger_scope: countdownScope,
         } as any)
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
@@ -806,6 +812,23 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                 </div>
               </div>
 
+              <div className="space-y-2 p-3 bg-[#202c33] rounded-xl border border-white/5">
+                <Label className="text-xs md:text-sm text-white">Quem pode receber</Label>
+                <Select value={countdownScope} onValueChange={(val: any) => setCountdownScope(val)}>
+                  <SelectTrigger className="h-10 rounded-xl bg-[#111b21] border-none text-[#e9edef] text-xs md:text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="always">Sempre — todos os contatos, a cada nova janela de 24h</SelectItem>
+                    <SelectItem value="once">Somente quem nunca recebeu (1 vez por contato)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-white/40 italic">
+                  Em qualquer opção é enviada <b>somente 1 mensagem por janela de 24h</b> para cada contato.
+                  Na opção "somente quem nunca recebeu", contatos já disparados em dias anteriores são ignorados.
+                </p>
+              </div>
+
               {countdownType === 'message' && (
                 <div className="space-y-2 animate-in fade-in">
                   <Label className="text-xs md:text-sm">Texto do Disparo</Label>
@@ -921,13 +944,15 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                     <div className="space-y-1.5">
                       {countdownQueue.slice(0, 200).map((r, idx) => {
                         const st = statuses.find((s: any) => (s.value || s.name) === r.status);
-                        const willFire = r.minutesLeft <= countdownThreshold;
+                        const alreadySent = !!r.lastTriggerAt;
+                        const blockedByScope = alreadySent && countdownScope === 'once';
+                        const willFire = r.minutesLeft <= countdownThreshold && !blockedByScope;
                         return (
                           <div
                             key={r.wa_id + idx}
                             className={cn(
                               "flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[#111b21] border",
-                              willFire ? "border-[#00a884]/50" : "border-white/5"
+                              blockedByScope ? "border-yellow-500/40 opacity-70" : willFire ? "border-[#00a884]/50" : "border-white/5"
                             )}
                           >
                             <div className="flex items-center gap-2 min-w-0">
@@ -935,6 +960,11 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
                               <div className="min-w-0">
                                 <div className="text-xs text-[#e9edef] truncate">{r.name}</div>
                                 <div className="text-[10px] text-white/40 truncate">{r.wa_id}</div>
+                                {alreadySent && (
+                                  <div className={cn("text-[9px] truncate", blockedByScope ? "text-yellow-500/90" : "text-white/40")}>
+                                    {blockedByScope ? '⚠ Já enviamos' : 'Já enviamos'} em {new Date(r.lastTriggerAt).toLocaleDateString('pt-BR')} às {new Date(r.lastTriggerAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
