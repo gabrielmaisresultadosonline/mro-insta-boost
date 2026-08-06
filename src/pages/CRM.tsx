@@ -1120,7 +1120,9 @@ const CRM = () => {
   }, [chatMessages]);
 
   const syncRecentRealtimeMessages = async () => {
+    // Aumentamos o limite de tempo para garantir que nada foi perdido
     if (realtimeFallbackInFlightRef.current) return;
+
     realtimeFallbackInFlightRef.current = true;
 
     try {
