@@ -1714,6 +1714,12 @@ async function processCountdownTriggers(supabase: any) {
       contactsQuery = contactsQuery.in('status', statusFilter);
     }
 
+    // Escopo: 'once' = apenas contatos que nunca receberam o disparo em nenhum dia.
+    const scope = settings.countdown_trigger_scope === 'once' ? 'once' : 'always';
+    if (scope === 'once') {
+      contactsQuery = contactsQuery.is('countdown_trigger_last_sent_at', null);
+    }
+
     const { data: contacts, error: contactsError } = await contactsQuery;
     if (contactsError) {
       console.error('[COUNTDOWN] Failed to load eligible contacts:', {
@@ -1735,6 +1741,30 @@ async function processCountdownTriggers(supabase: any) {
     console.log(`[COUNTDOWN] Found ${eligibleContacts.length} contacts for user ${settings.user_id}`);
 
     for (const contact of eligibleContacts) {
+      // Claim atômico: garante 1 envio por contato mesmo com execuções
+      // simultâneas do cron (era a causa das 3 mensagens iguais).
+      const nowIso = new Date().toISOString();
+      const { data: claimed, error: claimError } = await supabase
+        .from('crm_contacts')
+        .update({
+          countdown_trigger_sent_at: nowIso,
+          countdown_trigger_last_sent_at: nowIso,
+          countdown_trigger_total_sent: (contact.countdown_trigger_total_sent || 0) + 1,
+        })
+        .eq('id', contact.id)
+        .is('countdown_trigger_sent_at', null)
+        .select('id');
+
+      if (claimError) {
+        console.error('[COUNTDOWN] Claim failed', { waId: contact.wa_id, error: claimError.message });
+        summary.failed += 1;
+        continue;
+      }
+      if (!claimed || claimed.length === 0) {
+        console.log('[COUNTDOWN] Skipped (already claimed by another run)', contact.wa_id);
+        continue;
+      }
+
       console.log(`[COUNTDOWN] Sending trigger to ${contact.wa_id}`);
 
       const payload: any = { to: contact.wa_id };
@@ -1771,7 +1801,6 @@ async function processCountdownTriggers(supabase: any) {
             current_flow_id: flow.id,
             current_node_id: startNode.id,
             flow_state: 'running',
-            countdown_trigger_sent_at: new Date().toISOString(),
           }).eq('id', contact.id);
 
           await executeVisualNode(supabase, flow, startNode, contact.id, contact.wa_id);
@@ -1785,9 +1814,6 @@ async function processCountdownTriggers(supabase: any) {
             settings.vps_transcoder_url,
             settings.user_id,
           );
-          await supabase.from('crm_contacts').update({
-            countdown_trigger_sent_at: new Date().toISOString(),
-          }).eq('id', contact.id);
         }
         summary.sent += 1;
       } catch (err) {
