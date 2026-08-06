@@ -1498,7 +1498,11 @@ const CRM = () => {
       .subscribe();
 
     // Interval for processing scheduled flow nodes (delays)
+    let scheduledRunning = false;
     const scheduledInterval = setInterval(async () => {
+      if (scheduledRunning) return;
+      if (document.visibilityState !== 'visible') return;
+      scheduledRunning = true;
       try {
         const nowIso = new Date().toISOString();
         // 1) Contatos com delay agendado pronto para executar
