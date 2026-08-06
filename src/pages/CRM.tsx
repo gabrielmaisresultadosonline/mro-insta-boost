@@ -233,8 +233,20 @@ const createMobilePlayableAudioBlob = async (audioBlob: Blob) => {
   }
 };
 
+const getMetaErrorCode = (message: any): string => {
+  return String(
+    message?.error_code ||
+    message?.metadata?.last_meta_status?.errors?.[0]?.code ||
+    ''
+  ).trim();
+};
+
 const getMetaDeliveryErrorMessage = (message: any) => {
   const raw = String(message?.error_message || message?.metadata?.last_meta_status?.errors?.[0]?.message || '').trim();
+  const code = getMetaErrorCode(message);
+  if (code === '131026' || /message undeliverable/i.test(raw)) {
+    return 'Mensagem não entregue (erro 131026 da Meta).';
+  }
   if (/business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw)) {
     return 'A Meta bloqueou o envio porque o seu Negócio (Business Manager) ainda não foi verificado. Você consegue receber mensagens, mas não enviar até concluir a verificação.';
   }
@@ -242,6 +254,26 @@ const getMetaDeliveryErrorMessage = (message: any) => {
     return 'A Meta recusou o arquivo de áudio/mídia após o upload. Grave novamente ou envie outro formato.';
   }
   return raw || 'A Meta informou falha na entrega desta mensagem.';
+};
+
+const getMetaDeliveryErrorExplanation = (message: any) => {
+  const raw = String(message?.error_message || message?.metadata?.last_meta_status?.errors?.[0]?.message || '').trim();
+  const code = getMetaErrorCode(message);
+  if (code === '131026' || /message undeliverable/i.test(raw)) {
+    return 'A Meta aceitou o envio, mas o WhatsApp não conseguiu entregar no aparelho do destinatário naquele momento (celular sem conexão, app desatualizado ou conta temporariamente indisponível). A Meta NÃO reenvia sozinha essas mensagens — elas são descartadas. Clique em "Reenviar" para tentar de novo.';
+  }
+  if (/business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw)) {
+    return 'O Business Manager precisa concluir a verificação para liberar envios. Até lá você só recebe mensagens.';
+  }
+  if (/media upload error/i.test(raw)) {
+    return 'A Meta recusou o arquivo enviado após o upload. Tente gravar/enviar novamente, de preferência em outro formato ou com menor duração.';
+  }
+  if (code === '131047') {
+    return 'A janela de 24 horas de atendimento expirou. Para falar novamente é preciso enviar um template aprovado pela Meta.';
+  }
+  return raw
+    ? `A Meta retornou: "${raw}"${code ? ` (código ${code})` : ''}. Você pode tentar reenviar a mensagem.`
+    : 'A Meta informou falha na entrega desta mensagem. Você pode tentar reenviar.';
 };
 
 const isBusinessVerificationError = (message: any) => {
@@ -2596,6 +2628,49 @@ const CRM = () => {
     const DAY = 24 * 60 * 60 * 1000;
     const TOLERANCE = 30 * 60 * 1000;
     return Date.now() - lastInbound > DAY + TOLERANCE;
+  };
+
+  const [resendingMessageId, setResendingMessageId] = useState<string | null>(null);
+  const [expandedErrorMessageId, setExpandedErrorMessageId] = useState<string | null>(null);
+
+  /**
+   * Reenvio manual de uma mensagem que a Meta marcou como falha (ex.: 131026).
+   * Mantém o balão original com o erro e envia uma nova tentativa do mesmo texto.
+   */
+  const handleResendFailedMessage = async (message: any) => {
+    const targetContact = selectedContactRef.current;
+    if (!targetContact?.wa_id) return;
+
+    const textToSend = String(message?.content || '').trim();
+    if (!textToSend || message?.message_type !== 'text') {
+      toast({
+        title: 'Reenvio indisponível',
+        description: 'Só é possível reenviar automaticamente mensagens de texto. Envie a mídia novamente pelo campo abaixo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setResendingMessageId(message.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: {
+          action: 'sendMessage',
+          to: targetContact.wa_id,
+          text: textToSend,
+          metadata: { source: 'manual_resend', resent_from: message.id },
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro ao reenviar mensagem pela Meta');
+
+      toast({ title: 'Mensagem reenviada', description: 'Nova tentativa enviada para o contato.' });
+      await fetchMessages(targetContact.id, true);
+    } catch (err: any) {
+      toast({ title: 'Falha ao reenviar', description: err?.message || 'Tente novamente em instantes.', variant: 'destructive' });
+    } finally {
+      setResendingMessageId(null);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -6330,7 +6405,49 @@ const CRM = () => {
                                         )}>
                                           <AlertCircle className={cn("w-3 h-3 mt-0.5 shrink-0", isBusinessVerificationError(m) ? "text-zinc-950" : "text-destructive")} />
                                           <div className="flex-1">
-                                            <span>{getMetaDeliveryErrorMessage(m)}</span>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              <span>{getMetaDeliveryErrorMessage(m)}</span>
+                                              <button
+                                                type="button"
+                                                title="O que aconteceu?"
+                                                aria-label="Entenda o que aconteceu"
+                                                onClick={() => setExpandedErrorMessageId(prev => (prev === m.id ? null : m.id))}
+                                                className={cn(
+                                                  "inline-flex items-center justify-center rounded-full border p-0.5 transition-colors",
+                                                  isBusinessVerificationError(m)
+                                                    ? "border-zinc-300 text-zinc-900 hover:bg-zinc-100"
+                                                    : "border-destructive/40 text-destructive hover:bg-destructive/15"
+                                                )}
+                                              >
+                                                <LucideIcons.HelpCircle className="w-3 h-3" />
+                                              </button>
+                                              {m.message_type === 'text' && (
+                                                <button
+                                                  type="button"
+                                                  disabled={resendingMessageId === m.id}
+                                                  onClick={() => handleResendFailedMessage(m)}
+                                                  className={cn(
+                                                    "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-60",
+                                                    isBusinessVerificationError(m)
+                                                      ? "border-zinc-200 bg-zinc-50 text-zinc-900 hover:bg-zinc-100"
+                                                      : "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+                                                  )}
+                                                >
+                                                  <LucideIcons.RefreshCw className={cn("w-3 h-3", resendingMessageId === m.id && "animate-spin")} />
+                                                  {resendingMessageId === m.id ? 'Reenviando...' : 'Reenviar'}
+                                                </button>
+                                              )}
+                                            </div>
+                                            {expandedErrorMessageId === m.id && (
+                                              <p className={cn(
+                                                "mt-1.5 rounded border p-1.5 text-[10px] leading-snug",
+                                                isBusinessVerificationError(m)
+                                                  ? "border-zinc-200 bg-zinc-50 text-zinc-700"
+                                                  : "border-destructive/30 bg-destructive/5 text-destructive/90"
+                                              )}>
+                                                {getMetaDeliveryErrorExplanation(m)}
+                                              </p>
+                                            )}
                                             {isBusinessVerificationError(m) && (
                                               <button
                                                 type="button"
