@@ -1349,8 +1349,9 @@ const CRM = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const messageChannel = supabase
-      .channel('crm_global_updates')
+      .channel(`crm_updates_${Date.now()}`) // Nome único para evitar conflitos de cache do canal
       .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_messages' }, (payload) => {
+
         if (payload.eventType === 'INSERT') {
           const newMessage: any = payload.new;
           if (selectedContactRef.current && newMessage.contact_id === selectedContactRef.current.id) {
