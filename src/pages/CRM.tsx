@@ -1703,7 +1703,9 @@ const CRM = () => {
                 lastSyncedAt: fetchStartedAt,
               }));
             } catch (e) {
-              console.warn('[CRM] Erro ao salvar cache de contatos:', e);
+              // Base grande demais para o localStorage: limpamos o cache parcial
+              console.warn('[CRM] Cache de contatos não salvo (limite do navegador):', e);
+              try { localStorage.removeItem(cacheKey); } catch { /* noop */ }
             }
           }
           return merged;
