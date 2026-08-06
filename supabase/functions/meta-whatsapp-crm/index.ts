@@ -1837,6 +1837,39 @@ async function isGoogleAccountReallyFull(accessToken: string): Promise<boolean> 
   }
 }
 
+async function loadGoogleContactsByCanonicalPhone(accessToken: string): Promise<Map<string, string>> {
+  const contactsByPhone = new Map<string, string>();
+  let nextPageToken: string | undefined;
+
+  do {
+    const url = new URL('https://people.googleapis.com/v1/people/me/connections');
+    url.searchParams.set('personFields', 'phoneNumbers');
+    url.searchParams.set('pageSize', '1000');
+    if (nextPageToken) url.searchParams.set('pageToken', nextPageToken);
+
+    const response = await fetch(url.toString(), {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      const details = await response.text().catch(() => '');
+      throw new Error(`Falha ao conferir contatos existentes no Google [${response.status}]: ${details.slice(0, 200)}`);
+    }
+
+    const body = await response.json().catch(() => ({} as any));
+    for (const person of body?.connections || []) {
+      const resourceName = typeof person?.resourceName === 'string' ? person.resourceName : '';
+      if (!resourceName) continue;
+      for (const phone of person?.phoneNumbers || []) {
+        const canonicalPhone = canonicalBrazilianWaId(String(phone?.canonicalForm || phone?.value || ''));
+        if (canonicalPhone) contactsByPhone.set(canonicalPhone, resourceName);
+      }
+    }
+    nextPageToken = body?.nextPageToken;
+  } while (nextPageToken);
+
+  return contactsByPhone;
+}
+
 function isGoogleInsufficientScopeError(errorBody: string) {
   return /insufficient authentication scopes|ACCESS_TOKEN_SCOPE_INSUFFICIENT|PERMISSION_DENIED/i.test(errorBody);
 }
@@ -1933,7 +1966,13 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
   // (Auto Sync turned OFF, or the account was disconnected) would otherwise
   // be stuck forever. Treat them as unassigned so they get pushed to one of
   // the currently active Auto Sync accounts on this cycle.
-  let remaining = claimedContacts
+  const uniqueClaimedContacts = Array.from(
+    new Map(
+      claimedContacts.map((contact: any) => [canonicalBrazilianWaId(contact.wa_id), contact]),
+    ).values(),
+  );
+
+  let remaining = uniqueClaimedContacts
     .filter((c: any) => {
       const name = (c.name || '').trim();
       if (!name) return false;
@@ -2016,7 +2055,48 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
       }
     }
 
-    const dirtyResources = forThisAccount
+    // Idempotência real no destino: antes de criar, confira os telefones que já
+    // existem nesta conta Google. Isso também protege instalações antigas nas
+    // quais o contato foi criado, mas o resourceName não chegou a ser salvo.
+    let googleContactsByPhone: Map<string, string>;
+    try {
+      googleContactsByPhone = await loadGoogleContactsByCanonicalPhone(accessToken);
+    } catch (error: any) {
+      lastError = error?.message || String(error);
+      console.error(`[GOOGLE-SYNC] Não foi possível deduplicar a conta ${account.email}:`, lastError);
+      // Segurança: se não foi possível conferir o Google, não crie nada. É
+      // preferível manter pendente a duplicar milhares de contatos.
+      continue;
+    }
+
+    const alreadyOnGoogle = forThisAccount.filter((contact: any) =>
+      googleContactsByPhone.has(canonicalBrazilianWaId(contact.wa_id))
+    );
+    if (alreadyOnGoogle.length > 0) {
+      const nowIso = new Date().toISOString();
+      await Promise.all(alreadyOnGoogle.map(async (contact: any) => {
+        const canonicalPhone = canonicalBrazilianWaId(contact.wa_id);
+        const resourceName = googleContactsByPhone.get(canonicalPhone) || null;
+        const nextMeta = { ...((contact as any).metadata || {}), google_resource_name: resourceName };
+        delete nextMeta.google_dirty;
+        const { error: updateError } = await supabase.from('crm_contacts').update({
+          google_sync_account_id: account.id,
+          google_synced_at: nowIso,
+          metadata: nextMeta,
+          google_sync_claim_token: null,
+          google_sync_claimed_at: null,
+        })
+          .eq('id', contact.id)
+          .eq('google_sync_claim_token', claimToken);
+        if (updateError) failed++; else pushed++;
+      }));
+    }
+
+    const contactsToCreate = forThisAccount.filter((contact: any) =>
+      !googleContactsByPhone.has(canonicalBrazilianWaId(contact.wa_id))
+    );
+
+    const dirtyResources = contactsToCreate
       .filter((c: any) => c.google_sync_account_id === account.id)
       .map((c: any) => c?.metadata?.google_resource_name)
       .filter((r: any) => typeof r === 'string' && r.length > 0);
@@ -2039,8 +2119,8 @@ async function pushPendingContactsToGoogle(supabase: any, userId: string, settin
 
     const stillPending: any[] = [];
     let skipCurrentAccount = false;
-    for (let i = 0; i < forThisAccount.length; i += 200) {
-      const chunk = forThisAccount.slice(i, i + 200);
+    for (let i = 0; i < contactsToCreate.length; i += 200) {
+      const chunk = contactsToCreate.slice(i, i + 200);
       if (skipCurrentAccount) {
         stillPending.push(...chunk);
         continue;
@@ -2212,6 +2292,7 @@ async function autoPushGoogleContactsForAllUsers(supabase: any) {
     const { data: accounts } = await supabase
       .from('crm_google_accounts')
       .select('*')
+      .eq('auto_sync', true)
       .order('updated_at', { ascending: false });
     if (!accounts || accounts.length === 0) return;
 
@@ -2224,12 +2305,8 @@ async function autoPushGoogleContactsForAllUsers(supabase: any) {
 
     for (const [userId, userAccounts] of byUser.entries()) {
       try {
-        // Contas com Auto Sync ligado recebem primeiro; as demais contas
-        // conectadas do mesmo usuário servem de destino extra (overflow),
-        // garantindo que nenhum contato fique pendente para sempre.
-        const ordered = [...userAccounts].sort(
-          (a: any, b: any) => Number(!!b.auto_sync) - Number(!!a.auto_sync)
-        );
+        // Somente contas explicitamente habilitadas participam do Auto Sync.
+        const ordered = [...userAccounts];
         const settings = await getCrmSettings(supabase, userId);
         await pushPendingContactsToGoogle(supabase, userId, settings, ordered, 500);
       } catch (e) {
