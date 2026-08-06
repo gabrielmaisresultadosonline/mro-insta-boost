@@ -1542,7 +1542,8 @@ const CRM = () => {
       if (document.visibilityState === 'visible') {
         syncRecentRealtimeMessages();
       }
-    }, 900);
+    }, 1000); // Ajustado para 1s para garantir sincronia constante
+
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
