@@ -204,6 +204,50 @@ function collectInboundTriggerTexts(message: any, resolvedText?: string) {
 }
 
 async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
+  // (implementação abaixo)
+  return await _transcribeAudioForAi(apiKey, audioUrl);
+}
+
+/**
+ * Considera "vazio" qualquer conteúdo que seja apenas um marcador de mídia,
+ * garantindo que o Agente I.A nunca receba placeholders no lugar do conteúdo real.
+ */
+function isPlaceholderContent(content: unknown) {
+  if (typeof content !== 'string') return true;
+  const normalized = content.trim().toLowerCase();
+  if (!normalized) return true;
+  return [
+    '[mensagem de áudio]', '[mensagem de audio]', '[áudio]', '[audio]',
+    '[áudio recebido]', '[audio recebido]', '🎤', '🎤 áudio', '(áudio)',
+    '[voice]', '[ptt]',
+  ].includes(normalized);
+}
+
+/**
+ * Resolve o texto real de uma mensagem recebida. Se for áudio, transcreve
+ * internamente (Whisper) e persiste, para a I.A responder direto ao conteúdo
+ * sem nunca anunciar que está "ouvindo" ou "aguardando transcrição".
+ */
+async function resolveInboundMessageText(
+  supabase: any,
+  apiKey: string,
+  msg: { id?: string; content?: string | null; message_type?: string | null; media_url?: string | null } | null,
+) {
+  if (!msg) return '';
+  if (!isPlaceholderContent(msg.content)) return String(msg.content).trim();
+  if (msg.message_type === 'audio' && msg.media_url) {
+    const transcription = await _transcribeAudioForAi(apiKey, msg.media_url);
+    if (transcription) {
+      if (msg.id) {
+        await supabase.from('crm_messages').update({ content: transcription }).eq('id', msg.id);
+      }
+      return transcription;
+    }
+  }
+  return typeof msg.content === 'string' ? msg.content.trim() : '';
+}
+
+async function _transcribeAudioForAi(apiKey: string, audioUrl: string) {
   try {
     console.log(`[AI-AGENT] Downloading audio for transcription: ${audioUrl.slice(0, 100)}...`);
     
