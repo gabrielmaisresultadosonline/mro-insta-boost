@@ -2333,6 +2333,8 @@ const CRM = () => {
 
   const updateContactStatus = async (contactId: string, updates: any) => {
     try {
+      // Quando o Agente I.A Global está ligado, o ícone azul deve permanecer
+      // ativo em TODAS as conversas, exceto nas desligadas manualmente pelo usuário.
       const currentContact = contacts.find((c: any) => c.id === contactId) || (selectedContactRef.current?.id === contactId ? selectedContactRef.current : null);
       const normalizedUpdates = Object.prototype.hasOwnProperty.call(updates, 'ai_active')
         ? {
@@ -2369,6 +2371,19 @@ const CRM = () => {
   };
 
   const handleDragStart = (contact: any) => setDraggedContact(contact);
+
+  /**
+   * Define se o ícone do Agente I.A deve aparecer ativo (azul) na conversa.
+   * Regra: com o Agente I.A Global ligado, TODAS as conversas ficam ativas,
+   * a não ser que o usuário tenha desligado manualmente aquela conversa.
+   */
+  const isAiVisuallyActive = (contact: any): boolean => {
+    if (!contact) return false;
+    const meta = (contact.metadata as any) || {};
+    if (meta.manual_ai_off === true) return false;
+    if (metaSettings.ai_agent_enabled) return true;
+    return !!contact.ai_active && meta.manual_ai_activation === true;
+  };
   const handleDrop = async (status: string) => {
     if (!draggedContact || draggedContact.status === status) return;
     await updateContactStatus(draggedContact.id, { status });
@@ -5393,11 +5408,11 @@ const CRM = () => {
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                                   {contact.ai_active && (metaSettings.ai_agent_enabled || (contact.metadata as any)?.manual_ai_activation === true) && (
+                                   {isAiVisuallyActive(contact) && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        updateContactStatus(contact.id, { ai_active: false });
+                                        updateContactStatus(contact.id, { ai_active: false, metadata: { manual_ai_off: true } });
                                       }}
                                       className="p-1 hover:bg-blue-500/20 rounded-full transition-colors group animate-pulse"
                                       title="Desativar Agente IA"
@@ -5530,7 +5545,7 @@ const CRM = () => {
                       {selectedContact ? (
                         <>
                           <div className="p-1 sm:p-2 border-b border-border/40 flex flex-col gap-1 bg-[#f0f2f5] dark:bg-[#202c33] z-10 shrink-0 w-full min-w-0 shadow-sm relative">
-                            {selectedContact.ai_active && metaSettings.ai_agent_enabled && (
+                            {isAiVisuallyActive(selectedContact) && metaSettings.ai_agent_enabled && (
                               <div className="bg-violet-600 text-white px-3 py-1.5 flex items-center justify-between shadow-md z-[20] animate-in slide-in-from-top-2 rounded-lg mb-1 mx-1">
                                 <div className="flex items-center gap-2">
                                   <Bot className="w-3.5 h-3.5 animate-pulse" />
@@ -5540,7 +5555,7 @@ const CRM = () => {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-6 px-2 text-[9px] font-black uppercase text-white hover:bg-white/20 gap-1 border border-white/30"
-                                  onClick={() => updateContactStatus(selectedContact.id, { ai_active: false })}
+                                  onClick={() => updateContactStatus(selectedContact.id, { ai_active: false, metadata: { manual_ai_off: true } })}
                                 >
                                   <StopCircle className="w-3 h-3" /> Parar Robô (Assumir Manual)
                                 </Button>
@@ -5569,13 +5584,16 @@ const CRM = () => {
                                       size="icon"
                                        className={cn(
                                          "h-6 w-6 rounded-full transition-all shrink-0",
-                                         (selectedContact.ai_active && (metaSettings.ai_agent_enabled || (selectedContact.metadata as any)?.manual_ai_activation === true)) ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20" : "text-muted-foreground bg-muted hover:bg-muted/80 grayscale"
+                                         isAiVisuallyActive(selectedContact) ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20" : "text-muted-foreground bg-muted hover:bg-muted/80 grayscale"
                                        )}
                                       onClick={async () => {
-                                        const newStatus = !selectedContact.ai_active;
-                                        await updateContactStatus(selectedContact.id, { ai_active: newStatus });
+                                        const newStatus = !isAiVisuallyActive(selectedContact);
+                                        await updateContactStatus(selectedContact.id, {
+                                          ai_active: newStatus,
+                                          metadata: { manual_ai_off: !newStatus },
+                                        });
                                       }}
-                                      title={(selectedContact.ai_active && (metaSettings.ai_agent_enabled || (selectedContact.metadata as any)?.manual_ai_activation === true)) ? "Desativar Agente IA" : "Ativar Agente IA"}
+                                      title={isAiVisuallyActive(selectedContact) ? "Desativar Agente IA" : "Ativar Agente IA"}
                                     >
                                       <Bot className="w-3.5 h-3.5" />
                                     </Button>
@@ -5624,7 +5642,7 @@ const CRM = () => {
                               </div>
                             </div>
 
-                            {(() => { const aiFunctional = selectedContact.ai_active && (metaSettings.ai_agent_enabled || (selectedContact.metadata as any)?.manual_ai_activation === true); return ((selectedContact.flow_state && selectedContact.flow_state !== 'idle') || aiFunctional) && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24.5 * 60 * 60 * 1000)) && (
+                            {(() => { const aiFunctional = isAiVisuallyActive(selectedContact); return ((selectedContact.flow_state && selectedContact.flow_state !== 'idle') || aiFunctional) && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24.5 * 60 * 60 * 1000)) && (
                               <div className={cn(
                                 "flex items-center justify-between gap-2 px-2 py-1 rounded-lg border",
                                 aiFunctional ? "bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30" : "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30"

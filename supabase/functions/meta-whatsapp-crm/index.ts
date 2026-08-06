@@ -1593,7 +1593,7 @@ else if (message.type === "unsupported") {
           console.log(`[TRIGGER] No matching flow for ${waId}. candidates=${JSON.stringify(allCandidateTexts)} firstEver=${isFirstEver} firstDay=${isFirstOfDay} after24h=${isAfter24h}`);
           
           // Se não casou com nenhum fluxo e a IA Global está ativa, ativa a IA para este contato
-          if (isGlobalAiEnabled) {
+          if (isGlobalAiEnabled && contact?.metadata?.manual_ai_off !== true) {
             console.log(`[TRIGGER-AI] No flow matched, activating Global AI for ${waId}`);
             await supabase.from('crm_contacts').update({ 
               ai_active: true,
@@ -1618,7 +1618,8 @@ else if (message.type === "unsupported") {
   // já tinha IA ativa, processa via processAiAgentResponse.
   // IMPORTANTE: Adicionado bypass de verificação de 'idle' se o global estiver ativo, 
   // para garantir que mesmo conversas novas ou recém-limpas sejam atendidas.
-  const shouldActivateAi = isGlobalAiEnabled || (contact && contact.ai_active);
+  const manualAiOff = contact?.metadata?.manual_ai_off === true;
+  const shouldActivateAi = !manualAiOff && (isGlobalAiEnabled || (contact && contact.ai_active));
   
   // LOG PARA DEBUG: Verifica por que a IA não está disparando
   if (contact && shouldActivateAi) {
@@ -1626,7 +1627,7 @@ else if (message.type === "unsupported") {
     console.log(`[WEBHOOK-AI-DEBUG] Contact ${waId} eligible for AI. ai_active=${contact.ai_active}, global_enabled=${isGlobalAiEnabled}, text="${inboundText?.slice(0,50)}..."`);
     
     // Se a IA ainda não estava ativa no contato mas o global está ligado, ativa agora.
-    if (isGlobalAiEnabled && !contact.ai_active) {
+    if (isGlobalAiEnabled && !contact.ai_active && !manualAiOff) {
        console.log(`[WEBHOOK-AI-DEBUG] Activating AI for contact ${waId} due to Global Mode.`);
        const { error: updateErr } = await supabase.from('crm_contacts').update({ 
          ai_active: true,
