@@ -27,7 +27,11 @@ import {
   Copy,
   ChevronLeft,
   ChevronRight,
-  Layers
+  Layers,
+  Sparkles,
+  Info,
+  Check,
+  RefreshCw
 } from "lucide-react";
 import TemplatePreview from './TemplatePreview';
 import MetaPricingCalculator from './MetaPricingCalculator';
@@ -36,6 +40,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TemplateBuilderProps {
   onSave: (template: any) => void;
@@ -56,6 +62,13 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
   const [bodyText, setBodyText] = useState('');
   const [footerText, setFooterText] = useState('');
   const [buttons, setButtons] = useState<any[]>([]);
+
+  // Utility Converter State
+  const [utilityOpen, setUtilityOpen] = useState(false);
+  const [utilityLoading, setUtilityLoading] = useState(false);
+  const [utilityOriginal, setUtilityOriginal] = useState('');
+  const [utilityVersions, setUtilityVersions] = useState<string[]>([]);
+  const [utilitySelected, setUtilitySelected] = useState(0);
   
   // Carousel State
   const [carouselBody, setCarouselBody] = useState('');
