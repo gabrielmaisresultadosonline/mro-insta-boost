@@ -164,14 +164,30 @@ export default function AdminCentral() {
     setSelected(null);
   }
 
-  async function loadUsers() {
+  /**
+   * Carrega os usuários com novas tentativas automáticas.
+   * O banco pode responder com timeout momentâneo em picos de uso; nesses casos
+   * a tela ficava vazia até o admin recarregar manualmente. Agora tentamos de
+   * novo (com espera progressiva) antes de mostrar erro.
+   */
+  async function loadUsers(attempt = 0) {
     setLoading(true);
     try {
       const data = await call("list_users");
       setUsers(data.users || []);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao carregar usuários");
-      if ((err.message || "").includes("Credenciais")) logout();
+      const message = String(err?.message || "");
+      if (message.includes("Credenciais")) {
+        toast.error(message);
+        logout();
+        return;
+      }
+      if (attempt < 3) {
+        const delay = 1500 * (attempt + 1);
+        setTimeout(() => loadUsers(attempt + 1), delay);
+        return;
+      }
+      toast.error(message || "Erro ao carregar usuários");
     } finally {
       setLoading(false);
     }
