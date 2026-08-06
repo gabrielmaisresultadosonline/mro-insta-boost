@@ -1354,26 +1354,31 @@ const CRM = () => {
           if (selectedContactRef.current && newMessage.contact_id === selectedContactRef.current.id) {
             setChatMessages(prev => {
               if (prev.find(m => m.id === newMessage.id)) return prev;
-              return [...prev, newMessage];
+              const next = [...prev, newMessage];
+              // Garante ordenação cronológica correta
+              return next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
             });
           }
           // Reset 24h window on inbound message (regra oficial WhatsApp)
           if (newMessage.direction === 'inbound') {
             setContacts(prev => prev.map(c => c.id === newMessage.contact_id
-              ? { ...c, last_message_received_at: newMessage.created_at }
+              ? { ...c, last_message_received_at: newMessage.created_at, last_interaction: newMessage.created_at }
               : c
-            ));
+            ).sort((a, b) => {
+              const aT = a.last_interaction ? new Date(a.last_interaction).getTime() : 0;
+              const bT = b.last_interaction ? new Date(b.last_interaction).getTime() : 0;
+              return bT - aT;
+            }));
+
             setSelectedContact((prev: any) => prev && prev.id === newMessage.contact_id
-              ? { ...prev, last_message_received_at: newMessage.created_at }
+              ? { ...prev, last_message_received_at: newMessage.created_at, last_interaction: newMessage.created_at }
               : prev);
-            // Always track inbound timestamp so the yellow unread badge can
-            // appear on the contact list. If the chat is currently open we
-            // also bump last_read_at immediately so the unread count stays at
-            // zero for the active conversation (effectively "auto-read").
+            
             setInboundTimestampsByContact(prev => {
               const list = prev[newMessage.contact_id] || [];
               return { ...prev, [newMessage.contact_id]: [newMessage.created_at, ...list].slice(0, 200) };
             });
+
             if (selectedContactRef.current?.id === newMessage.contact_id) {
               const nowIso = new Date().toISOString();
               setContacts(prev => prev.map(c => c.id === newMessage.contact_id
@@ -1382,6 +1387,16 @@ const CRM = () => {
               ));
               supabase.from('crm_contacts').update({ last_read_at: nowIso }).eq('id', newMessage.contact_id).then(() => {});
             }
+          } else if (newMessage.direction === 'outbound') {
+            // Atualiza last_interaction para mensagens enviadas também aparecerem no topo
+            setContacts(prev => prev.map(c => c.id === newMessage.contact_id
+              ? { ...c, last_interaction: newMessage.created_at }
+              : c
+            ).sort((a, b) => {
+              const aT = a.last_interaction ? new Date(a.last_interaction).getTime() : 0;
+              const bT = b.last_interaction ? new Date(b.last_interaction).getTime() : 0;
+              return bT - aT;
+            }));
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedMessage = payload.new;
@@ -1396,10 +1411,6 @@ const CRM = () => {
             }
           }
         }
-        // Avoid refetching the entire 14k-row contact list on every
-        // message event. The contact row will be refreshed by the
-        // crm_contacts realtime subscription below when last_interaction
-        // changes, or by the next visibility-driven refresh.
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_contacts' }, (payload) => {
         const newRow: any = (payload as any).new;
@@ -1409,10 +1420,19 @@ const CRM = () => {
         } else if (newRow?.id) {
           setContacts(prev => {
             const idx = prev.findIndex(c => c.id === newRow.id);
-            if (idx === -1) return [newRow, ...prev];
-            const next = prev.slice();
-            next[idx] = { ...next[idx], ...newRow };
-            return next;
+            let next;
+            if (idx === -1) {
+              next = [newRow, ...prev];
+            } else {
+              next = prev.slice();
+              next[idx] = { ...next[idx], ...newRow };
+            }
+            // Re-sort para garantir que o contato atualizado suba na lista
+            return next.sort((a, b) => {
+              const aT = a.last_interaction ? new Date(a.last_interaction).getTime() : 0;
+              const bT = b.last_interaction ? new Date(b.last_interaction).getTime() : 0;
+              return bT - aT;
+            });
           });
         }
         if (selectedContactRef.current && payload.new && (payload.new as any).id === selectedContactRef.current.id) {
@@ -1522,7 +1542,8 @@ const CRM = () => {
       if (document.visibilityState === 'visible') {
         syncRecentRealtimeMessages();
       }
-    }, 900);
+    }, 1000); // Ajustado para 1s para garantir sincronia constante
+
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
