@@ -1451,6 +1451,7 @@ export type Database = {
           ai_recovery_enabled: boolean
           ai_recovery_finalized_status: string
           ai_recovery_max_attempts: number
+          ai_recovery_scope: string
           ai_system_prompt: string | null
           auto_generate_strategy: boolean | null
           business_description: string | null
@@ -1505,6 +1506,7 @@ export type Database = {
           ai_recovery_enabled?: boolean
           ai_recovery_finalized_status?: string
           ai_recovery_max_attempts?: number
+          ai_recovery_scope?: string
           ai_system_prompt?: string | null
           auto_generate_strategy?: boolean | null
           business_description?: string | null
@@ -1559,6 +1561,7 @@ export type Database = {
           ai_recovery_enabled?: boolean
           ai_recovery_finalized_status?: string
           ai_recovery_max_attempts?: number
+          ai_recovery_scope?: string
           ai_system_prompt?: string | null
           auto_generate_strategy?: boolean | null
           business_description?: string | null

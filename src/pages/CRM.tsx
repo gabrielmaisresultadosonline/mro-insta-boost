@@ -395,6 +395,7 @@ const CRM = () => {
     ai_recovery_delay_minutes: 60,
     ai_recovery_max_attempts: 2,
     ai_recovery_finalized_status: 'Finalizado agente IA',
+    ai_recovery_scope: 'ai_only',
     auto_generate_strategy: false,
     strategy_generation_prompt: 'Analise o histórico acima e gere uma análise detalhada. Destaque pontos positivos da conversa e sugira o que dizer daqui para frente para converter este cliente. Sugira também 2 perguntas que eliminem as principais dúvidas dele sob o cabeçalho \"### Perguntas para Eliminar Dúvidas\".',
     ai_system_prompt: 'Você é um assistente de vendas profissional para a empresa Mais Resultados Online. Responda em Português do Brasil.',
@@ -1979,7 +1980,7 @@ const CRM = () => {
            'meta_app_secret','meta_display_phone_number','meta_verified_name','meta_business_id',
            'google_client_id','google_client_secret','google_auto_sync',
            'openai_api_key','ai_agent_enabled','ai_operation_mode','ai_system_prompt',
-           'ai_recovery_enabled','ai_recovery_delay_minutes','ai_recovery_max_attempts','ai_recovery_finalized_status',
+            'ai_recovery_enabled','ai_recovery_delay_minutes','ai_recovery_max_attempts','ai_recovery_finalized_status','ai_recovery_scope',
            'ai_agent_trigger','ai_agent_trigger_keyword','ai_agent_prompt','ai_agent_label_on_transfer',
            'auto_generate_strategy','strategy_generation_prompt',
            'initial_auto_response_enabled','initial_response_text','initial_response_buttons','initial_flow_id',
@@ -6964,6 +6965,27 @@ const CRM = () => {
                           onChange={(e) => setMetaSettings({ ...metaSettings, ai_recovery_finalized_status: e.target.value })}
                         />
                         <p className="text-[10px] text-muted-foreground italic">Criada no Kanban. Conversas já concluídas recebem essa etiqueta e não são mais recuperadas.</p>
+                      </div>
+                      <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                        <Label className="text-sm font-bold">O que pode ser recuperado</Label>
+                        <Select
+                          value={metaSettings.ai_recovery_scope ?? 'ai_only'}
+                          onValueChange={async (val) => {
+                            setMetaSettings(prev => ({ ...prev, ai_recovery_scope: val }));
+                            await handleSaveSettings({ ...metaSettings, ai_recovery_scope: val });
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ai_only">Somente conversas atendidas pelo Agente I.A.</SelectItem>
+                            <SelectItem value="all">Todas as conversas dentro da janela de 24h</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-muted-foreground italic">
+                          No modo recomendado, o Recuperador ignora conversas antigas, atendidas por fora ou com o Agente I.A. desligado. Em qualquer modo, só recupera dentro da janela de 24h do WhatsApp.
+                        </p>
                       </div>
                       <div className="sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:justify-end gap-2 pt-2 border-t">
                         <Button
