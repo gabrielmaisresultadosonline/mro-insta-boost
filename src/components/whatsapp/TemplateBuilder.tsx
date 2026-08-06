@@ -422,7 +422,27 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
 
                 <div className="space-y-2">
                   <Label>Corpo da Mensagem</Label>
-                  <Textarea placeholder="Sua mensagem aqui..." value={bodyText} onChange={e => setBodyText(e.target.value)} rows={4} />
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Sua mensagem aqui..."
+                      value={bodyText}
+                      onChange={e => setBodyText(e.target.value)}
+                      rows={5}
+                      className="pb-12"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleConvertToUtility}
+                      disabled={utilityLoading}
+                      className="absolute bottom-2 left-2 right-2 sm:right-auto h-8 bg-orange-500 hover:bg-orange-600 text-white shadow-md"
+                    >
+                      {utilityLoading && !utilityOpen
+                        ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                      Converter para Utility
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
