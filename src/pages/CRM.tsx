@@ -1680,6 +1680,7 @@ const CRM = () => {
       const newRows: any[] = [];
       const fetchStartedAt = new Date().toISOString();
       let from = 0;
+      let pageError = false;
 
       for (let page = 0; page < MAX_PAGES; page++) {
         let q = supabase
@@ -1696,6 +1697,7 @@ const CRM = () => {
         const { data, error } = await q;
         if (error) {
           console.warn('[CRM] Erro ao paginar contatos:', error.message);
+          pageError = true;
           break;
         }
         if (!data || data.length === 0) break;
@@ -1732,7 +1734,11 @@ const CRM = () => {
           return merged;
         });
       }
-      lastContactsSyncRef.current = fetchStartedAt;
+      // Se alguma página falhou (banco lento/instável), não avançamos o marcador
+      // de sincronização — assim a próxima tentativa recupera o que faltou.
+      if (!pageError) {
+        lastContactsSyncRef.current = fetchStartedAt;
+      }
       setLoading(false); // Garante que o loading saia após o fetch bem sucedido
     } finally {
       contactsInFlightRef.current = false;
