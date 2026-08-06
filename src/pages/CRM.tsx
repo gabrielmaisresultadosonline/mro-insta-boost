@@ -129,6 +129,54 @@ import { Progress } from "@/components/ui/progress";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
 import FirstTutorialVideo from "@/components/sales/FirstTutorialVideo";
 
+const getCanonicalConversationPhone = (rawPhone: unknown): string => {
+  const digits = String(rawPhone ?? '').replace(/\D/g, '');
+  const normalized = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+
+  if (
+    normalized.startsWith('55') &&
+    normalized.length === 12 &&
+    /^[6-9]/.test(normalized.slice(4))
+  ) {
+    return `${normalized.slice(0, 4)}9${normalized.slice(4)}`;
+  }
+
+  return normalized;
+};
+
+const deduplicateConversationContacts = (rows: any[]): any[] => {
+  const byConversation = new Map<string, any>();
+
+  for (const contact of rows) {
+    const canonicalPhone = getCanonicalConversationPhone(contact?.wa_id);
+    const key = canonicalPhone ? `${contact?.user_id ?? 'current'}:${canonicalPhone}` : `id:${contact?.id}`;
+    const existing = byConversation.get(key);
+
+    if (!existing) {
+      byConversation.set(key, contact);
+      continue;
+    }
+
+    const existingTime = new Date(existing.last_interaction || existing.updated_at || 0).getTime();
+    const contactTime = new Date(contact.last_interaction || contact.updated_at || 0).getTime();
+    const newest = contactTime >= existingTime ? contact : existing;
+    const oldest = newest === contact ? existing : contact;
+
+    byConversation.set(key, {
+      ...oldest,
+      ...newest,
+      total_messages_received: Math.max(oldest.total_messages_received ?? 0, newest.total_messages_received ?? 0),
+      total_messages_sent: Math.max(oldest.total_messages_sent ?? 0, newest.total_messages_sent ?? 0),
+    });
+  }
+
+  return Array.from(byConversation.values()).sort((a, b) => {
+    const aTime = new Date(a.last_interaction || a.updated_at || 0).getTime();
+    const bTime = new Date(b.last_interaction || b.updated_at || 0).getTime();
+    return bTime - aTime;
+  });
+};
+
 const encodeAudioBufferToWav = (audioBuffer: AudioBuffer) => {
   const channels = Math.min(audioBuffer.numberOfChannels, 2);
   const sampleRate = audioBuffer.sampleRate;
@@ -1593,7 +1641,7 @@ const CRM = () => {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed?.rows)) {
               console.log(`[CRM] Restaurando ${parsed.rows.length} contatos do cache...`);
-              setContacts(parsed.rows);
+              setContacts(deduplicateConversationContacts(parsed.rows));
               lastContactsSyncRef.current = parsed.lastSyncedAt || null;
               // Se restauramos do cache, podemos tirar o loading inicial para a UI aparecer logo
               setLoading(false);
@@ -1640,11 +1688,7 @@ const CRM = () => {
             map.set(c.id, existing ? { ...existing, ...c } : c);
           }
           
-          const merged = Array.from(map.values()).sort((a, b) => {
-            const aT = a.last_interaction ? new Date(a.last_interaction).getTime() : 0;
-            const bT = b.last_interaction ? new Date(b.last_interaction).getTime() : 0;
-            return bT - aT;
-          });
+          const merged = deduplicateConversationContacts(Array.from(map.values()));
 
           if (cacheKey) {
             try {
@@ -1753,12 +1797,12 @@ const CRM = () => {
   // tabs or types in the status filter (which was making the Conversas
   // tab take ~3s to open after a Google sync).
   const conversationContacts = useMemo(() => {
-    return contacts.filter(c =>
+    return deduplicateConversationContacts(contacts.filter(c =>
       c.last_interaction != null ||
       (c.total_messages_received ?? 0) > 0 ||
       (c.total_messages_sent ?? 0) > 0 ||
       c.last_message_received_at != null
-    );
+    ));
   }, [contacts]);
 
   // Memoize the "contatos sem nome" subset so we don't iterate all 14k+
