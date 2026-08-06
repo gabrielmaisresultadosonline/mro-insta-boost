@@ -5532,6 +5532,11 @@ async function fetchAndStoreIncomingMedia(
       return jsonResponse({ success: true });
     }
 
+    if (action === 'processAiRecovery') {
+      const recoveryResult = await processAiRecoveryForAllUsers(supabase, params?.userId || userId || null);
+      return jsonResponse({ success: true, recovery: recoveryResult });
+    }
+
     if (action === 'processCountdownTriggers') {
       const countdownResult = await processCountdownTriggers(supabase);
       return jsonResponse({ success: true, countdown: countdownResult });
