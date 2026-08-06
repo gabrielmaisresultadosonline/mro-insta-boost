@@ -4335,8 +4335,8 @@ async function fetchAndStoreIncomingMedia(
         const { data: createdContact, error: createContactError } = await supabase
           .from('crm_contacts')
           .insert({
-            wa_id: normalizedTo,
-            name: normalizedTo,
+            wa_id: canonicalBrazilianWaId(normalizedTo),
+            name: canonicalBrazilianWaId(normalizedTo),
             user_id: userId,
             status: 'new',
             source_type: 'broadcast',
@@ -4351,7 +4351,7 @@ async function fetchAndStoreIncomingMedia(
           const { data: concurrentContact } = await supabase
             .from('crm_contacts')
             .select('*')
-            .eq('wa_id', normalizedTo)
+            .in('wa_id', variants)
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -4407,11 +4407,19 @@ async function fetchAndStoreIncomingMedia(
       if (!contact && userId) {
         const insertResult = await supabase
           .from('crm_contacts')
-          .insert({ wa_id: params.to, name: params.to, user_id: userId, status: 'new', source_type: 'manual_send' })
+          .insert({ wa_id: canonicalBrazilianWaId(normalizedTo), name: canonicalBrazilianWaId(normalizedTo), user_id: userId, status: 'new', source_type: 'manual_send' })
           .select('*')
           .maybeSingle();
         if (insertResult.error) {
-          console.error('[ACTION] Failed to create contact:', insertResult.error.message);
+          // Pode ser corrida ou variante já existente — reaproveita a conversa existente.
+          const { data: retryRows } = await supabase
+            .from('crm_contacts')
+            .select('*')
+            .in('wa_id', variants)
+            .eq('user_id', userId)
+            .limit(1);
+          contact = retryRows && retryRows.length > 0 ? retryRows[0] : null;
+          if (!contact) console.error('[ACTION] Failed to create contact:', insertResult.error.message);
         } else {
           contact = insertResult.data;
           console.log('[ACTION] Created contact for sendMessage');
