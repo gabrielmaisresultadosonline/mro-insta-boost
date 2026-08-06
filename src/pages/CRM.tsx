@@ -2250,9 +2250,16 @@ const CRM = () => {
 
     let cancelled = false;
 
+    let syncRunning = false;
+
     const silentSync = async () => {
-      // Conta Google cheia: não adianta insistir a cada 5s — pausa as tentativas
+      // Conta Google cheia: não adianta insistir — pausa as tentativas
       if (googleAccountFullRef.current) return;
+      // Nunca executar em paralelo nem com a aba em segundo plano:
+      // isso gerava dezenas de chamadas simultâneas e sobrecarregava o banco.
+      if (syncRunning) return;
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      syncRunning = true;
       try {
         const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
           body: { action: 'syncPendingToGoogle' }
@@ -2281,17 +2288,23 @@ const CRM = () => {
             googleAccountFullRef.current = false;
             setGoogleAccountFull(false);
           }
-          await fetchContacts();
+          // Só recarrega a base de contatos quando algo realmente foi enviado.
+          const changed = Number(data?.pushed ?? data?.created ?? data?.synced ?? 0);
+          if (changed > 0) {
+            await fetchContacts();
+          }
         }
       } catch (e) {
         console.warn('[AUTO-SYNC] Falha na sincronização silenciosa do Google:', e);
+      } finally {
+        syncRunning = false;
       }
     };
 
     // Roda imediatamente ao montar/ativar
     silentSync();
-    // E depois a cada 5 segundos para subir pendentes praticamente em tempo real
-    const intervalId = window.setInterval(silentSync, 5 * 1000);
+    // E depois a cada 60 segundos (evita sobrecarregar o banco/edge function)
+    const intervalId = window.setInterval(silentSync, 60 * 1000);
 
     return () => {
       cancelled = true;
