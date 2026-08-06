@@ -1116,13 +1116,34 @@ else if (message.type === "unsupported") {
   const isAiHandling = contact?.flow_state === 'ai_handling';
   const isAiActive = contact?.ai_active === true;
   const isWaitingResponse = contact?.flow_state === 'waiting_response';
-  const isGlobalAiEnabled = settings?.ai_agent_enabled === true;
+  // Carrega as configurações do CRM deste usuário para saber se o Agente IA Global está ligado.
+  // (Antes esta variável não existia neste escopo, o que quebrava o webhook com
+  // "ReferenceError: settings is not defined" logo após salvar a mensagem recebida.)
+  let webhookSettings: any = null;
+  try {
+    const { data: loadedSettings, error: loadedSettingsError } = await supabase
+      .from('crm_settings')
+      .select('ai_agent_enabled')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (loadedSettingsError) {
+      console.error('[WEBHOOK] Failed to load crm_settings for AI check', loadedSettingsError.message);
+    }
+    webhookSettings = loadedSettings || null;
+  } catch (settingsErr) {
+    console.error('[WEBHOOK] Unexpected error loading crm_settings', settingsErr);
+  }
+  const isGlobalAiEnabled = webhookSettings?.ai_agent_enabled === true;
   
   // Only treat as "active flow" when there's a flow AND the state is not idle/completed.
   // Without this, contacts whose previous flow ended but left `current_flow_id` set
   // would never trigger any new flow on inbound messages (silent stuck state).
   const _flowState = contact?.flow_state;
-  const _isFlowEnded = !_flowState || _flowState === 'idle' || _flowState || 'completed' || _flowState === 'ended' || _flowState === 'finished';
+  const _isFlowEnded = !_flowState
+    || _flowState === 'idle'
+    || _flowState === 'completed'
+    || _flowState === 'ended'
+    || _flowState === 'finished';
   // SE O MODO GLOBAL ESTIVER ATIVO, consideramos que não há fluxo impedindo a IA, a menos que esteja no meio de um fluxo rodando
   const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded && (!isGlobalAiEnabled || _flowState === 'running');
 
