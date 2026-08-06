@@ -1836,7 +1836,7 @@ async function processAiRecoveryForAllUsers(supabase: any, onlyUserId?: string |
 
   let settingsQuery = supabase
     .from('crm_settings')
-    .select('user_id, openai_api_key, meta_phone_number_id, meta_access_token, vps_transcoder_url, ai_agent_enabled, ai_recovery_enabled, ai_recovery_delay_minutes, ai_recovery_max_attempts, ai_recovery_finalized_status, business_description, ai_system_prompt')
+    .select('user_id, openai_api_key, meta_phone_number_id, meta_access_token, vps_transcoder_url, ai_agent_enabled, ai_recovery_enabled, ai_recovery_delay_minutes, ai_recovery_max_attempts, ai_recovery_finalized_status, ai_recovery_scope, business_description, ai_system_prompt')
     .eq('ai_agent_enabled', true)
     .eq('ai_recovery_enabled', true);
 
@@ -1858,6 +1858,9 @@ async function processAiRecoveryForAllUsers(supabase: any, onlyUserId?: string |
     const delayMinutes = Math.max(5, Number(settings.ai_recovery_delay_minutes) || 60);
     const maxAttempts = Math.max(1, Number(settings.ai_recovery_max_attempts) || 2);
     const finalizedLabel = (settings.ai_recovery_finalized_status || '').trim() || AI_RECOVERY_DEFAULT_LABEL;
+    // 'ai_only' (padrao): recupera apenas conversas que ja foram atendidas pelo Agente I.A.
+    // 'all': recupera qualquer conversa dentro da janela de 24h.
+    const recoveryScope = settings.ai_recovery_scope === 'all' ? 'all' : 'ai_only';
 
     await ensureAiRecoveryStatus(supabase, settings.user_id, finalizedLabel);
 
@@ -1880,6 +1883,14 @@ async function processAiRecoveryForAllUsers(supabase: any, onlyUserId?: string |
         const metadata = (contact.metadata || {}) as Record<string, any>;
 
         if (metadata.ai_recovery_finalized === true) continue;
+        // Nunca recuperar conversas com o Agente I.A. desligado manualmente.
+        if (metadata.manual_ai_off === true) continue;
+        // Escopo "somente I.A.": exige que a I.A. ja tenha conversado nesta janela.
+        if (recoveryScope === 'ai_only') {
+          const aiEngaged = metadata.ai_engaged === true;
+          const aiOn = contact.ai_active === true || contact.flow_state === 'ai_handling';
+          if (!aiEngaged || !aiOn) continue;
+        }
         if (contact.status === finalizedLabel) continue;
         if (contact.flow_state && contact.flow_state !== 'idle') continue;
 
