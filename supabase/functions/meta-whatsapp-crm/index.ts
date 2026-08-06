@@ -2265,6 +2265,23 @@ const getBrazilianPhoneVariants = (raw: string) => {
   return Array.from(variants)
 }
 
+/**
+ * Forma canônica de um número brasileiro (sempre COM o 9º dígito).
+ * Espelha exatamente a função `public.crm_canon_wa_id` do banco, que garante
+ * unicidade de contato por usuário — 1 número = 1 conversa, sempre.
+ */
+const canonicalBrazilianWaId = (raw: string) => {
+  const normalized = normalizePhone(raw)
+  if (
+    normalized.startsWith('55') &&
+    normalized.length === 12 &&
+    /^[6-9]/.test(normalized.slice(4))
+  ) {
+    return `${normalized.slice(0, 4)}9${normalized.slice(4)}`
+  }
+  return normalized
+}
+
 async function syncOutboundStatusFromMeta(supabase: any, userId: string, statusEvent: any) {
   const metaMessageId = statusEvent?.id;
   if (!metaMessageId) return { updated: false, reason: 'missing_meta_message_id' };
