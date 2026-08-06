@@ -233,8 +233,20 @@ const createMobilePlayableAudioBlob = async (audioBlob: Blob) => {
   }
 };
 
+const getMetaErrorCode = (message: any): string => {
+  return String(
+    message?.error_code ||
+    message?.metadata?.last_meta_status?.errors?.[0]?.code ||
+    ''
+  ).trim();
+};
+
 const getMetaDeliveryErrorMessage = (message: any) => {
   const raw = String(message?.error_message || message?.metadata?.last_meta_status?.errors?.[0]?.message || '').trim();
+  const code = getMetaErrorCode(message);
+  if (code === '131026' || /message undeliverable/i.test(raw)) {
+    return 'Mensagem não entregue (erro 131026 da Meta).';
+  }
   if (/business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw)) {
     return 'A Meta bloqueou o envio porque o seu Negócio (Business Manager) ainda não foi verificado. Você consegue receber mensagens, mas não enviar até concluir a verificação.';
   }
@@ -242,6 +254,26 @@ const getMetaDeliveryErrorMessage = (message: any) => {
     return 'A Meta recusou o arquivo de áudio/mídia após o upload. Grave novamente ou envie outro formato.';
   }
   return raw || 'A Meta informou falha na entrega desta mensagem.';
+};
+
+const getMetaDeliveryErrorExplanation = (message: any) => {
+  const raw = String(message?.error_message || message?.metadata?.last_meta_status?.errors?.[0]?.message || '').trim();
+  const code = getMetaErrorCode(message);
+  if (code === '131026' || /message undeliverable/i.test(raw)) {
+    return 'A Meta aceitou o envio, mas o WhatsApp não conseguiu entregar no aparelho do destinatário naquele momento (celular sem conexão, app desatualizado ou conta temporariamente indisponível). A Meta NÃO reenvia sozinha essas mensagens — elas são descartadas. Clique em "Reenviar" para tentar de novo.';
+  }
+  if (/business account locked|not been verified|business.*verification|verifica(c|ç)/i.test(raw)) {
+    return 'O Business Manager precisa concluir a verificação para liberar envios. Até lá você só recebe mensagens.';
+  }
+  if (/media upload error/i.test(raw)) {
+    return 'A Meta recusou o arquivo enviado após o upload. Tente gravar/enviar novamente, de preferência em outro formato ou com menor duração.';
+  }
+  if (code === '131047') {
+    return 'A janela de 24 horas de atendimento expirou. Para falar novamente é preciso enviar um template aprovado pela Meta.';
+  }
+  return raw
+    ? `A Meta retornou: "${raw}"${code ? ` (código ${code})` : ''}. Você pode tentar reenviar a mensagem.`
+    : 'A Meta informou falha na entrega desta mensagem. Você pode tentar reenviar.';
 };
 
 const isBusinessVerificationError = (message: any) => {
