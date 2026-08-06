@@ -1576,8 +1576,15 @@ const CRM = () => {
         }
       } catch (err) {
         console.error('Error in scheduled flow interval:', err);
+      } finally {
+        scheduledRunning = false;
       }
-    }, 5000);
+    }, 20000);
+
+    // Controle de tentativa do refresh preventivo: sem isso, enquanto um fetch
+    // grande estava em andamento o timer disparava a cada tick, empilhando
+    // chamadas e travando o banco.
+    let lastPreventiveRefreshAttempt = 0;
 
     const activeChatSyncInterval = setInterval(() => {
       const activeContactId = selectedContactRef.current?.id;
@@ -1588,7 +1595,12 @@ const CRM = () => {
       // portanto você não perde o que está digitando ou editando no fluxo.
       const now = Date.now();
       const lastFullSync = lastContactsSyncRef.current ? new Date(lastContactsSyncRef.current).getTime() : 0;
-      if (now - lastFullSync > 10 * 60 * 1000 && document.visibilityState === 'visible') {
+      if (
+        now - lastFullSync > 10 * 60 * 1000 &&
+        now - lastPreventiveRefreshAttempt > 10 * 60 * 1000 &&
+        document.visibilityState === 'visible'
+      ) {
+        lastPreventiveRefreshAttempt = now;
         console.log('[CRM] Executando refresh periódico preventivo de dados...');
         fetchContacts();
       }
@@ -1596,13 +1608,13 @@ const CRM = () => {
       if (activeContactId && document.visibilityState === 'visible') {
         fetchRecentActiveMessages(activeContactId);
       }
-    }, 1200);
+    }, 4000);
 
     const realtimeFallbackInterval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         syncRecentRealtimeMessages();
       }
-    }, 1500); // Polling de fallback a cada 1.5s
+    }, 6000); // Polling de fallback (aliviado para não saturar o banco)
 
 
 
