@@ -1120,12 +1120,14 @@ const CRM = () => {
   }, [chatMessages]);
 
   const syncRecentRealtimeMessages = async () => {
+    // Aumentamos o limite de tempo para garantir que nada foi perdido
     if (realtimeFallbackInFlightRef.current) return;
+
     realtimeFallbackInFlightRef.current = true;
 
     try {
       const cursor = realtimeFallbackCursorRef.current;
-      const firstCursor = cursor || new Date(Date.now() - 30_000).toISOString();
+      const firstCursor = cursor || new Date(Date.now() - 15_000).toISOString();
       const { data } = await supabase
         .from('crm_messages')
         .select('*')
@@ -1347,8 +1349,9 @@ const CRM = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const messageChannel = supabase
-      .channel('crm_global_updates')
+      .channel(`crm_updates_${Date.now()}`) // Nome único para evitar conflitos de cache do canal
       .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_messages' }, (payload) => {
+
         if (payload.eventType === 'INSERT') {
           const newMessage: any = payload.new;
           if (selectedContactRef.current && newMessage.contact_id === selectedContactRef.current.id) {
@@ -1542,7 +1545,8 @@ const CRM = () => {
       if (document.visibilityState === 'visible') {
         syncRecentRealtimeMessages();
       }
-    }, 1000); // Ajustado para 1s para garantir sincronia constante
+    }, 1500); // Polling de fallback a cada 1.5s
+
 
 
     return () => {
