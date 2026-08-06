@@ -1070,7 +1070,9 @@ else if (message.type === "unsupported") {
     const { data: newContact, error: createContactError } = await supabase
       .from('crm_contacts')
       .upsert({
-        wa_id: waId,
+        // Sempre gravamos a forma canônica para nunca criar duas conversas
+        // do mesmo contato (com e sem o 9º dígito).
+        wa_id: canonicalBrazilianWaId(waId),
         user_id: userId,
         name: profileName,
         status: 'new',
@@ -1153,6 +1155,7 @@ else if (message.type === "unsupported") {
       .in('wa_id', variants)
       .eq('user_id', userId)
       .order('last_message_received_at', { ascending: false, nullsFirst: true })
+      .limit(1)
       .maybeSingle();
 
   // CRITICAL: Ensure we capture messages for AI processing if the contact is in any AI-related state
