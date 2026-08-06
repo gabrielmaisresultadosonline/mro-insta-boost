@@ -1358,8 +1358,6 @@ else if (message.type === "unsupported") {
 
   // ====== AUTO-TRIGGER FLOWS ON INBOUND MESSAGES ======
   // Only try to start a flow if there's no active flow and contact is not in AI handling
-  const isGlobalAiEnabled = settings?.ai_agent_enabled === true;
-  
   if (contact && !hasActiveFlow && !isAiHandling && !isAiActive) {
     // Check if Global AI is enabled - it should trigger if no specific flow matches
     let flowTriggered = false;
