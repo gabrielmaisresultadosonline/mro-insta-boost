@@ -4894,6 +4894,31 @@ async function fetchAndStoreIncomingMedia(
       let count = 0;
       let totalFetched = 0;
       let nextPageToken = null;
+
+      // Conjunto canônico (com 9º dígito) dos números já existentes para este usuário.
+      // Sem isto, a sincronização criava DUAS conversas para o mesmo contato
+      // (uma com o 9º dígito e outra sem).
+      const existingCanonWaIds = new Set<string>();
+      {
+        let from = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data: existingRows, error: existingErr } = await supabase
+            .from('crm_contacts')
+            .select('wa_id')
+            .eq('user_id', userId)
+            .range(from, from + pageSize - 1);
+          if (existingErr) {
+            console.error('[SYNC] Falha ao carregar contatos existentes:', existingErr.message);
+            break;
+          }
+          for (const row of existingRows || []) {
+            existingCanonWaIds.add(canonicalBrazilianWaId(row.wa_id));
+          }
+          if (!existingRows || existingRows.length < pageSize) break;
+          from += pageSize;
+        }
+      }
       
       console.log("[SYNC] Iniciando busca de contatos na People API...");
       
@@ -4940,22 +4965,22 @@ async function fetchAndStoreIncomingMedia(
                 if (!phone.startsWith('55')) phone = `55${phone}`;
               }
 
-              for (const phoneVariant of getBrazilianPhoneVariants(phone)) {
-                // Check for duplicates within the same batch to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time"
-                if (seenWaIds.has(phoneVariant)) {
-                  console.log(`[SYNC] Skipping duplicate phone in batch: ${phoneVariant}`);
-                  continue;
-                }
-                seenWaIds.add(phoneVariant);
+              // Um único registro por contato: sempre a forma canônica do número.
+              const canonPhone = canonicalBrazilianWaId(phone);
 
-                upsertBatch.push({
-                  wa_id: phoneVariant,
-                  name: name || null,
-                  google_sync_account_id: account.id,
-                  user_id: userId,
-                  updated_at: new Date().toISOString()
-                });
+              // Já existe no banco (em qualquer variante) ou já entrou neste lote? ignora.
+              if (existingCanonWaIds.has(canonPhone) || seenWaIds.has(canonPhone)) {
+                continue;
               }
+              seenWaIds.add(canonPhone);
+
+              upsertBatch.push({
+                wa_id: canonPhone,
+                name: name || null,
+                google_sync_account_id: account.id,
+                user_id: userId,
+                updated_at: new Date().toISOString()
+              });
             }
           }
 
