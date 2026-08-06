@@ -2333,6 +2333,8 @@ const CRM = () => {
 
   const updateContactStatus = async (contactId: string, updates: any) => {
     try {
+      // Quando o Agente I.A Global está ligado, o ícone azul deve permanecer
+      // ativo em TODAS as conversas, exceto nas desligadas manualmente pelo usuário.
       const currentContact = contacts.find((c: any) => c.id === contactId) || (selectedContactRef.current?.id === contactId ? selectedContactRef.current : null);
       const normalizedUpdates = Object.prototype.hasOwnProperty.call(updates, 'ai_active')
         ? {
