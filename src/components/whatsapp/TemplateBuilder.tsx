@@ -140,6 +140,64 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
     setCards(cards.map((c, i) => i === index ? { ...c, ...updates } : c));
   };
 
+  const generateUtilityVersion = async (source: string) => {
+    const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      body: { action: 'convertToUtility', message: source }
+    });
+    if (error) throw new Error(error.message || 'Falha ao conectar com o conversor');
+    if (!data?.success) throw new Error(data?.error || 'Não foi possível converter a mensagem');
+    return String(data.converted || '').trim();
+  };
+
+  const handleConvertToUtility = async () => {
+    if (!bodyText.trim()) {
+      toast({ title: "Escreva a mensagem primeiro", description: "O corpo da mensagem está vazio.", variant: "destructive" });
+      return;
+    }
+    setUtilityOriginal(bodyText);
+    setUtilityVersions([]);
+    setUtilitySelected(0);
+    setUtilityOpen(true);
+    setUtilityLoading(true);
+    try {
+      const converted = await generateUtilityVersion(bodyText);
+      setUtilityVersions([converted]);
+    } catch (err: any) {
+      toast({ title: "Conversor indisponível", description: err.message, variant: "destructive" });
+      setUtilityOpen(false);
+    } finally {
+      setUtilityLoading(false);
+    }
+  };
+
+  const handleGenerateAnotherVersion = async () => {
+    if (utilityVersions.length >= 4) {
+      toast({ title: "Limite atingido", description: "Você pode gerar até 4 versões por conversão." });
+      return;
+    }
+    setUtilityLoading(true);
+    try {
+      const converted = await generateUtilityVersion(utilityOriginal);
+      setUtilityVersions(prev => {
+        const next = [...prev, converted];
+        setUtilitySelected(next.length - 1);
+        return next;
+      });
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar variação", description: err.message, variant: "destructive" });
+    } finally {
+      setUtilityLoading(false);
+    }
+  };
+
+  const handleAcceptUtilityVersion = () => {
+    const chosen = utilityVersions[utilitySelected];
+    if (!chosen) return;
+    setBodyText(chosen);
+    setUtilityOpen(false);
+    toast({ title: "Mensagem convertida", description: "O corpo da mensagem foi substituído pela versão Utility." });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, cardIndex?: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
