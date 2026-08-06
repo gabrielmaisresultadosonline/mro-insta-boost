@@ -1127,7 +1127,7 @@ const CRM = () => {
 
     try {
       const cursor = realtimeFallbackCursorRef.current;
-      const firstCursor = cursor || new Date(Date.now() - 30_000).toISOString();
+      const firstCursor = cursor || new Date(Date.now() - 15_000).toISOString();
       const { data } = await supabase
         .from('crm_messages')
         .select('*')
