@@ -1653,28 +1653,34 @@ const CRM = () => {
         contactsSeededRef.current = true;
       }
 
-      // Incremental paginated fetch
+      // Incremental paginated fetch — carrega TODOS os contatos (sem teto de 1000)
       const pageSize = 1000;
+      const MAX_PAGES = 200; // até 200k contatos
       const newRows: any[] = [];
       const fetchStartedAt = new Date().toISOString();
       let from = 0;
-      
-      // Realizamos apenas uma busca das alterações mais recentes ou do estado inicial
-      // Removendo o loop "while" agressivo que poderia causar gargalos se houverem muitos contatos
-      let q = supabase
-        .from('crm_contacts')
-        .select('*')
-        .order('updated_at', { ascending: false }) // Buscamos os mais recentes primeiro
-        .limit(pageSize);
-      
-      // Se já temos um sync anterior, buscamos apenas o que mudou
-      if (lastContactsSyncRef.current) {
-        q = q.gt('updated_at', lastContactsSyncRef.current);
-      }
-      
-      const { data, error } = await q;
-      if (!error && data) {
+
+      for (let page = 0; page < MAX_PAGES; page++) {
+        let q = supabase
+          .from('crm_contacts')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        // Se já temos um sync anterior, buscamos apenas o que mudou
+        if (lastContactsSyncRef.current) {
+          q = q.gt('updated_at', lastContactsSyncRef.current);
+        }
+
+        const { data, error } = await q;
+        if (error) {
+          console.warn('[CRM] Erro ao paginar contatos:', error.message);
+          break;
+        }
+        if (!data || data.length === 0) break;
         newRows.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
       }
 
       if (newRows.length > 0 || !lastContactsSyncRef.current) {
@@ -1697,7 +1703,9 @@ const CRM = () => {
                 lastSyncedAt: fetchStartedAt,
               }));
             } catch (e) {
-              console.warn('[CRM] Erro ao salvar cache de contatos:', e);
+              // Base grande demais para o localStorage: limpamos o cache parcial
+              console.warn('[CRM] Cache de contatos não salvo (limite do navegador):', e);
+              try { localStorage.removeItem(cacheKey); } catch { /* noop */ }
             }
           }
           return merged;
