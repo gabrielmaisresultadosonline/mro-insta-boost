@@ -5381,10 +5381,6 @@ async function fetchAndStoreIncomingMedia(
       return jsonResponse({ success: true, improvedPrompt: aiData.choices?.[0]?.message?.content });
     }
 
-    if (action === 'clearHistory') {
-      // (handled below)
-    }
-
     if (action === 'convertToUtility') {
       const { message } = params;
       if (!message || !String(message).trim()) throw new Error('Mensagem é obrigatória');
