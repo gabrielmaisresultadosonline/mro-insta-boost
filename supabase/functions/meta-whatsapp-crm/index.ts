@@ -5381,6 +5381,64 @@ async function fetchAndStoreIncomingMedia(
       return jsonResponse({ success: true, improvedPrompt: aiData.choices?.[0]?.message?.content });
     }
 
+    if (action === 'convertToUtility') {
+      const { message } = params;
+      if (!message || !String(message).trim()) throw new Error('Mensagem é obrigatória');
+
+      const { data: settings } = await supabase.from('crm_settings').select('openai_api_key').eq('user_id', userId).maybeSingle();
+      const apiKey = settings?.openai_api_key || Deno.env.get('OPENAI_API_KEY');
+      if (!apiKey) throw new Error('Nenhum token vinculado ao Agente I.A. Salve seu token no Agente I.A para usar o conversor.');
+
+      const systemPrompt = `# FUNÇÃO
+Você é um especialista em aprovação de templates do WhatsApp Business (Meta), com profundo conhecimento das categorias de templates da plataforma.
+Sua única função é reescrever a mensagem enviada pelo usuário para que ela tenha a maior probabilidade possível de ser aprovada pela Meta como um template da categoria UTILITY, preservando o objetivo original da mensagem.
+A intenção principal é transformar qualquer mensagem em uma versão que transmita claramente um contexto de atendimento, acompanhamento, atualização ou continuidade de uma interação já iniciada pelo usuário.
+Você NÃO deve explicar o que foi alterado. Você NÃO deve comentar a mensagem. Você NÃO deve responder perguntas. Você NÃO deve utilizar markdown. Você deve retornar SOMENTE a mensagem completamente reescrita.
+
+# OBJETIVO PRINCIPAL
+Transforme a mensagem enviada em um template com características de Utility. A mensagem final deve parecer parte de um atendimento já existente, uma solicitação anterior, um cadastro efetuado, uma conversa em andamento, uma atualização importante ou um processo iniciado anteriormente pelo próprio usuário. O objetivo NÃO é criar propaganda disfarçada.
+
+# REGRAS OBRIGATÓRIAS
+Sempre transmita contexto: continuidade de atendimento, acompanhamento, atualização, solicitação realizada anteriormente, interesse previamente demonstrado, cadastro realizado, conversa iniciada, processo em andamento, atendimento disponível, retorno referente ao contato anterior.
+Nunca use linguagem promocional, chamadas de vendas, incentivo a compra direta, ofertas, gatilhos comerciais, prospecção fria, urgência comercial ou emojis em excesso. Nunca altere completamente o objetivo da mensagem.
+
+# PALAVRAS PROIBIDAS
+promoção, oferta, desconto, imperdível, oportunidade, últimas vagas, últimos dias, compre, garanta, adquira, clique agora, não perca, campanha, exclusivo, aproveite, venda, marketing, mais barato, melhor preço, condição especial.
+
+# RESTRIÇÕES
+Nunca invente informações inexistentes (protocolos, pedidos, números, datas, horários, compras, contratos, pagamentos, agendamentos). Nunca utilize placeholders como {{1}}, {{2}}, {{3}}. Nunca solicite informações pessoais que não existam na mensagem original.
+
+# ESTRUTURA RECOMENDADA
+1. Contextualize que existe um atendimento, solicitação, cadastro ou contato anterior.
+2. Informe o motivo do retorno.
+3. Reescreva a informação principal da mensagem original.
+4. Finalize informando que o atendimento continua disponível caso o usuário queira dar continuidade.
+
+# SAÍDA
+Retorne apenas a mensagem completamente convertida. Não explique. Não faça observações. Não escreva comentários. Não coloque aspas. Não utilize markdown.`;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `A mensagem abaixo deve ser completamente convertida para um formato Utility com foco em aumentar as chances de aprovação pela Meta.\n\nMENSAGEM:\n\n${message}` },
+          ],
+          temperature: 0.9,
+        }),
+      });
+
+      const aiData = await response.json();
+      if (!response.ok) throw new Error(aiData.error?.message || 'Erro na API da OpenAI');
+
+      const converted = (aiData.choices?.[0]?.message?.content || '').trim();
+      if (!converted) throw new Error('Não foi possível converter a mensagem');
+
+      return jsonResponse({ success: true, converted });
+    }
+
     if (action === 'clearHistory') {
       const { contactId } = params;
       if (!contactId) throw new Error('contactId is required');

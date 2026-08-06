@@ -27,7 +27,11 @@ import {
   Copy,
   ChevronLeft,
   ChevronRight,
-  Layers
+  Layers,
+  Sparkles,
+  Info,
+  Check,
+  RefreshCw
 } from "lucide-react";
 import TemplatePreview from './TemplatePreview';
 import MetaPricingCalculator from './MetaPricingCalculator';
@@ -36,6 +40,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TemplateBuilderProps {
   onSave: (template: any) => void;
@@ -56,6 +62,13 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
   const [bodyText, setBodyText] = useState('');
   const [footerText, setFooterText] = useState('');
   const [buttons, setButtons] = useState<any[]>([]);
+
+  // Utility Converter State
+  const [utilityOpen, setUtilityOpen] = useState(false);
+  const [utilityLoading, setUtilityLoading] = useState(false);
+  const [utilityOriginal, setUtilityOriginal] = useState('');
+  const [utilityVersions, setUtilityVersions] = useState<string[]>([]);
+  const [utilitySelected, setUtilitySelected] = useState(0);
   
   // Carousel State
   const [carouselBody, setCarouselBody] = useState('');
@@ -125,6 +138,64 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
 
   const updateCard = (index: number, updates: any) => {
     setCards(cards.map((c, i) => i === index ? { ...c, ...updates } : c));
+  };
+
+  const generateUtilityVersion = async (source: string) => {
+    const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+      body: { action: 'convertToUtility', message: source }
+    });
+    if (error) throw new Error(error.message || 'Falha ao conectar com o conversor');
+    if (!data?.success) throw new Error(data?.error || 'Não foi possível converter a mensagem');
+    return String(data.converted || '').trim();
+  };
+
+  const handleConvertToUtility = async () => {
+    if (!bodyText.trim()) {
+      toast({ title: "Escreva a mensagem primeiro", description: "O corpo da mensagem está vazio.", variant: "destructive" });
+      return;
+    }
+    setUtilityOriginal(bodyText);
+    setUtilityVersions([]);
+    setUtilitySelected(0);
+    setUtilityOpen(true);
+    setUtilityLoading(true);
+    try {
+      const converted = await generateUtilityVersion(bodyText);
+      setUtilityVersions([converted]);
+    } catch (err: any) {
+      toast({ title: "Conversor indisponível", description: err.message, variant: "destructive" });
+      setUtilityOpen(false);
+    } finally {
+      setUtilityLoading(false);
+    }
+  };
+
+  const handleGenerateAnotherVersion = async () => {
+    if (utilityVersions.length >= 4) {
+      toast({ title: "Limite atingido", description: "Você pode gerar até 4 versões por conversão." });
+      return;
+    }
+    setUtilityLoading(true);
+    try {
+      const converted = await generateUtilityVersion(utilityOriginal);
+      setUtilityVersions(prev => {
+        const next = [...prev, converted];
+        setUtilitySelected(next.length - 1);
+        return next;
+      });
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar variação", description: err.message, variant: "destructive" });
+    } finally {
+      setUtilityLoading(false);
+    }
+  };
+
+  const handleAcceptUtilityVersion = () => {
+    const chosen = utilityVersions[utilitySelected];
+    if (!chosen) return;
+    setBodyText(chosen);
+    setUtilityOpen(false);
+    toast({ title: "Mensagem convertida", description: "O corpo da mensagem foi substituído pela versão Utility." });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, cardIndex?: number) => {
@@ -273,6 +344,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
   };
 
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4">
       <div className="space-y-6">
         <Card className="glass-card">
@@ -351,7 +423,27 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
 
                 <div className="space-y-2">
                   <Label>Corpo da Mensagem</Label>
-                  <Textarea placeholder="Sua mensagem aqui..." value={bodyText} onChange={e => setBodyText(e.target.value)} rows={4} />
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Sua mensagem aqui..."
+                      value={bodyText}
+                      onChange={e => setBodyText(e.target.value)}
+                      rows={5}
+                      className="pb-12"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleConvertToUtility}
+                      disabled={utilityLoading}
+                      className="absolute bottom-2 left-2 right-2 sm:right-auto h-8 bg-orange-500 hover:bg-orange-600 text-white shadow-md"
+                    >
+                      {utilityLoading && !utilityOpen
+                        ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                      Converter para Utility
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -521,6 +613,94 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
         />
       </div>
     </div>
+
+      <Dialog open={utilityOpen} onOpenChange={setUtilityOpen}>
+        <DialogContent className="max-w-2xl w-[95vw] p-0 gap-0">
+          <DialogHeader className="p-4 pb-3 border-b">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="w-4 h-4 text-orange-500" /> Conversor Utility
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Compare o antes e depois e escolha a versão que deseja usar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[65vh]">
+            <div className="p-4 space-y-4">
+              <div className="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 p-3">
+                <Info className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Esta mensagem foi ajustada da melhor forma para que a inteligência da Meta a interprete como uma
+                  mensagem <strong className="text-foreground">Utility</strong>, buscando reduzir o custo por mensagem
+                  nos envios em massa. Não temos garantia de que esta primeira tentativa será aprovada como Utility —
+                  este conversor é um ajudante para aumentar as chances de aprovação.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Antes</Label>
+                  <div className="rounded-lg border bg-muted/30 p-3 text-xs whitespace-pre-wrap break-words min-h-[120px]">
+                    {utilityOriginal}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wide text-orange-500">Depois</Label>
+                  <div className="rounded-lg border border-orange-500/40 bg-orange-500/5 p-3 text-xs whitespace-pre-wrap break-words min-h-[120px]">
+                    {utilityLoading && utilityVersions.length === 0 ? (
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Convertendo mensagem...
+                      </span>
+                    ) : (
+                      utilityVersions[utilitySelected] || '—'
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {utilityVersions.length > 1 && (
+                <div className="flex flex-wrap gap-2">
+                  {utilityVersions.map((_, i) => (
+                    <Button
+                      key={i}
+                      size="sm"
+                      variant={utilitySelected === i ? 'default' : 'outline'}
+                      onClick={() => setUtilitySelected(i)}
+                    >
+                      Versão {i + 1}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          <div className="flex flex-col-reverse sm:flex-row gap-2 p-4 border-t">
+            <Button variant="outline" className="sm:flex-1" onClick={() => setUtilityOpen(false)}>
+              Fechar
+            </Button>
+            <Button
+              variant="outline"
+              className="sm:flex-1"
+              onClick={handleGenerateAnotherVersion}
+              disabled={utilityLoading || utilityVersions.length >= 4 || utilityVersions.length === 0}
+            >
+              {utilityLoading && utilityVersions.length > 0
+                ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                : <RefreshCw className="w-4 h-4 mr-1.5" />}
+              Criar outra ({utilityVersions.length}/4)
+            </Button>
+            <Button
+              className="sm:flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={handleAcceptUtilityVersion}
+              disabled={utilityLoading || utilityVersions.length === 0}
+            >
+              <Check className="w-4 h-4 mr-1.5" /> Aceitar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
