@@ -2630,6 +2630,49 @@ const CRM = () => {
     return Date.now() - lastInbound > DAY + TOLERANCE;
   };
 
+  const [resendingMessageId, setResendingMessageId] = useState<string | null>(null);
+  const [expandedErrorMessageId, setExpandedErrorMessageId] = useState<string | null>(null);
+
+  /**
+   * Reenvio manual de uma mensagem que a Meta marcou como falha (ex.: 131026).
+   * Mantém o balão original com o erro e envia uma nova tentativa do mesmo texto.
+   */
+  const handleResendFailedMessage = async (message: any) => {
+    const targetContact = selectedContactRef.current;
+    if (!targetContact?.wa_id) return;
+
+    const textToSend = String(message?.content || '').trim();
+    if (!textToSend || message?.message_type !== 'text') {
+      toast({
+        title: 'Reenvio indisponível',
+        description: 'Só é possível reenviar automaticamente mensagens de texto. Envie a mídia novamente pelo campo abaixo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setResendingMessageId(message.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
+        body: {
+          action: 'sendMessage',
+          to: targetContact.wa_id,
+          text: textToSend,
+          metadata: { source: 'manual_resend', resent_from: message.id },
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro ao reenviar mensagem pela Meta');
+
+      toast({ title: 'Mensagem reenviada', description: 'Nova tentativa enviada para o contato.' });
+      await fetchMessages(targetContact.id, true);
+    } catch (err: any) {
+      toast({ title: 'Falha ao reenviar', description: err?.message || 'Tente novamente em instantes.', variant: 'destructive' });
+    } finally {
+      setResendingMessageId(null);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedContact) return;
 
