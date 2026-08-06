@@ -152,6 +152,9 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
   const [countdownFlow, setCountdownFlow] = useState('');
   const [savingCountdown, setSavingCountdown] = useState(false);
   const [countdownStatusFilter, setCountdownStatusFilter] = useState<string[]>([]);
+  // 'always' = dispara sempre que o contato entrar na janela de 24h.
+  // 'once'   = dispara apenas para quem nunca recebeu em nenhum dia.
+  const [countdownScope, setCountdownScope] = useState<'always' | 'once'>('always');
   const [countdownHistory, setCountdownHistory] = useState<any[]>([]);
   // Campanha selecionada para exibir os logs de falha detalhados
   const [logsBroadcast, setLogsBroadcast] = useState<any | null>(null);
@@ -316,6 +319,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           name: c.name || c.wa_id,
           status: c.status,
           minutesLeft: Math.max(0, Math.round(msLeft / 60000)),
+          lastTriggerAt: c.countdown_trigger_last_sent_at || null,
         };
       })
       .sort((a, b) => a.minutesLeft - b.minutesLeft);
@@ -395,15 +399,16 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
       setCountdownTemplate(settings.countdown_trigger_template_id || '');
       setCountdownFlow(settings.countdown_trigger_flow_id || '');
       setCountdownStatusFilter(Array.isArray((settings as any).countdown_trigger_status_filter) ? (settings as any).countdown_trigger_status_filter : []);
+      setCountdownScope(((settings as any).countdown_trigger_scope === 'once' ? 'once' : 'always'));
     }
   };
 
   const fetchCountdownHistory = async () => {
     const { data } = await supabase
       .from('crm_contacts')
-      .select('wa_id, name, status, countdown_trigger_sent_at')
-      .not('countdown_trigger_sent_at', 'is', null)
-      .order('countdown_trigger_sent_at', { ascending: false })
+      .select('wa_id, name, status, countdown_trigger_sent_at, countdown_trigger_last_sent_at, countdown_trigger_total_sent')
+      .not('countdown_trigger_last_sent_at', 'is', null)
+      .order('countdown_trigger_last_sent_at', { ascending: false })
       .limit(100);
     setCountdownHistory(data || []);
   };
@@ -421,6 +426,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           countdown_trigger_template_id: countdownTemplate,
           countdown_trigger_flow_id: countdownFlow || null,
           countdown_trigger_status_filter: countdownStatusFilter,
+          countdown_trigger_scope: countdownScope,
         } as any)
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
