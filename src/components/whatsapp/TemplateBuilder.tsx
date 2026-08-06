@@ -612,6 +612,94 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onSave, isSaving }) =
         />
       </div>
     </div>
+
+      <Dialog open={utilityOpen} onOpenChange={setUtilityOpen}>
+        <DialogContent className="max-w-2xl w-[95vw] p-0 gap-0">
+          <DialogHeader className="p-4 pb-3 border-b">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="w-4 h-4 text-orange-500" /> Conversor Utility
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Compare o antes e depois e escolha a versão que deseja usar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[65vh]">
+            <div className="p-4 space-y-4">
+              <div className="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 p-3">
+                <Info className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Esta mensagem foi ajustada da melhor forma para que a inteligência da Meta a interprete como uma
+                  mensagem <strong className="text-foreground">Utility</strong>, buscando reduzir o custo por mensagem
+                  nos envios em massa. Não temos garantia de que esta primeira tentativa será aprovada como Utility —
+                  este conversor é um ajudante para aumentar as chances de aprovação.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Antes</Label>
+                  <div className="rounded-lg border bg-muted/30 p-3 text-xs whitespace-pre-wrap break-words min-h-[120px]">
+                    {utilityOriginal}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wide text-orange-500">Depois</Label>
+                  <div className="rounded-lg border border-orange-500/40 bg-orange-500/5 p-3 text-xs whitespace-pre-wrap break-words min-h-[120px]">
+                    {utilityLoading && utilityVersions.length === 0 ? (
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Convertendo mensagem...
+                      </span>
+                    ) : (
+                      utilityVersions[utilitySelected] || '—'
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {utilityVersions.length > 1 && (
+                <div className="flex flex-wrap gap-2">
+                  {utilityVersions.map((_, i) => (
+                    <Button
+                      key={i}
+                      size="sm"
+                      variant={utilitySelected === i ? 'default' : 'outline'}
+                      onClick={() => setUtilitySelected(i)}
+                    >
+                      Versão {i + 1}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          <div className="flex flex-col-reverse sm:flex-row gap-2 p-4 border-t">
+            <Button variant="outline" className="sm:flex-1" onClick={() => setUtilityOpen(false)}>
+              Fechar
+            </Button>
+            <Button
+              variant="outline"
+              className="sm:flex-1"
+              onClick={handleGenerateAnotherVersion}
+              disabled={utilityLoading || utilityVersions.length >= 4 || utilityVersions.length === 0}
+            >
+              {utilityLoading && utilityVersions.length > 0
+                ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                : <RefreshCw className="w-4 h-4 mr-1.5" />}
+              Criar outra ({utilityVersions.length}/4)
+            </Button>
+            <Button
+              className="sm:flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={handleAcceptUtilityVersion}
+              disabled={utilityLoading || utilityVersions.length === 0}
+            >
+              <Check className="w-4 h-4 mr-1.5" /> Aceitar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
