@@ -246,7 +246,23 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 }
 
  async function processAiAgentResponse(supabase: any, contact: any, waId: string, text?: string, sourceMessageId?: string, userId?: string) {
-  console.log(`[AI-AGENT] Processing response for contact ${waId}. Flow AI Agent.`);
+  const aiRunId = crypto.randomUUID().slice(0, 8);
+  const aiLog = (stage: string, details: Record<string, unknown> = {}) => {
+    console.log('[AI-AUTO]', JSON.stringify({
+      run_id: aiRunId,
+      stage,
+      wa_id: waId,
+      contact_id: contact?.id || null,
+      user_id: userId || contact?.user_id || null,
+      source_message_id: sourceMessageId || null,
+      ...details,
+    }));
+  };
+  aiLog('processing_started', {
+    ai_active: contact?.ai_active === true,
+    flow_state: contact?.flow_state || null,
+    has_input_text: Boolean(text),
+  });
   let messageText = text;
 
     const { data: aiSettings, error: settingsError } = await supabase.from('crm_settings').select('openai_api_key, meta_phone_number_id, meta_access_token, vps_transcoder_url, ai_agent_enabled, business_description, ai_system_prompt').eq('user_id', userId).maybeSingle();
@@ -257,6 +273,10 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
 
   const manualAiActivation = contact?.metadata?.manual_ai_activation === true;
   if (!aiSettings?.ai_agent_enabled && !manualAiActivation) {
+    aiLog('skipped_not_enabled', {
+      global_enabled: aiSettings?.ai_agent_enabled === true,
+      manual_enabled: manualAiActivation,
+    });
     console.log(`[AI-AGENT] Ignorado para ${waId}: ativação geral desligada e conversa sem ativação manual.`);
     return { success: true, skipped: 'ai_not_enabled_for_contact' };
   }
@@ -264,6 +284,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
   const OPENAI_API_KEY = aiSettings?.openai_api_key || Deno.env.get('OPENAI_API_KEY');
 
   if (!OPENAI_API_KEY) {
+    aiLog('failed_missing_openai_key');
     console.error(`[AI-AGENT] OpenAI API Key não configurada para o usuário ${userId}.`);
     
     // Tenta avisar o usuário que o token está faltando
@@ -300,6 +321,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       .maybeSingle();
 
     if (existingResponse) {
+      aiLog('skipped_already_replied');
       console.log(`[AI-AGENT] Already replied to message ${sourceMessageId}. Skipping.`);
       return { success: true, skipped: 'already_replied' };
     }
@@ -315,6 +337,7 @@ async function transcribeAudioForAi(apiKey: string, audioUrl: string) {
       .maybeSingle();
 
     if (latestInboundAfterWait?.meta_message_id && latestInboundAfterWait.meta_message_id !== sourceMessageId) {
+      aiLog('skipped_newer_message', { newest_message_id: latestInboundAfterWait.meta_message_id });
       console.log(`[AI-AGENT] Newer inbound message arrived for ${waId}. Skipping stale response for ${sourceMessageId}.`);
       return { success: true, skipped: 'newer_message_waiting' };
     }
@@ -499,11 +522,13 @@ ${aiPrompt}
     const aiData = await aiResponse.json();
     
     if (!aiResponse.ok) {
+      aiLog('failed_model_request', { status: aiResponse.status });
       console.error(`[AI-AGENT] OpenAI Error for ${waId}:`, JSON.stringify(aiData));
       return { success: false, error: "OpenAI API returned error" };
     }
     
     const reply = aiData.choices?.[0]?.message?.content || "";
+    aiLog('model_reply_received', { reply_length: reply.length });
     console.log(`[AI-AGENT] OpenAI reply for ${waId}: ${reply.slice(0, 100)}...`);
     
     if (reply.includes('[[TRANSFER_TO_HUMAN]]')) {
@@ -599,7 +624,11 @@ ${aiPrompt}
               supabase, 
               settings.meta_phone_number_id, 
               settings.meta_access_token, 
-              { to: waId, text: part.trim() }, 
+              {
+                to: waId,
+                text: part.trim(),
+                metadata: { source_message_id: sourceMessageId, ai_run_id: aiRunId }
+              }, 
               contact,
               settings.vps_transcoder_url
             );
@@ -636,10 +665,12 @@ ${aiPrompt}
           has_waited_initial_response: true 
         }
       }).eq('id', contact.id);
+      aiLog('reply_completed');
     }
     
     return { success: true };
   } catch (err: any) {
+    aiLog('failed_exception', { error: err?.message || String(err) });
     console.error("[AI-AGENT] Error processing AI response:", err);
     return { success: false, error: err.message };
   }
@@ -899,6 +930,19 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
 
   const message = value.messages[0];
   const waId = message.from;
+  const webhookRunId = crypto.randomUUID().slice(0, 8);
+  const webhookAiLog = (stage: string, details: Record<string, unknown> = {}) => {
+    console.log('[AI-AUTO-WEBHOOK]', JSON.stringify({
+      run_id: webhookRunId,
+      stage,
+      wa_id: waId || null,
+      user_id: userId || null,
+      message_id: message?.id || null,
+      message_type: message?.type || null,
+      ...details,
+    }));
+  };
+  webhookAiLog('inbound_received');
 
   // Skip if this single message is actually an echo we already handled above.
   if (businessPhone && String(waId || '').replace(/\D/g, '') === businessPhone) {
@@ -1134,6 +1178,13 @@ else if (message.type === "unsupported") {
     console.error('[WEBHOOK] Unexpected error loading crm_settings', settingsErr);
   }
   const isGlobalAiEnabled = webhookSettings?.ai_agent_enabled === true;
+  webhookAiLog('eligibility_resolved', {
+    contact_id: contact?.id || null,
+    contact_ai_active: contact?.ai_active === true,
+    global_enabled: isGlobalAiEnabled,
+    flow_state: contact?.flow_state || null,
+    current_flow_id: contact?.current_flow_id || null,
+  });
   
   // Only treat as "active flow" when there's a flow AND the state is not idle/completed.
   // Without this, contacts whose previous flow ended but left `current_flow_id` set
@@ -1146,26 +1197,6 @@ else if (message.type === "unsupported") {
     || _flowState === 'finished';
   // SE O MODO GLOBAL ESTIVER ATIVO, consideramos que não há fluxo impedindo a IA, a menos que esteja no meio de um fluxo rodando
   const hasActiveFlow = !!contact?.current_flow_id && !_isFlowEnded && (!isGlobalAiEnabled || _flowState === 'running');
-
-  // --- GLOBAL ACTIONS (NO CONTACT REQUIRED OR HANDLED INTERNALLY) ---
-  if (action === 'processAiAgent' && body.contactId) {
-    const { data: contactData } = await supabase.from('crm_contacts').select('*').eq('id', body.contactId).single();
-    if (!contactData) return jsonResponse({ success: false, error: 'Contact not found' }, 404);
-    
-    if (body.manualTrigger) {
-      await supabase.from('crm_contacts').update({ 
-        ai_active: true,
-        flow_state: 'ai_handling',
-        last_interaction: new Date().toISOString()
-      }).eq('id', body.contactId);
-      
-      contactData.ai_active = true;
-      contactData.flow_state = 'ai_handling';
-    }
-
-    const res = await processAiAgentResponse(supabase, contactData, body.waId, undefined, undefined, userId);
-    return jsonResponse(res);
-  }
 
   if (contact?.current_flow_id && _isFlowEnded) {
 
@@ -1341,6 +1372,11 @@ else if (message.type === "unsupported") {
   // CRITICAL: Ensure we capture messages for AI processing
   // Check if contact is in an AI node or AI state
   if (contact && (isAiHandling || isAiActive || (hasActiveFlow && isInAiNode))) {
+    webhookAiLog('dispatch_existing_ai_state', {
+      is_ai_handling: isAiHandling,
+      is_ai_active: isAiActive,
+      is_ai_node: isInAiNode,
+    });
     console.log(`[FLOW-LOG] WEBHOOK: Processing AI Agent for ${waId}. State: ${contact.flow_state}`);
     const result = await processAiAgentResponse(supabase, contact, waId, text || extractedInboundText, message.id, userId);
     return jsonResponse(result);
@@ -1570,9 +1606,11 @@ else if (message.type === "unsupported") {
     // CRITICAL: processAiAgentResponse is async and will handle the reply.
     // Passamos o texto extraído para garantir que a IA tenha o input correto.
     console.log(`[WEBHOOK-AI-DEBUG] Calling processAiAgentResponse for ${waId} with messageId: ${message.id}`);
+    webhookAiLog('dispatch_global_fallback', { inbound_text_length: inboundText?.length || 0 });
     const result = await processAiAgentResponse(supabase, contact, waId, inboundText, message.id, userId);
     return jsonResponse(result);
   } else if (contact) {
+    webhookAiLog('skipped_not_eligible', { has_active_flow: hasActiveFlow });
     console.log(`[WEBHOOK-AI-DEBUG] Contact ${waId} NOT eligible for AI. ai_active=${contact.ai_active}, global_enabled=${isGlobalAiEnabled}, hasActiveFlow=${hasActiveFlow}`);
   }
 
