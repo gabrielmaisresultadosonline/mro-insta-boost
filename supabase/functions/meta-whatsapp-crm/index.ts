@@ -373,7 +373,7 @@ async function _transcribeAudioForAi(apiKey: string, audioUrl: string) {
     await wait(3000); // Reduced wait time for faster response
     const { data: latestInboundAfterWait } = await supabase
       .from('crm_messages')
-      .select('meta_message_id, content')
+      .select('id, meta_message_id, content, message_type, media_url')
       .eq('contact_id', contact.id)
       .eq('direction', 'inbound')
       .order('created_at', { ascending: false })
@@ -386,12 +386,14 @@ async function _transcribeAudioForAi(apiKey: string, audioUrl: string) {
       return { success: true, skipped: 'newer_message_waiting' };
     }
 
-    messageText = latestInboundAfterWait?.content || messageText;
+    // Transcreve internamente caso a última mensagem seja áudio.
+    const resolvedLatest = await resolveInboundMessageText(supabase, OPENAI_API_KEY, latestInboundAfterWait);
+    messageText = resolvedLatest || messageText;
   }
 
   
   // 1. Obter texto se não fornecido (pegar última mensagem do cliente)
-  if (!messageText || messageText === "[Mensagem de Áudio]") {
+  if (isPlaceholderContent(messageText)) {
     console.log(`[AI-AGENT-DEBUG] messageText is empty or default for ${waId}. Fetching last inbound message.`);
     const { data: lastMessage } = await supabase
       .from('crm_messages')
@@ -403,60 +405,32 @@ async function _transcribeAudioForAi(apiKey: string, audioUrl: string) {
       .maybeSingle();
     
     console.log(`[AI-AGENT-DEBUG] Last message for ${waId}: type=${lastMessage?.message_type}, hasMedia=${!!lastMessage?.media_url}, content="${lastMessage?.content}"`);
-
-    if (lastMessage?.message_type === 'audio' && lastMessage.media_url) {
-      console.log(`[AI-AGENT] Transcribing main message audio for ${waId}... URL: ${lastMessage.media_url.slice(0, 50)}`);
-      const transcription = await transcribeAudioForAi(OPENAI_API_KEY, lastMessage.media_url);
-      if (transcription) {
-        messageText = transcription;
-        // Salva a transcrição no banco para evitar re-transcrever e para histórico visual
-        console.log(`[AI-AGENT] Saving transcription to DB for ${waId}: ${transcription.slice(0, 50)}...`);
-        await supabase.from('crm_messages').update({ content: transcription }).eq('id', lastMessage.id);
-      } else {
-        console.warn(`[AI-AGENT] Transcription failed for main message of ${waId}`);
-        messageText = lastMessage?.content || "";
-      }
-    } else {
-      messageText = lastMessage?.content || "";
-    }
+    messageText = await resolveInboundMessageText(supabase, OPENAI_API_KEY, lastMessage);
   }
 
   // 1.1 Se chegamos aqui e ainda não temos messageText mas o sourceMessageId foi passado, tentamos buscar especificamente essa mensagem
-  if ((!messageText || messageText === "[Mensagem de Áudio]") && sourceMessageId) {
+  if (isPlaceholderContent(messageText) && sourceMessageId) {
     const { data: sourceMsg } = await supabase
       .from('crm_messages')
-      .select('content, message_type, media_url')
+      .select('id, content, message_type, media_url')
       .eq('meta_message_id', sourceMessageId)
       .maybeSingle();
-    
-    if (sourceMsg?.message_type === 'audio' && sourceMsg.media_url) {
-       console.log(`[AI-AGENT] Transcribing specifically requested source audio message for ${waId}... URL: ${sourceMsg.media_url}`);
-       const transcription = await transcribeAudioForAi(OPENAI_API_KEY, sourceMsg.media_url);
-       if (transcription) {
-         console.log(`[AI-AGENT] Transcription success for sourceMessageId ${sourceMessageId}: ${transcription.slice(0, 50)}...`);
-         messageText = transcription;
-         await supabase.from('crm_messages').update({ content: transcription }).eq('meta_message_id', sourceMessageId);
-       } else {
-         console.warn(`[AI-AGENT] Transcription FAILED for sourceMessageId ${sourceMessageId}`);
-       }
-    } else if (sourceMsg?.content) {
-      messageText = sourceMsg.content;
-    }
+    messageText = await resolveInboundMessageText(supabase, OPENAI_API_KEY, sourceMsg);
   }
 
   // 2. Obter contexto da conversa (histórico)
   const { data: recentMessages } = await supabase
     .from('crm_messages')
-    .select('content, direction, message_type, media_url')
+    .select('id, content, direction, message_type, media_url')
     .eq('contact_id', contact.id)
     .order('created_at', { ascending: false })
-    .limit(15);
+    .limit(60);
 
   const processedRecentMessages = [];
   for (const msg of recentMessages || []) {
-    if (msg.direction === 'inbound' && msg.message_type === 'audio' && msg.media_url && (!msg.content || msg.content === '[Mensagem de Áudio]' || msg.content === '' || msg.content === '[audio]')) {
+    if (msg.direction === 'inbound' && msg.message_type === 'audio' && msg.media_url && isPlaceholderContent(msg.content)) {
       console.log(`[AI-AGENT-DEBUG] Transcribing history audio for ${waId}. Current content: "${msg.content}"`);
-      const transcription = await transcribeAudioForAi(OPENAI_API_KEY, msg.media_url);
+      const transcription = await _transcribeAudioForAi(OPENAI_API_KEY, msg.media_url);
       if (transcription) {
         msg.content = transcription;
         // Persistir no banco para não repetir
