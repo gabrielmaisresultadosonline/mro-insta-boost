@@ -7801,7 +7801,7 @@ const CRM = () => {
                         variant="default"
                         size="sm"
                         className="h-10 rounded-xl text-xs font-bold whitespace-nowrap"
-                        onClick={handleSyncPendingGoogleContacts}
+                        onClick={() => handleSyncPendingGoogleContacts()}
                       >
                         <RefreshCcw className="w-3.5 h-3.5 mr-2" />
                         Sincronizar
