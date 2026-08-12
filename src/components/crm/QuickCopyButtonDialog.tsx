@@ -46,7 +46,7 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
 
   const validate = (): string | null => {
     if (!text.trim()) return 'Escreva a mensagem que vai acompanhar o botão.';
-    if (!buttonLabel.trim()) return 'Dê um nome ao botão.';
+    if (kind !== 'copy' && !buttonLabel.trim()) return 'Dê um nome ao botão.';
     if (kind === 'copy' && !copyValue.trim()) return 'Informe o conteúdo que o cliente vai copiar (PIX, código, texto...).';
     if (kind === 'link' && !/^https?:\/\//i.test(copyValue.trim())) return 'Informe uma URL válida começando com https://';
     return null;
@@ -173,7 +173,7 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
   };
 
   const kinds: { id: QuickButtonKind; label: string; hint: string; icon: React.ReactNode }[] = [
-    { id: 'copy', label: 'Copiar', hint: 'PIX, código, texto', icon: <Copy className="w-4 h-4" /> },
+    { id: 'copy', label: 'PIX copia e cola', hint: 'código puro', icon: <Copy className="w-4 h-4" /> },
     { id: 'link', label: 'Link', hint: 'Abrir site', icon: <LinkIcon className="w-4 h-4" /> },
     { id: 'reply', label: 'Resposta', hint: 'Botão de resposta', icon: <MessageSquare className="w-4 h-4" /> },
   ];
