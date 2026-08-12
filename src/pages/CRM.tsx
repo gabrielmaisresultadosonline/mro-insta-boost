@@ -10036,15 +10036,6 @@ const CRM = () => {
         onSave={handleEditedImageSave}
       />
 
-      {/* Mensagem com botão: copiar PIX/código, link ou botão de resposta */}
-      <QuickCopyButtonDialog
-        open={quickButtonOpen}
-        onOpenChange={setQuickButtonOpen}
-        contact={selectedContact}
-        metaSettings={metaSettings}
-        onFlowSaved={() => fetchData(false)}
-      />
-
       <Dialog open={expiredWindowDialog} onOpenChange={setExpiredWindowDialog}>
         <DialogContent className="max-w-lg rounded-2xl border border-amber-500/30 bg-card">
           <DialogHeader>
