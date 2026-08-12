@@ -2305,16 +2305,18 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                           onChange={(e) => updateNodeData(node.id, { copyValue: e.target.value })}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Texto do botão (máx. 20)</Label>
-                        <Input
-                          maxLength={20}
-                          value={(nData.buttonLabel as string) || ''}
-                          placeholder="Copiar PIX"
-                          className="text-xs h-8"
-                          onChange={(e) => updateNodeData(node.id, { buttonLabel: e.target.value })}
-                        />
-                      </div>
+                      {(nData.kind as string) === 'link' && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Texto do botão (máx. 20)</Label>
+                          <Input
+                            maxLength={20}
+                            value={(nData.buttonLabel as string) || ''}
+                            placeholder="Abrir link"
+                            className="text-xs h-8"
+                            onChange={(e) => updateNodeData(node.id, { buttonLabel: e.target.value })}
+                          />
+                        </div>
+                      )}
                       {(nData.kind as string) !== 'link' && (
                         <label className="flex items-start gap-2 text-[10px] text-muted-foreground cursor-pointer">
                           <input
