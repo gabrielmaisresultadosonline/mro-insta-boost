@@ -128,7 +128,6 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
 import FirstTutorialVideo from "@/components/sales/FirstTutorialVideo";
-import QuickCopyButtonDialog from "@/components/crm/QuickCopyButtonDialog";
 
 const getCanonicalConversationPhone = (rawPhone: unknown): string => {
   const digits = String(rawPhone ?? '').replace(/\D/g, '');
@@ -636,7 +635,6 @@ const CRM = () => {
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
   // Diálogo rápido "mensagem com botão" (copiar PIX / link / resposta) dentro da conversa.
-  const [quickButtonOpen, setQuickButtonOpen] = useState(false);
   const [showTemplates, setShowTemplates] = useState(true);
   const [showFlows, setShowFlows] = useState(true);
   const [isContactInfoOpen, setIsContactInfoOpen] = useState(false);
@@ -4200,6 +4198,9 @@ const CRM = () => {
     fetchScheduledMessages(contact.id);
     // Clear unread count for this contact
     setInboundTimestampsByContact(prev => ({ ...prev, [contact.id]: [] }));
+    const readAt = new Date().toISOString();
+    setContacts(prev => prev.map(c => (c.id === contact.id ? { ...c, last_read_at: readAt } : c)));
+    supabase.from('crm_contacts').update({ last_read_at: readAt }).eq('id', contact.id).then(() => {});
   };
 
   // Kanban quick-preview popup state
@@ -5498,18 +5499,28 @@ const CRM = () => {
                               <div className="flex items-center w-full gap-2 min-w-0">
                                 <div className="flex flex-1 min-w-0 items-center gap-2 overflow-hidden">
                                   {(() => {
+                                     // Se o contato já foi aberto alguma vez, usamos `last_read_at`.
+                                     // Só quando nunca houve leitura caímos no baseline da sessão,
+                                     // assim as mensagens novas continuam marcadas após recarregar.
                                      const lastReadT = contact.last_read_at ? new Date(contact.last_read_at).getTime() : 0;
-                                     const baselineT = Math.max(lastReadT, unreadBaselineRef.current);
+                                     const baselineT = lastReadT > 0 ? lastReadT : unreadBaselineRef.current;
                                      const stamps = inboundTimestampsByContact[contact.id] || [];
                                      const unread = stamps.filter(ts => new Date(ts).getTime() > baselineT).length;
-                                    if (unread <= 0) return null;
+                                     // Fallback: se ainda não carregamos os timestamps, mas o contato
+                                     // tem interação mais recente que a leitura, mostramos o aviso.
+                                     const lastInboundRaw = contact.last_message_received_at || contact.last_interaction;
+                                     const lastInboundT = lastInboundRaw ? new Date(lastInboundRaw).getTime() : 0;
+                                     const hasPending = unread > 0 || (stamps.length === 0 && lastInboundT > baselineT);
+                                     if (!hasPending) return null;
                                     return (
                                       <div
                                         className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#EAB308] shadow-[0_0_10px_rgba(234,179,8,0.45)] animate-in fade-in zoom-in duration-300 shrink-0"
-                                        title={`${unread} mensagem${unread > 1 ? 's' : ''} não lida${unread > 1 ? 's' : ''}`}
+                                        title={unread > 0
+                                          ? `${unread} mensagem${unread > 1 ? 's' : ''} não lida${unread > 1 ? 's' : ''}`
+                                          : 'Mensagem não lida'}
                                       >
                                         <span className="text-[10px] font-black text-black tabular-nums leading-none">
-                                          {unread > 99 ? '99+' : unread}
+                                          {unread > 99 ? '99+' : unread > 0 ? unread : '!'}
                                         </span>
                                       </div>
                                     );
@@ -6558,16 +6569,6 @@ const CRM = () => {
                                            className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full hidden sm:flex shrink-0"
                                          >
                                            <ImageIcon className="w-5 h-5" />
-                                         </Button>
-                                         <Button
-                                           variant="ghost"
-                                           size="icon"
-                                           title="Enviar mensagem com botão (copiar PIX, link ou resposta)"
-                                           aria-label="Enviar mensagem com botão"
-                                           onClick={() => setQuickButtonOpen(true)}
-                                           className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full shrink-0"
-                                         >
-                                           <Copy className="w-5 h-5" />
                                          </Button>
                                        </div>
                                       <div className="flex-1 relative flex items-center min-w-0">
@@ -10044,15 +10045,6 @@ const CRM = () => {
         imageUrl={pastedImagePreview}
         onCancel={() => setImageEditorOpen(false)}
         onSave={handleEditedImageSave}
-      />
-
-      {/* Mensagem com botão: copiar PIX/código, link ou botão de resposta */}
-      <QuickCopyButtonDialog
-        open={quickButtonOpen}
-        onOpenChange={setQuickButtonOpen}
-        contact={selectedContact}
-        metaSettings={metaSettings}
-        onFlowSaved={() => fetchData(false)}
       />
 
       <Dialog open={expiredWindowDialog} onOpenChange={setExpiredWindowDialog}>
