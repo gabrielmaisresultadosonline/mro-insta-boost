@@ -4198,6 +4198,9 @@ const CRM = () => {
     fetchScheduledMessages(contact.id);
     // Clear unread count for this contact
     setInboundTimestampsByContact(prev => ({ ...prev, [contact.id]: [] }));
+    const readAt = new Date().toISOString();
+    setContacts(prev => prev.map(c => (c.id === contact.id ? { ...c, last_read_at: readAt } : c)));
+    supabase.from('crm_contacts').update({ last_read_at: readAt }).eq('id', contact.id).then(() => {});
   };
 
   // Kanban quick-preview popup state
