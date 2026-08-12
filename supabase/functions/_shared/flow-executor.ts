@@ -448,34 +448,18 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
 
       console.log(`[EXECUTOR] PIX enviado com sucesso para ${waId}`);
     } else if (node.type === 'copyText') {
-      // Texto + botão de "copiar" (PIX, código, mensagem) ou link.
-      // O WhatsApp não possui botão nativo de cópia em mensagens livres, então
-      // usamos um botão cta_url apontando para a página pública /copiar, que
-      // copia o conteúdo para a área de transferência em qualquer aparelho.
+      // Texto + PIX copia e cola (mensagem pura, nativa do WhatsApp) OU botão de link (cta_url).
       const bodyText = (node.data?.text || '').toString().trim() || 'Toque no botão abaixo 👇';
       const kind = (node.data?.kind || 'copy').toString();
       const rawValue = (node.data?.copyValue || '').toString().trim();
       const buttonLabel = ((node.data?.buttonLabel || 'Copiar').toString()).substring(0, 20);
-      const sendRawText = node.data?.sendRawText !== false;
 
       const { data: settings } = await supabase.from('crm_settings')
         .select('meta_phone_number_id, meta_access_token')
         .eq('user_id', flow.user_id)
         .maybeSingle();
 
-      const url = kind === 'link' ? rawValue : buildCopyUrl(rawValue, buttonLabel);
-
-      if (!url || !/^https?:\/\//i.test(url)) {
-        console.error(`[EXECUTOR] copyText node ${node.id} sem conteúdo/URL válida. Enviando apenas o texto.`);
-        await supabase.functions.invoke('meta-whatsapp-crm', {
-          headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
-          body: {
-            action: 'sendMessage', to: waId, text: bodyText, contactId, nodeId: node.id,
-            meta_phone_number_id: settings?.meta_phone_number_id,
-            meta_access_token: settings?.meta_access_token
-          }
-        });
-      } else {
+      if (kind === 'link' && /^https?:\/\//i.test(rawValue)) {
         await supabase.functions.invoke('meta-whatsapp-crm', {
           headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
           body: {
@@ -485,13 +469,22 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
             interactive: {
               type: 'cta_url',
               body: { text: bodyText },
-              action: { name: 'cta_url', parameters: { display_text: buttonLabel, url } }
+              action: { name: 'cta_url', parameters: { display_text: buttonLabel, url: rawValue } }
             }
           }
         });
-
-        // No celular o cliente também consegue copiar segurando a mensagem.
-        if (kind !== 'link' && sendRawText && rawValue) {
+      } else {
+        // PIX / código copia e cola: mensagem de texto + o código puro em bolha separada,
+        // que o WhatsApp já permite copiar nativamente (toque e segure / clique).
+        await supabase.functions.invoke('meta-whatsapp-crm', {
+          headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+          body: {
+            action: 'sendMessage', to: waId, text: bodyText, contactId, nodeId: node.id,
+            meta_phone_number_id: settings?.meta_phone_number_id,
+            meta_access_token: settings?.meta_access_token
+          }
+        });
+        if (rawValue) {
           await wait(600);
           await supabase.functions.invoke('meta-whatsapp-crm', {
             headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
