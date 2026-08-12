@@ -2318,15 +2318,9 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                         </div>
                       )}
                       {(nData.kind as string) !== 'link' && (
-                        <label className="flex items-start gap-2 text-[10px] text-muted-foreground cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="mt-0.5"
-                            checked={nData.sendRawText !== false}
-                            onChange={(e) => updateNodeData(node.id, { sendRawText: e.target.checked })}
-                          />
-                          Enviar também o conteúdo em mensagem separada
-                        </label>
+                        <p className="text-[10px] text-muted-foreground leading-tight">
+                          O código vai em mensagem separada (copia e cola), copiável nativamente no WhatsApp.
+                        </p>
                       )}
                     </>
                   )}
