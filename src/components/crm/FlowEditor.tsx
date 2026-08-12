@@ -100,6 +100,30 @@ const MessageNode = ({ data }: any) => (
   </Card>
 );
 
+// Bloco: texto + botão de copiar (PIX, código, mensagem) / link / resposta
+const CopyTextNode = ({ data }: any) => (
+  <Card className="min-w-[210px] border-lime-600 shadow-md">
+    <Handle type="target" position={Position.Top} />
+    <CardHeader className="p-3 bg-lime-600 text-white rounded-t-lg">
+      <CardTitle className="text-xs font-bold flex items-center gap-2">
+        <Zap className="w-3 h-3" /> Texto + Botão Copiar
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="p-3 space-y-1">
+      <p className="text-[10px] text-muted-foreground line-clamp-3 whitespace-pre-wrap break-words">
+        {data.text || 'Sem texto...'}
+      </p>
+      <p className="text-[9px] font-mono text-lime-700 line-clamp-1 break-all">
+        {data.copyValue || 'conteúdo para copiar...'}
+      </p>
+      <div className="text-[10px] text-center font-semibold text-sky-600 border-t pt-1">
+        {data.buttonLabel || 'Copiar'}
+      </div>
+    </CardContent>
+    <Handle type="source" position={Position.Bottom} />
+  </Card>
+);
+
 const AudioNode = ({ data }: any) => (
   <Card className="min-w-[200px] border-purple-500 shadow-md">
     <Handle type="target" position={Position.Top} />
@@ -431,6 +455,7 @@ const nodeTypes = {
   jump: JumpNode,
   aiAgent: AIAgentNode,
   pix: PixNode,
+  copyText: CopyTextNode,
   mediaCarousel: MediaCarouselNode,
 };
 
@@ -669,6 +694,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
       case 'jump': data = { targetFlowId: '', targetFlowName: '' }; break;
       case 'aiAgent': data = { prompt: '', labelOnHumanTransfer: 'Atenção: Humano Necessário' }; break;
       case 'pix': data = { pixKey: '', amount: '47.00', description: 'Pagamento via PIX' }; break;
+      case 'copyText': data = { text: 'Segue meu PIX abaixo 👇', kind: 'copy', copyValue: '', buttonLabel: 'Copiar PIX', sendRawText: true }; break;
       case 'mediaCarousel': data = {
         headerText: '',
         cards: [
@@ -855,6 +881,17 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                   <span className="text-[9px] text-cyan-600 font-medium uppercase tracking-wider">Copia e Cola + QR Code</span>
                 </div>
               </Button>
+              <Button
+                variant="outline"
+                className="justify-start gap-2 border-lime-600 bg-lime-50 hover:bg-lime-100 group transition-all h-auto py-2.5 shadow-sm"
+                onClick={() => addNode('copyText')}
+              >
+                <Zap className="w-5 h-5 text-lime-600 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-lime-800 font-bold text-xs">Texto + Botão Copiar</span>
+                  <span className="text-[9px] text-lime-700 font-medium uppercase tracking-wider">PIX, código ou mensagem</span>
+                </div>
+              </Button>
               <Button variant="outline" className="justify-start gap-2 border-slate-700/20 hover:bg-slate-700/10" onClick={() => addNode('crmAction')}>
                 <Zap className="w-4 h-4 text-slate-700" /> Ação CRM
               </Button>
@@ -884,7 +921,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                 </Button>
               </div>
 
-              {['question', 'pix', 'mediaCarousel'].includes(selectedNode.type as string) && (
+              {['question', 'pix', 'mediaCarousel', 'copyText'].includes(selectedNode.type as string) && (
                 <Button
                   type="button"
                   size="sm"
@@ -1294,6 +1331,67 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                         Ao chegar neste nó, o sistema gerará automaticamente um código Copia e Cola e o texto de instrução para o cliente.
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {selectedNode.type === 'copyText' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Mensagem</Label>
+                      <Textarea
+                        rows={3}
+                        value={(selectedNode.data.text as string) || ''}
+                        onChange={(e) => updateNodeData(selectedNode.id, { text: e.target.value })}
+                        placeholder="Ex.: Segue meu PIX abaixo 👇"
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Tipo de botão</Label>
+                      <Select
+                        value={(selectedNode.data.kind as string) || 'copy'}
+                        onValueChange={(v) => updateNodeData(selectedNode.id, { kind: v })}
+                      >
+                        <SelectTrigger className="text-xs h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="copy">Copiar (PIX, código, texto)</SelectItem>
+                          <SelectItem value="link">Abrir link</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">
+                        {(selectedNode.data.kind as string) === 'link' ? 'URL do botão' : 'Conteúdo que o cliente vai copiar'}
+                      </Label>
+                      <Textarea
+                        rows={3}
+                        value={(selectedNode.data.copyValue as string) || ''}
+                        onChange={(e) => updateNodeData(selectedNode.id, { copyValue: e.target.value })}
+                        placeholder={(selectedNode.data.kind as string) === 'link' ? 'https://...' : 'Cole aqui a chave PIX ou o código copia e cola'}
+                        className="text-xs font-mono"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Texto do botão (máx. 20)</Label>
+                      <Input
+                        maxLength={20}
+                        value={(selectedNode.data.buttonLabel as string) || ''}
+                        onChange={(e) => updateNodeData(selectedNode.id, { buttonLabel: e.target.value })}
+                        placeholder="Copiar PIX"
+                        className="text-xs h-8"
+                      />
+                    </div>
+                    {(selectedNode.data.kind as string) !== 'link' && (
+                      <label className="flex items-start gap-2 text-[10px] text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5"
+                          checked={selectedNode.data.sendRawText !== false}
+                          onChange={(e) => updateNodeData(selectedNode.id, { sendRawText: e.target.checked })}
+                        />
+                        Enviar também o conteúdo em mensagem separada (copiar segurando no WhatsApp)
+                      </label>
+                    )}
                   </div>
                 )}
 
@@ -1768,7 +1866,7 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
             edgeTypes={edgeTypes}
             onNodeClick={(_, node) => setSelectedNode(node)}
             onNodeDoubleClick={(_, node) => {
-              if (['question', 'pix', 'mediaCarousel'].includes(node.type as string)) {
+              if (['question', 'pix', 'mediaCarousel', 'copyText'].includes(node.type as string)) {
                 setSelectedNode(node);
                 setPreviewNodeId(node.id);
                 setPreviewDialogOpen(true);
@@ -2172,6 +2270,67 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                           onChange={(e) => updateNodeData(node.id, { description: e.target.value })}
                         />
                       </div>
+                    </>
+                  )}
+
+                  {nType === 'copyText' && (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Mensagem</Label>
+                        <Textarea
+                          rows={3}
+                          value={(nData.text as string) || ''}
+                          placeholder="Ex.: Segue meu PIX abaixo 👇"
+                          className="text-xs"
+                          onChange={(e) => updateNodeData(node.id, { text: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Tipo de botão</Label>
+                        <Select
+                          value={(nData.kind as string) || 'copy'}
+                          onValueChange={(v) => updateNodeData(node.id, { kind: v })}
+                        >
+                          <SelectTrigger className="text-xs h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="copy">Copiar (PIX, código, texto)</SelectItem>
+                            <SelectItem value="link">Abrir link</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">
+                          {(nData.kind as string) === 'link' ? 'URL do botão' : 'Conteúdo para copiar'}
+                        </Label>
+                        <Textarea
+                          rows={3}
+                          value={(nData.copyValue as string) || ''}
+                          placeholder={(nData.kind as string) === 'link' ? 'https://...' : 'Chave PIX ou código copia e cola'}
+                          className="text-xs font-mono"
+                          onChange={(e) => updateNodeData(node.id, { copyValue: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Texto do botão (máx. 20)</Label>
+                        <Input
+                          maxLength={20}
+                          value={(nData.buttonLabel as string) || ''}
+                          placeholder="Copiar PIX"
+                          className="text-xs h-8"
+                          onChange={(e) => updateNodeData(node.id, { buttonLabel: e.target.value })}
+                        />
+                      </div>
+                      {(nData.kind as string) !== 'link' && (
+                        <label className="flex items-start gap-2 text-[10px] text-muted-foreground cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5"
+                            checked={nData.sendRawText !== false}
+                            onChange={(e) => updateNodeData(node.id, { sendRawText: e.target.checked })}
+                          />
+                          Enviar também o conteúdo em mensagem separada
+                        </label>
+                      )}
                     </>
                   )}
 
