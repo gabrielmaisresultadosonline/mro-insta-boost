@@ -128,7 +128,6 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
 import FirstTutorialVideo from "@/components/sales/FirstTutorialVideo";
-import QuickCopyButtonDialog from "@/components/crm/QuickCopyButtonDialog";
 
 const getCanonicalConversationPhone = (rawPhone: unknown): string => {
   const digits = String(rawPhone ?? '').replace(/\D/g, '');
@@ -636,7 +635,6 @@ const CRM = () => {
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
   // Diálogo rápido "mensagem com botão" (copiar PIX / link / resposta) dentro da conversa.
-  const [quickButtonOpen, setQuickButtonOpen] = useState(false);
   const [showTemplates, setShowTemplates] = useState(true);
   const [showFlows, setShowFlows] = useState(true);
   const [isContactInfoOpen, setIsContactInfoOpen] = useState(false);
