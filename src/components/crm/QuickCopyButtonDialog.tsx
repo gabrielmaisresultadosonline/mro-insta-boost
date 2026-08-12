@@ -122,6 +122,7 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
           throw new Error('Abra uma conversa para enviar agora.');
         }
         const authHeader = `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`;
+        const interactive = buildInteractive();
 
         const { data, error } = await supabase.functions.invoke('meta-whatsapp-crm', {
           headers: { Authorization: authHeader },
@@ -129,7 +130,7 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
             action: 'sendMessage',
             to: contact.wa_id,
             contactId: contact.id,
-            interactive: buildInteractive(),
+            ...(interactive ? { interactive } : { text: text.trim() }),
             meta_phone_number_id: metaSettings?.meta_phone_number_id,
             meta_access_token: metaSettings?.meta_access_token,
           },
@@ -137,9 +138,9 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
         if (error) throw error;
         if (data && data.success === false) throw new Error(data.error || 'Falha ao enviar a mensagem.');
 
-        // Envia o conteúdo puro em uma bolha separada: no celular o cliente
-        // consegue segurar e copiar direto pelo WhatsApp.
-        if (kind === 'copy' && sendRawText) {
+        // PIX/código copia e cola: bolha separada com o conteúdo puro — o WhatsApp
+        // já oferece a cópia nativa ao tocar e segurar a mensagem.
+        if (kind === 'copy') {
           await supabase.functions.invoke('meta-whatsapp-crm', {
             headers: { Authorization: authHeader },
             body: {
