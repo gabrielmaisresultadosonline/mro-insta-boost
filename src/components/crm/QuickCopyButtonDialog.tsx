@@ -8,8 +8,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Copy, Link as LinkIcon, MessageSquare, Send, Save, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { buildCopyUrl } from '@/lib/copyLink';
-
 export type QuickButtonKind = 'copy' | 'link' | 'reply';
 
 export interface QuickCopyButtonDialogProps {
@@ -35,10 +33,9 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [kind, setKind] = useState<QuickButtonKind>('copy');
-  const [text, setText] = useState('Segue meu PIX abaixo 👇');
+  const [text, setText] = useState('Segue meu PIX copia e cola abaixo 👇');
   const [copyValue, setCopyValue] = useState('');
   const [buttonLabel, setButtonLabel] = useState('Copiar PIX');
-  const [sendRawText, setSendRawText] = useState(true);
   const [alsoSaveFlow, setAlsoSaveFlow] = useState(false);
   const [flowName, setFlowName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,7 +52,11 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
     return null;
   };
 
-  /** Monta o payload `interactive` do WhatsApp de acordo com o tipo escolhido. */
+  /**
+   * Monta o payload `interactive` do WhatsApp.
+   * Retorna null para o tipo "copy": nesse caso enviamos o código puro como
+   * texto, que o WhatsApp já permite copiar nativamente.
+   */
   const buildInteractive = () => {
     const displayText = buttonLabel.trim().slice(0, 20);
     if (kind === 'reply') {
@@ -67,12 +68,14 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
         },
       };
     }
-    const url = kind === 'link' ? copyValue.trim() : buildCopyUrl(copyValue.trim(), buttonLabel.trim());
-    return {
-      type: 'cta_url',
-      body: { text: text.trim() },
-      action: { name: 'cta_url', parameters: { display_text: displayText, url } },
-    };
+    if (kind === 'link') {
+      return {
+        type: 'cta_url',
+        body: { text: text.trim() },
+        action: { name: 'cta_url', parameters: { display_text: displayText, url: copyValue.trim() } },
+      };
+    }
+    return null;
   };
 
   const saveAsFlow = async () => {
@@ -95,7 +98,6 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
               kind,
               copyValue: copyValue.trim(),
               buttonLabel: buttonLabel.trim(),
-              sendRawText,
             },
           },
         ],
