@@ -14,7 +14,6 @@ import PortfolioVerification from "./pages/PortfolioVerification";
  import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ConverterVideo from "./pages/ConverterVideo";
-import CopiarTexto from "./pages/CopiarTexto";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +37,6 @@ const App = () => (
             <Route path="/br/politicadeprivacidade" element={<PrivacyPolicy />} />
             <Route path="/br/termosdoservico" element={<TermsOfService />} />
           <Route path="/converter-video" element={<ConverterVideo />} />
-          <Route path="/copiar" element={<CopiarTexto />} />
            <Route path="*" element={<Sales />} />
         </Routes>
       </BrowserRouter>
