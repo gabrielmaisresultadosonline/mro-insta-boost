@@ -128,6 +128,7 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
 import FirstTutorialVideo from "@/components/sales/FirstTutorialVideo";
+import QuickCopyButtonDialog from "@/components/crm/QuickCopyButtonDialog";
 
 const getCanonicalConversationPhone = (rawPhone: unknown): string => {
   const digits = String(rawPhone ?? '').replace(/\D/g, '');
@@ -634,6 +635,8 @@ const CRM = () => {
    const [pastedImage, setPastedImage] = useState<File | null>(null);
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
+  // Diálogo rápido "mensagem com botão" (copiar PIX / link / resposta) dentro da conversa.
+  const [quickButtonOpen, setQuickButtonOpen] = useState(false);
   const [showTemplates, setShowTemplates] = useState(true);
   const [showFlows, setShowFlows] = useState(true);
   const [isContactInfoOpen, setIsContactInfoOpen] = useState(false);
@@ -6556,6 +6559,16 @@ const CRM = () => {
                                          >
                                            <ImageIcon className="w-5 h-5" />
                                          </Button>
+                                         <Button
+                                           variant="ghost"
+                                           size="icon"
+                                           title="Enviar mensagem com botão (copiar PIX, link ou resposta)"
+                                           aria-label="Enviar mensagem com botão"
+                                           onClick={() => setQuickButtonOpen(true)}
+                                           className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full shrink-0"
+                                         >
+                                           <Copy className="w-5 h-5" />
+                                         </Button>
                                        </div>
                                       <div className="flex-1 relative flex items-center min-w-0">
                                         <Textarea 
@@ -10031,6 +10044,15 @@ const CRM = () => {
         imageUrl={pastedImagePreview}
         onCancel={() => setImageEditorOpen(false)}
         onSave={handleEditedImageSave}
+      />
+
+      {/* Mensagem com botão: copiar PIX/código, link ou botão de resposta */}
+      <QuickCopyButtonDialog
+        open={quickButtonOpen}
+        onOpenChange={setQuickButtonOpen}
+        contact={selectedContact}
+        metaSettings={metaSettings}
+        onFlowSaved={() => fetchData(false)}
       />
 
       <Dialog open={expiredWindowDialog} onOpenChange={setExpiredWindowDialog}>

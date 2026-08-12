@@ -2,6 +2,26 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0"
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Página pública que copia o conteúdo para a área de transferência do cliente. */
+const COPY_PAGE_BASE = Deno.env.get('COPY_PAGE_BASE') || 'https://mro-insta-boost.lovable.app/copiar';
+
+/** Codifica em base64url (compatível com acentos/emojis) para uso na URL. */
+function encodeCopyPayload(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  bytes.forEach((b) => { binary += String.fromCharCode(b); });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** Monta a URL do botão de cópia enviado no WhatsApp. */
+function buildCopyUrl(value: string, label?: string): string {
+  if (!value) return '';
+  const params = new URLSearchParams();
+  params.set('c', encodeCopyPayload(value));
+  if (label) params.set('t', label.slice(0, 60));
+  return `${COPY_PAGE_BASE}?${params.toString()}`;
+}
+
 export async function executeVisualNode(supabase: any, flow: any, node: any, contactId: string, waId: string) {
   console.log(`[EXECUTOR] Executing node ${node.id} (${node.type}) for contact ${contactId}`);
 
@@ -447,6 +467,64 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       });
 
       console.log(`[EXECUTOR] PIX enviado com sucesso para ${waId}`);
+    } else if (node.type === 'copyText') {
+      // Texto + botão de "copiar" (PIX, código, mensagem) ou link.
+      // O WhatsApp não possui botão nativo de cópia em mensagens livres, então
+      // usamos um botão cta_url apontando para a página pública /copiar, que
+      // copia o conteúdo para a área de transferência em qualquer aparelho.
+      const bodyText = (node.data?.text || '').toString().trim() || 'Toque no botão abaixo 👇';
+      const kind = (node.data?.kind || 'copy').toString();
+      const rawValue = (node.data?.copyValue || '').toString().trim();
+      const buttonLabel = ((node.data?.buttonLabel || 'Copiar').toString()).substring(0, 20);
+      const sendRawText = node.data?.sendRawText !== false;
+
+      const { data: settings } = await supabase.from('crm_settings')
+        .select('meta_phone_number_id, meta_access_token')
+        .eq('user_id', flow.user_id)
+        .maybeSingle();
+
+      const url = kind === 'link' ? rawValue : buildCopyUrl(rawValue, buttonLabel);
+
+      if (!url || !/^https?:\/\//i.test(url)) {
+        console.error(`[EXECUTOR] copyText node ${node.id} sem conteúdo/URL válida. Enviando apenas o texto.`);
+        await supabase.functions.invoke('meta-whatsapp-crm', {
+          headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+          body: {
+            action: 'sendMessage', to: waId, text: bodyText, contactId, nodeId: node.id,
+            meta_phone_number_id: settings?.meta_phone_number_id,
+            meta_access_token: settings?.meta_access_token
+          }
+        });
+      } else {
+        await supabase.functions.invoke('meta-whatsapp-crm', {
+          headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+          body: {
+            action: 'sendMessage', to: waId, contactId, nodeId: node.id,
+            meta_phone_number_id: settings?.meta_phone_number_id,
+            meta_access_token: settings?.meta_access_token,
+            interactive: {
+              type: 'cta_url',
+              body: { text: bodyText },
+              action: { name: 'cta_url', parameters: { display_text: buttonLabel, url } }
+            }
+          }
+        });
+
+        // No celular o cliente também consegue copiar segurando a mensagem.
+        if (kind !== 'link' && sendRawText && rawValue) {
+          await wait(600);
+          await supabase.functions.invoke('meta-whatsapp-crm', {
+            headers: { 'Authorization': `Bearer INTERNAL_BYPASS` },
+            body: {
+              action: 'sendMessage', to: waId, text: rawValue, contactId,
+              meta_phone_number_id: settings?.meta_phone_number_id,
+              meta_access_token: settings?.meta_access_token
+            }
+          });
+        }
+      }
+
+      console.log(`[EXECUTOR] copyText enviado para ${waId} (kind=${kind})`);
     } else if (node.type === 'mediaCarousel') {
       const cards = Array.isArray(node.data?.cards) ? node.data.cards : [];
       const headerText = (node.data?.headerText || '').toString().trim();

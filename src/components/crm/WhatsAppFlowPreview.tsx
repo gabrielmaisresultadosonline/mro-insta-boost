@@ -77,6 +77,33 @@ function Timestamp() {
 }
 
 function renderMessage(nodeType: string, data: any) {
+  if (nodeType === 'copyText') {
+    const label = data?.buttonLabel || 'Copiar';
+    const isLink = data?.kind === 'link';
+    return (
+      <>
+        <Bubble>
+          <div className="px-2.5 pt-1.5 whitespace-pre-wrap break-words">
+            {data?.text || <span className="text-slate-400 italic">Sem texto...</span>}
+          </div>
+          <Timestamp />
+          <div className="border-t border-slate-200 px-2 py-1.5 text-center text-sky-600 font-medium text-[11px] flex items-center justify-center gap-1">
+            {isLink ? <LinkIcon className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+            {label}
+          </div>
+        </Bubble>
+        {!isLink && data?.sendRawText !== false && (
+          <Bubble tail={false}>
+            <div className="px-2.5 py-1.5 font-mono text-[9px] break-all bg-slate-50 rounded">
+              {data?.copyValue || 'conteúdo para copiar...'}
+            </div>
+            <Timestamp />
+          </Bubble>
+        )}
+      </>
+    );
+  }
+
   if (nodeType === 'question') {
     const buttons: any[] = Array.isArray(data?.buttons) ? data.buttons : [];
     const hasMedia = !!(data?.imageUrl || data?.videoUrl);
