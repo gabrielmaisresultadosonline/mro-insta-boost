@@ -1371,26 +1371,21 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                         className="text-xs font-mono"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs">Texto do botão (máx. 20)</Label>
-                      <Input
-                        maxLength={20}
-                        value={(selectedNode.data.buttonLabel as string) || ''}
-                        onChange={(e) => updateNodeData(selectedNode.id, { buttonLabel: e.target.value })}
-                        placeholder="Copiar PIX"
-                        className="text-xs h-8"
-                      />
-                    </div>
-                    {(selectedNode.data.kind as string) !== 'link' && (
-                      <label className="flex items-start gap-2 text-[10px] text-muted-foreground cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="mt-0.5"
-                          checked={selectedNode.data.sendRawText !== false}
-                          onChange={(e) => updateNodeData(selectedNode.id, { sendRawText: e.target.checked })}
+                    {(selectedNode.data.kind as string) === 'link' ? (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Texto do botão (máx. 20)</Label>
+                        <Input
+                          maxLength={20}
+                          value={(selectedNode.data.buttonLabel as string) || ''}
+                          onChange={(e) => updateNodeData(selectedNode.id, { buttonLabel: e.target.value })}
+                          placeholder="Abrir link"
+                          className="text-xs h-8"
                         />
-                        Enviar também o conteúdo em mensagem separada (copiar segurando no WhatsApp)
-                      </label>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        O código é enviado em mensagem separada (copia e cola). O cliente copia direto pelo WhatsApp, sem página externa.
+                      </p>
                     )}
                   </div>
                 )}
