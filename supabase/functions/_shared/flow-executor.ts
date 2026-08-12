@@ -2,26 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0"
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Página pública que copia o conteúdo para a área de transferência do cliente. */
-const COPY_PAGE_BASE = Deno.env.get('COPY_PAGE_BASE') || 'https://mro-insta-boost.lovable.app/copiar';
-
-/** Codifica em base64url (compatível com acentos/emojis) para uso na URL. */
-function encodeCopyPayload(value: string): string {
-  const bytes = new TextEncoder().encode(value);
-  let binary = '';
-  bytes.forEach((b) => { binary += String.fromCharCode(b); });
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-/** Monta a URL do botão de cópia enviado no WhatsApp. */
-function buildCopyUrl(value: string, label?: string): string {
-  if (!value) return '';
-  const params = new URLSearchParams();
-  params.set('c', encodeCopyPayload(value));
-  if (label) params.set('t', label.slice(0, 60));
-  return `${COPY_PAGE_BASE}?${params.toString()}`;
-}
-
 export async function executeVisualNode(supabase: any, flow: any, node: any, contactId: string, waId: string) {
   console.log(`[EXECUTOR] Executing node ${node.id} (${node.type}) for contact ${contactId}`);
 
