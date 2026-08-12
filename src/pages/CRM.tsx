@@ -6559,16 +6559,6 @@ const CRM = () => {
                                          >
                                            <ImageIcon className="w-5 h-5" />
                                          </Button>
-                                         <Button
-                                           variant="ghost"
-                                           size="icon"
-                                           title="Enviar mensagem com botão (copiar PIX, link ou resposta)"
-                                           aria-label="Enviar mensagem com botão"
-                                           onClick={() => setQuickButtonOpen(true)}
-                                           className="text-[#54656f] dark:text-[#aebac1] hover:bg-muted h-9 w-9 rounded-full shrink-0"
-                                         >
-                                           <Copy className="w-5 h-5" />
-                                         </Button>
                                        </div>
                                       <div className="flex-1 relative flex items-center min-w-0">
                                         <Textarea 
