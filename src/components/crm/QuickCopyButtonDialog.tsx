@@ -229,21 +229,22 @@ export const QuickCopyButtonDialog: React.FC<QuickCopyButtonDialogProps> = ({
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Texto do botão (máx. 20 caracteres)</Label>
-            <Input
-              value={buttonLabel}
-              maxLength={20}
-              onChange={(e) => setButtonLabel(e.target.value)}
-              className="text-sm"
-            />
-          </div>
+          {kind !== 'copy' && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Texto do botão (máx. 20 caracteres)</Label>
+              <Input
+                value={buttonLabel}
+                maxLength={20}
+                onChange={(e) => setButtonLabel(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+          )}
 
           {kind === 'copy' && (
-            <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox checked={sendRawText} onCheckedChange={(v) => setSendRawText(!!v)} className="mt-0.5" />
-              <span>Enviar também o conteúdo em uma mensagem separada (permite copiar segurando no WhatsApp).</span>
-            </label>
+            <p className="text-[11px] text-muted-foreground">
+              O código será enviado em uma mensagem separada (copia e cola). O cliente toca e segura para copiar — recurso nativo do WhatsApp.
+            </p>
           )}
 
           <div className="rounded-lg border border-dashed p-3 space-y-2">
