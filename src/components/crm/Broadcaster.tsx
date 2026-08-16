@@ -605,15 +605,17 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           payload.languageCode = t?.language || 'pt_BR';
         } else if (type === 'flow') {
           // Find contact or create one (flows require a contactId)
+          const canonicalNumber = canonicalWaId(number);
           let { data: contact } = await supabase
             .from('crm_contacts')
             .select('id')
-            .eq('wa_id', number)
+            .in('wa_id', waIdVariants(number))
+            .limit(1)
             .maybeSingle();
           if (!contact) {
             const { data: created } = await supabase
               .from('crm_contacts')
-              .insert([{ wa_id: number, name: number, source_type: 'broadcast' }])
+              .insert([{ wa_id: canonicalNumber, name: canonicalNumber, source_type: 'broadcast' }])
               .select('id')
               .single();
             contact = created;
@@ -650,10 +652,12 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
     if (applyTag) {
       try {
         for (const number of numbers) {
+          const canonicalNumber = canonicalWaId(number);
           const { data: existing } = await supabase
             .from('crm_contacts')
             .select('id')
-            .eq('wa_id', number)
+            .in('wa_id', waIdVariants(number))
+            .limit(1)
             .maybeSingle();
 
           if (existing) {
@@ -664,7 +668,7 @@ const Broadcaster = ({ templates, flows, contacts, statuses }: BroadcasterProps)
           } else {
             await supabase
               .from('crm_contacts')
-              .insert([{ wa_id: number, name: number, status: applyTag, source_type: 'broadcast' }]);
+              .insert([{ wa_id: canonicalNumber, name: canonicalNumber, status: applyTag, source_type: 'broadcast' }]);
           }
         }
         toast({ title: `Etiqueta aplicada a ${numbers.length} contatos!` });
