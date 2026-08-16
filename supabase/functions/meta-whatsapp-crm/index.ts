@@ -2629,10 +2629,10 @@ const getBrazilianPhoneVariants = (raw: string) => {
       const areaCode = normalized.slice(2, 4)
       const localNumber = normalized.slice(4)
 
-      // Se o primeiro dígito do número local for 6, 7, 8 ou 9, é um celular que pode precisar do 9
-      if (/^[6-9]/.test(localNumber)) {
-        variants.add(`${country}${areaCode}9${localNumber}`)
-      }
+      // A Meta entrega números BR de celular sem o 9º dígito (55 + DDD + 8 dígitos).
+      // O dígito seguinte ao DDD pode ser QUALQUER número (ex.: 5511 3436-8124 = 5511 93436-8124),
+      // então sempre geramos a variante com o 9 para nunca criar dois contatos do mesmo número.
+      variants.add(`${country}${areaCode}9${localNumber}`)
     }
   }
 
@@ -2646,11 +2646,7 @@ const getBrazilianPhoneVariants = (raw: string) => {
  */
 const canonicalBrazilianWaId = (raw: string) => {
   const normalized = normalizePhone(raw)
-  if (
-    normalized.startsWith('55') &&
-    normalized.length === 12 &&
-    /^[6-9]/.test(normalized.slice(4))
-  ) {
+  if (normalized.startsWith('55') && normalized.length === 12) {
     return `${normalized.slice(0, 4)}9${normalized.slice(4)}`
   }
   return normalized
