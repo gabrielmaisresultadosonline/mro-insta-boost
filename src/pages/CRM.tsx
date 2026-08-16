@@ -133,11 +133,9 @@ const getCanonicalConversationPhone = (rawPhone: unknown): string => {
   const digits = String(rawPhone ?? '').replace(/\D/g, '');
   const normalized = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
 
-  if (
-    normalized.startsWith('55') &&
-    normalized.length === 12 &&
-    /^[6-9]/.test(normalized.slice(4))
-  ) {
+  // Números BR de celular chegam da Meta sem o 9º dígito. O dígito após o DDD
+  // pode ser qualquer um, então normalizamos todo 55+DDD+8 dígitos com o 9.
+  if (normalized.startsWith('55') && normalized.length === 12) {
     return `${normalized.slice(0, 4)}9${normalized.slice(4)}`;
   }
 
