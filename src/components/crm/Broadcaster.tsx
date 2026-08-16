@@ -9,6 +9,27 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+/** Normaliza um número BR para o formato canônico (55 + DDD + 9 dígitos). */
+const canonicalWaId = (raw: string): string => {
+  const digits = String(raw || '').replace(/\D/g, '');
+  const normalized = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+  if (normalized.startsWith('55') && normalized.length === 12) {
+    return `${normalized.slice(0, 4)}9${normalized.slice(4)}`;
+  }
+  return normalized;
+};
+
+/** Todas as grafias possíveis do mesmo número (com e sem o 9º dígito). */
+const waIdVariants = (raw: string): string[] => {
+  const digits = String(raw || '').replace(/\D/g, '');
+  const normalized = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+  const variants = new Set<string>([normalized, canonicalWaId(raw)]);
+  if (normalized.startsWith('55') && normalized.length === 13 && normalized[4] === '9') {
+    variants.add(`${normalized.slice(0, 4)}${normalized.slice(5)}`);
+  }
+  return Array.from(variants).filter(Boolean);
+};
 import { 
   Zap, 
   Send, 
