@@ -1572,9 +1572,15 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
                           <SelectValue placeholder="Selecione um fluxo..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableFlows.map(f => (
-                            <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                          ))}
+                          {availableFlows.length === 0 ? (
+                            <div className="px-2 py-3 text-[10px] text-muted-foreground">
+                              Nenhum outro fluxo salvo ainda.
+                            </div>
+                          ) : (
+                            availableFlows.map(f => (
+                              <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
