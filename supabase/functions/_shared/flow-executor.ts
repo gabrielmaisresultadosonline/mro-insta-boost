@@ -424,6 +424,70 @@ export async function executeVisualNode(supabase: any, flow: any, node: any, con
       } else if (action === 'Notificar Agente') {
         // Implement logic if needed
       }
+    } else if (node.type === 'jump' || node.type === 'jumpFlow' || node.type === 'goto') {
+      // "Pular p/ Fluxo": encerra o fluxo atual e inicia o fluxo de destino no mesmo contato.
+      const targetFlowId = (node.data?.targetFlowId || node.data?.flowId || '').toString().trim();
+      console.log(`[EXECUTOR] JUMP node ${node.id} -> target flow ${targetFlowId || '(vazio)'}`);
+
+      if (!targetFlowId) {
+        console.error(`[EXECUTOR] JUMP node ${node.id} sem targetFlowId configurado. Encerrando fluxo.`);
+        await supabase.from('crm_contacts').update({
+          flow_state: 'idle',
+          current_flow_id: null,
+          current_node_id: null,
+          next_execution_time: null,
+          flow_timeout_minutes: null,
+          flow_timeout_node_id: null
+        }).eq('id', contactId);
+        return { success: false, message: 'Jump node without target flow' };
+      }
+
+      const { data: targetFlow, error: targetFlowError } = await supabase
+        .from('crm_flows')
+        .select('*')
+        .eq('id', targetFlowId)
+        .maybeSingle();
+
+      if (targetFlowError || !targetFlow || !Array.isArray(targetFlow.nodes) || targetFlow.nodes.length === 0) {
+        console.error(`[EXECUTOR] JUMP: fluxo de destino ${targetFlowId} não encontrado ou vazio.`, targetFlowError);
+        await supabase.from('crm_contacts').update({
+          flow_state: 'idle',
+          current_flow_id: null,
+          current_node_id: null,
+          next_execution_time: null,
+          flow_timeout_minutes: null,
+          flow_timeout_node_id: null
+        }).eq('id', contactId);
+        return { success: false, message: 'Target flow not found' };
+      }
+
+      const targetIdsWithIncoming = new Set((targetFlow.edges || []).map((e: any) => e.target));
+      const targetStartNode = targetFlow.nodes.find((n: any) => !targetIdsWithIncoming.has(n.id)) || targetFlow.nodes[0];
+
+      // Limpa agendamentos do fluxo anterior para evitar mensagens fantasmas.
+      await supabase.from('crm_scheduled_messages').delete().eq('contact_id', contactId);
+
+      const { error: jumpUpdateError } = await supabase.from('crm_contacts').update({
+        current_flow_id: targetFlow.id,
+        current_node_id: targetStartNode.id,
+        flow_state: 'running',
+        next_execution_time: null,
+        flow_timeout_minutes: null,
+        flow_timeout_node_id: null,
+        last_flow_interaction: new Date().toISOString(),
+        ai_active: targetStartNode.type === 'aiAgent'
+      }).eq('id', contactId);
+
+      if (jumpUpdateError) {
+        console.error(`[EXECUTOR] JUMP: erro ao atualizar contato ${contactId}:`, jumpUpdateError);
+        throw jumpUpdateError;
+      }
+
+      const jumpDelay = parseInt(node.data?.delayAfter || '1');
+      if (jumpDelay > 0) await wait(jumpDelay * 1000);
+
+      console.log(`[EXECUTOR] JUMP: iniciando fluxo "${targetFlow.name}" no nó ${targetStartNode.id} (${targetStartNode.type}) para ${waId}`);
+      return await executeVisualNode(supabase, targetFlow, targetStartNode, contactId, waId);
     } else if (node.type === 'pix') {
       const pixKey = node.data?.pixKey || "";
       const amount = node.data?.amount || "0.00";
