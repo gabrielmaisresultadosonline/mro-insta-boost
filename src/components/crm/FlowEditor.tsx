@@ -530,16 +530,16 @@ const FlowEditorInner: React.FC<FlowEditorProps> = ({ flow, onSave, onClose }) =
     const fetchData = async () => {
       const [templatesRes, flowsRes, statusesRes] = await Promise.all([
         supabase.from('crm_templates').select('*'),
-        supabase.from('zapi_flows').select('id, name'),
+        supabase.from('crm_flows').select('id, name').order('created_at', { ascending: false }),
         supabase.from('crm_statuses').select('*').order('sort_order', { ascending: true })
       ]);
       
       if (templatesRes.data) setAvailableTemplates(templatesRes.data);
-      if (flowsRes.data) setAvailableFlows(flowsRes.data);
+      if (flowsRes.data) setAvailableFlows(flowsRes.data.filter((f: any) => f.id !== flow?.id));
       if (statusesRes.data) setAvailableStatuses(statusesRes.data);
     };
     fetchData();
-  }, []);
+  }, [flow?.id]);
 
   const handleFileUpload = async (file: File, nodeId: string, type: 'audio' | 'video' | 'image') => {
     try {
