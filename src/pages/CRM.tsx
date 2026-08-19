@@ -1694,7 +1694,10 @@ const CRM = () => {
             if (Array.isArray(parsed?.rows)) {
               console.log(`[CRM] Restaurando ${parsed.rows.length} contatos do cache...`);
               setContacts(deduplicateConversationContacts(parsed.rows));
-              lastContactsSyncRef.current = parsed.lastSyncedAt || null;
+              // O cache guarda só as conversas mais recentes (limite do navegador),
+              // então NÃO marcamos a sincronização como completa: o fetch abaixo
+              // continua trazendo a base inteira.
+              lastContactsSyncRef.current = null;
               // Se restauramos do cache, podemos tirar o loading inicial para a UI aparecer logo
               setLoading(false);
             }
