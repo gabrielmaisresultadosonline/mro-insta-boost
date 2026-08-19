@@ -2135,12 +2135,33 @@ function normalizeMetaSendError(result: any, fallback = 'Erro ao enviar mensagem
   const metaError = result?.error || {};
   const rawMessage = String(metaError?.error_user_msg || metaError?.message || fallback);
   const rawCode = metaError?.code;
+  const rawSubcode = Number(metaError?.error_subcode);
+  const rawType = String(metaError?.type || '');
   const lower = rawMessage.toLowerCase();
 
   if (Number(rawCode) === 133010 || lower.includes('account not registered')) {
     return {
       code: 'WHATSAPP_DISCONNECTED',
       message: 'Você precisa reconectar seu WhatsApp.',
+      details: rawMessage,
+    };
+  }
+
+  // Token expirado / app bloqueado / número não acessível por esse token.
+  // Ex.: code 100, subcode 33, GraphMethodException ("Object with ID ... does not exist,
+  // cannot be loaded due to missing permissions") ou "API access blocked".
+  const isTokenOrAppBlocked =
+    rawSubcode === 33 ||
+    rawType === 'GraphMethodException' ||
+    lower.includes('api access blocked') ||
+    lower.includes('session has expired') ||
+    lower.includes('access token') ||
+    (Number(rawCode) === 190);
+
+  if (isTokenOrAppBlocked) {
+    return {
+      code: 'META_TOKEN_INVALID',
+      message: '⚠️ A conexão com a Meta expirou ou o acesso do app foi bloqueado. Vá em Configurações → Conectar com Facebook e refaça a conexão do número do WhatsApp.',
       details: rawMessage,
     };
   }
@@ -2836,6 +2857,11 @@ async function uploadMediaToMeta(accessToken: string, phoneNumberId: string, med
       friendly = `Arquivo de ${media.type === 'video' ? 'vídeo' : media.type} muito grande. O WhatsApp aceita no máximo ${lim}. Comprima o arquivo e envie novamente.`;
     } else if (details) {
       friendly = `${baseMsg}: ${details}`;
+    } else {
+      const normalized = normalizeMetaSendError(uploadResult, baseMsg);
+      if (normalized.code === 'META_TOKEN_INVALID' || normalized.code === 'WHATSAPP_DISCONNECTED') {
+        friendly = normalized.message;
+      }
     }
     throw new Error(friendly);
   }
