@@ -1751,15 +1751,36 @@ const CRM = () => {
           const merged = deduplicateConversationContacts(Array.from(map.values()));
 
           if (cacheKey) {
+            // O localStorage tem ~5MB. Com dezenas de milhares de contatos o objeto
+            // completo estoura a cota, então guardamos apenas as conversas mais
+            // recentes e somente os campos usados na primeira pintura da lista.
+            const CACHE_MAX_ROWS = 400;
+            const slim = merged.slice(0, CACHE_MAX_ROWS).map((c: any) => ({
+              id: c.id,
+              user_id: c.user_id,
+              wa_id: c.wa_id,
+              canon_wa_id: c.canon_wa_id,
+              name: c.name,
+              status: c.status,
+              tags: c.tags,
+              last_interaction: c.last_interaction,
+              last_read_at: c.last_read_at,
+              updated_at: c.updated_at,
+              created_at: c.created_at,
+            }));
+            const writeCache = (rows: any[]) => localStorage.setItem(
+              cacheKey,
+              JSON.stringify({ rows, lastSyncedAt: fetchStartedAt })
+            );
             try {
-              localStorage.setItem(cacheKey, JSON.stringify({
-                rows: merged,
-                lastSyncedAt: fetchStartedAt,
-              }));
-            } catch (e) {
-              // Base grande demais para o localStorage: limpamos o cache parcial
-              console.warn('[CRM] Cache de contatos não salvo (limite do navegador):', e);
-              try { localStorage.removeItem(cacheKey); } catch { /* noop */ }
+              writeCache(slim);
+            } catch {
+              // Ainda assim estourou: tenta um cache mínimo antes de desistir (sem poluir o console).
+              try {
+                writeCache(slim.slice(0, 100));
+              } catch {
+                try { localStorage.removeItem(cacheKey); } catch { /* noop */ }
+              }
             }
           }
           return merged;
