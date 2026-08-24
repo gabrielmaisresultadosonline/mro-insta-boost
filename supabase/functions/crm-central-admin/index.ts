@@ -182,13 +182,14 @@ serve(async (req) => {
     }
 
     if (action === "impersonate") {
-      const { userId } = body as any;
+      const { userId, origin } = body as any;
       if (!userId) return json({ success: false, error: "userId obrigatório" }, 400);
 
       const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(userId);
       if (userErr || !userData?.user?.email) {
         return json({ success: false, error: "Usuário não encontrado" }, 404);
       }
+
 
       // Domínio oficial da aplicação (nunca usar o domínio de preview)
       const APP_BASE_URL = "https://zapmro.com.br";
