@@ -149,6 +149,35 @@ export default function TrialsPanel({ creds }: Props) {
     }
   };
 
+  const cancelPlan = async (t: Trial) => {
+    if (
+      !confirm(
+        `Cancelar o plano de ${t.email}?\n\nO acesso será travado imediatamente (popup pedindo pagamento).\nNada será desconectado — o WhatsApp continua conectado.`
+      )
+    )
+      return;
+    setCancelId(t.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-central-admin", {
+        body: {
+          action: "cancel_access",
+          email: t.email,
+          adminEmail: creds.email,
+          adminPassword: creds.password,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro");
+      toast.success(`Plano cancelado — ${t.email} está travado até pagar novamente`);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao cancelar plano");
+    } finally {
+      setCancelId(null);
+    }
+  };
+
+
   const counts = {
     all: trials.length,
     no_trial: trials.filter((t) => t.status === "no_trial").length,
