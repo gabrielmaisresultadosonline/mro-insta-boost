@@ -191,8 +191,11 @@ serve(async (req) => {
       }
 
 
-      // Domínio oficial da aplicação (nunca usar o domínio de preview)
-      const APP_BASE_URL = "https://zapmro.com.br";
+      // Usa a origem do painel quando for um domínio confiável (preview ou produção)
+      const originStr = typeof origin === "string" ? origin.replace(/\/$/, "") : "";
+      const trusted = /^https:\/\/([a-z0-9-]+\.)*(zapmro\.com\.br|lovable\.app|lovableproject\.com)$/i.test(originStr);
+      const APP_BASE_URL = trusted ? originStr : "https://zapmro.com.br";
+
 
       const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
         type: "magiclink",
