@@ -74,10 +74,38 @@ export async function sendCrmSalesApprovedEmail(params: {
   planLabel: string;
   amount: number;
   loginUrl?: string;
+  /** Senha (temporária) para o cliente entrar direto — opcional */
+  password?: string;
+  /** Duração do acesso em dias — opcional */
+  days?: number;
+  /** Data de expiração do acesso (ISO) — opcional */
+  accessUntil?: string;
 }) {
   const login = params.loginUrl || "https://zapmro.com.br/crm/login";
   const firstName = (params.fullName || "").split(" ")[0] || "cliente";
   const subject = `✅ Acesso liberado — ${params.planLabel} | ZapMRO CRM`;
+
+  const durationText = params.days
+    ? params.days >= 365
+      ? `${Math.round(params.days / 365)} ano(s) de acesso`
+      : params.days >= 30
+        ? `${Math.round(params.days / 30)} mês(es) de acesso`
+        : `${params.days} dias de acesso`
+    : "";
+  const untilText = params.accessUntil
+    ? new Date(params.accessUntil).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    : "";
+  const extraRows =
+    (durationText
+      ? `<tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Duração:</strong> ${durationText}</td></tr>`
+      : "") +
+    (untilText
+      ? `<tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Válido até:</strong> ${untilText}</td></tr>`
+      : "") +
+    (params.password
+      ? `<tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Senha de acesso:</strong> <code style="background:#fff;padding:2px 8px;border-radius:6px;border:1px solid #d1fae5;font-size:15px;">${params.password}</code></td></tr>`
+      : "");
+
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f5f7fa;font-family:Arial,Helvetica,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:24px 0;">
