@@ -556,7 +556,7 @@ serve(async (req) => {
     }
 
     if (action === "grant_access") {
-      const { email, plan, days } = body as any;
+      const { email, plan, days, resetPassword } = body as any;
       if (!email || !plan) return json({ success: false, error: "email e plan obrigatórios" }, 400);
       const PLANS: Record<string, { label: string; amount: number; days: number }> = {
         mensal: { label: "Plano Mensal", amount: 97, days: 30 },
@@ -572,12 +572,60 @@ serve(async (req) => {
       });
       if (error) throw error;
       if (ok === false) return json({ success: false, error: "Usuário não encontrado" }, 404);
+
+      const cleanEmailGrant = String(email).trim().toLowerCase();
+      // Localiza o usuário para pegar nome, data de expiração e (opcionalmente)
+      // gerar uma senha temporária que vai junto no email de liberação.
+      let grantUserId: string | null = null;
+      let grantFullName = "";
+      let grantAccessUntil: string | undefined;
+      let grantPassword: string | undefined;
+      try {
+        let page = 1;
+        while (!grantUserId && page <= 20) {
+          const { data } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+          const found = (data?.users || []).find(
+            (u: any) => (u.email || "").toLowerCase() === cleanEmailGrant
+          );
+          if (found) grantUserId = found.id;
+          if (!data?.users || data.users.length < 1000) break;
+          page++;
+        }
+        if (grantUserId) {
+          const { data: prof } = await supabase
+            .from("crm_profiles")
+            .select("full_name, access_until")
+            .eq("user_id", grantUserId)
+            .maybeSingle();
+          grantFullName = prof?.full_name || "";
+          grantAccessUntil = prof?.access_until || undefined;
+
+          if (resetPassword !== false) {
+            grantPassword = `Zap${Math.random().toString(36).slice(2, 8)}${Math.floor(
+              10 + Math.random() * 89
+            )}`;
+            const { error: pwErr } = await supabase.auth.admin.updateUserById(grantUserId, {
+              password: grantPassword,
+            });
+            if (pwErr) {
+              console.error("[grant_access] password reset error:", pwErr);
+              grantPassword = undefined;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[grant_access] lookup error:", e);
+      }
+
       try {
         await sendCrmSalesApprovedEmail({
-          to: email,
-          fullName: "",
+          to: cleanEmailGrant,
+          fullName: grantFullName,
           planLabel: PLANS[plan].label,
           amount: PLANS[plan].amount,
+          days: d,
+          accessUntil: grantAccessUntil,
+          password: grantPassword,
         });
       } catch (e) {
         console.error("[grant_access] email error:", e);
