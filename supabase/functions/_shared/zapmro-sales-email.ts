@@ -74,10 +74,38 @@ export async function sendCrmSalesApprovedEmail(params: {
   planLabel: string;
   amount: number;
   loginUrl?: string;
+  /** Senha (temporária) para o cliente entrar direto — opcional */
+  password?: string;
+  /** Duração do acesso em dias — opcional */
+  days?: number;
+  /** Data de expiração do acesso (ISO) — opcional */
+  accessUntil?: string;
 }) {
   const login = params.loginUrl || "https://zapmro.com.br/crm/login";
   const firstName = (params.fullName || "").split(" ")[0] || "cliente";
   const subject = `✅ Acesso liberado — ${params.planLabel} | ZapMRO CRM`;
+
+  const durationText = params.days
+    ? params.days >= 365
+      ? `${Math.round(params.days / 365)} ano(s) de acesso`
+      : params.days >= 30
+        ? `${Math.round(params.days / 30)} mês(es) de acesso`
+        : `${params.days} dias de acesso`
+    : "";
+  const untilText = params.accessUntil
+    ? new Date(params.accessUntil).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    : "";
+  const extraRows =
+    (durationText
+      ? `<tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Duração:</strong> ${durationText}</td></tr>`
+      : "") +
+    (untilText
+      ? `<tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Válido até:</strong> ${untilText}</td></tr>`
+      : "") +
+    (params.password
+      ? `<tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Senha de acesso:</strong> <code style="background:#fff;padding:2px 8px;border-radius:6px;border:1px solid #d1fae5;font-size:15px;">${params.password}</code></td></tr>`
+      : "");
+
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f5f7fa;font-family:Arial,Helvetica,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:24px 0;">
@@ -90,15 +118,19 @@ export async function sendCrmSalesApprovedEmail(params: {
         <tr><td style="padding:30px;">
           <p style="color:#111;font-size:16px;margin:0 0 12px;">Olá <strong>${firstName}</strong>,</p>
           <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px;">
-            Recebemos seu pagamento e seu acesso já foi liberado. Confira os detalhes abaixo:
+            Seu plano foi liberado${durationText ? ` e você tem <strong>${durationText}</strong>` : ""} para usar a ferramenta oficial de WhatsApp!
+            <br/>Obrigado mais uma vez pela confiança. Confira os detalhes abaixo:
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #d1fae5;border-radius:12px;padding:16px;margin:0 0 24px;">
             <tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Plano:</strong> ${params.planLabel}</td></tr>
             <tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Valor:</strong> R$ ${Number(params.amount).toFixed(2)}</td></tr>
             <tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Email de acesso:</strong> ${params.to}</td></tr>
+            ${extraRows}
           </table>
           <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px;">
-            Para entrar na plataforma, clique no botão abaixo e faça login com o email e a senha que você cadastrou no momento da compra:
+            ${params.password
+              ? "Para entrar na plataforma, clique no botão abaixo e use o email e a senha acima:"
+              : "Para entrar na plataforma, clique no botão abaixo e faça login com o email e a senha que você cadastrou:"}
           </p>
           <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td>
             <a href="${login}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:bold;font-size:15px;">🚀 Entrar no CRM</a>
@@ -116,11 +148,15 @@ export async function sendCrmSalesApprovedEmail(params: {
 
   const text =
     `Olá ${firstName},\n\n` +
-    `Seu pagamento foi aprovado e o acesso ao ZapMRO CRM está liberado.\n\n` +
+    `Seu plano foi liberado${durationText ? ` e você tem ${durationText}` : ""} para usar a ferramenta oficial de WhatsApp!\n` +
+    `Obrigado mais uma vez pela confiança.\n\n` +
     `Plano: ${params.planLabel}\n` +
     `Valor: R$ ${Number(params.amount).toFixed(2)}\n` +
-    `Email de acesso: ${params.to}\n\n` +
-    `Entre em: ${login}\n\n` +
+    (durationText ? `Duração: ${durationText}\n` : "") +
+    (untilText ? `Válido até: ${untilText}\n` : "") +
+    `Email de acesso: ${params.to}\n` +
+    (params.password ? `Senha de acesso: ${params.password}\n` : "") +
+    `\nEntre em: ${login}\n\n` +
     `Precisa de ajuda? Responda este email.\n\n— Equipe ZapMRO`;
 
   await sendSmtpEmail({ to: params.to, subject, htmlBody: html, textBody: text });
