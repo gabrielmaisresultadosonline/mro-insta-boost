@@ -295,7 +295,7 @@ export default function TrialsPanel({ creds }: Props) {
                     <div>Acesso: {fmtDate(t.access_until)}</div>
                   </td>
                   <td className="p-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Select
                         value={selectedPlan[t.id] || "mensal"}
                         onValueChange={(v) => setSelectedPlan((p) => ({ ...p, [t.id]: v }))}
@@ -353,7 +353,7 @@ export default function TrialsPanel({ creds }: Props) {
                           </>
                         )}
                       </Button>
-                      {(t.status === "paid" || t.status === "trial_active") && (
+                      {t.status !== "trial_expired" && (
                         <Button
                           size="sm"
                           variant="outline"
