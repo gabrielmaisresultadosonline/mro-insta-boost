@@ -59,6 +59,8 @@ export default function TrialsPanel({ creds }: Props) {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [resendId, setResendId] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
+
   const [selectedPlan, setSelectedPlan] = useState<Record<string, string>>({});
   const [customDays, setCustomDays] = useState<Record<string, string>>({});
 
