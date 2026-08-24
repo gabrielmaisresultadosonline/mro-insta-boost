@@ -353,6 +353,26 @@ export default function TrialsPanel({ creds }: Props) {
                           </>
                         )}
                       </Button>
+                      {(t.status === "paid" || t.status === "trial_active") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => cancelPlan(t)}
+                          disabled={cancelId === t.id}
+                          className="h-8 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          title="Cancelar plano e travar o acesso (sem desconectar o WhatsApp)"
+                        >
+                          {cancelId === t.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Ban className="w-4 h-4 mr-1" />
+                              Cancelar plano
+                            </>
+                          )}
+                        </Button>
+                      )}
+
                     </div>
                   </td>
                 </tr>
