@@ -585,7 +585,50 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "cancel_access") {
+      const { email } = body as any;
+      if (!email) return json({ success: false, error: "email obrigatório" }, 400);
+      const cleanEmail = String(email).trim().toLowerCase();
+
+      // Localiza o usuário pelo email (paginado)
+      let targetId: string | null = null;
+      let page = 1;
+      while (!targetId) {
+        const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw error;
+        const found = (data.users || []).find(
+          (u: any) => (u.email || "").toLowerCase() === cleanEmail
+        );
+        if (found) targetId = found.id;
+        if (!data.users || data.users.length < 1000) break;
+        page++;
+        if (page > 20) break;
+      }
+      if (!targetId) return json({ success: false, error: "Usuário não encontrado" }, 404);
+
+      const nowIso = new Date().toISOString();
+      // Cancela o plano: acesso expirado imediatamente e teste também encerrado,
+      // então o CRM mostra o popup de bloqueio pedindo pagamento.
+      // Nada é desconectado — a conexão do WhatsApp permanece intacta.
+      const { error } = await supabase
+        .from("crm_profiles")
+        .upsert(
+          {
+            user_id: targetId,
+            is_paid: false,
+            plan: null,
+            access_until: nowIso,
+            trial_ends_at: nowIso,
+            updated_at: nowIso,
+          },
+          { onConflict: "user_id" }
+        );
+      if (error) throw error;
+      return json({ success: true });
+    }
+
     if (action === "resend_access_email") {
+
       const { email } = body as any;
       if (!email) return json({ success: false, error: "email obrigatório" }, 400);
       const cleanEmail = String(email).trim().toLowerCase();
