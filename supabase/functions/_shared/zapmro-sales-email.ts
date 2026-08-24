@@ -148,11 +148,15 @@ export async function sendCrmSalesApprovedEmail(params: {
 
   const text =
     `Olá ${firstName},\n\n` +
-    `Seu pagamento foi aprovado e o acesso ao ZapMRO CRM está liberado.\n\n` +
+    `Seu plano foi liberado${durationText ? ` e você tem ${durationText}` : ""} para usar a ferramenta oficial de WhatsApp!\n` +
+    `Obrigado mais uma vez pela confiança.\n\n` +
     `Plano: ${params.planLabel}\n` +
     `Valor: R$ ${Number(params.amount).toFixed(2)}\n` +
-    `Email de acesso: ${params.to}\n\n` +
-    `Entre em: ${login}\n\n` +
+    (durationText ? `Duração: ${durationText}\n` : "") +
+    (untilText ? `Válido até: ${untilText}\n` : "") +
+    `Email de acesso: ${params.to}\n` +
+    (params.password ? `Senha de acesso: ${params.password}\n` : "") +
+    `\nEntre em: ${login}\n\n` +
     `Precisa de ajuda? Responda este email.\n\n— Equipe ZapMRO`;
 
   await sendSmtpEmail({ to: params.to, subject, htmlBody: html, textBody: text });
