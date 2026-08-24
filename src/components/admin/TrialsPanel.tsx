@@ -99,9 +99,9 @@ export default function TrialsPanel({ creds }: Props) {
       }
       // backend requires a valid plan key; use "mensal" as label placeholder for custom durations
       planToSend = "mensal";
-      if (!confirm(`Liberar ${days} dia(s) para ${t.email}?`)) return;
+      if (!confirm(`Liberar ${days} dia(s) para ${t.email}?\n\nSerá enviado um email de liberação com email e uma NOVA senha de acesso.`)) return;
     } else {
-      if (!confirm(`Liberar ${plan.toUpperCase()} para ${t.email}?`)) return;
+      if (!confirm(`Liberar ${plan.toUpperCase()} para ${t.email}?\n\nSerá enviado um email de liberação com email e uma NOVA senha de acesso.`)) return;
     }
     setBusyId(t.id);
     try {
