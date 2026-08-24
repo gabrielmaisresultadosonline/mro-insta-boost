@@ -118,15 +118,19 @@ export async function sendCrmSalesApprovedEmail(params: {
         <tr><td style="padding:30px;">
           <p style="color:#111;font-size:16px;margin:0 0 12px;">Olá <strong>${firstName}</strong>,</p>
           <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px;">
-            Recebemos seu pagamento e seu acesso já foi liberado. Confira os detalhes abaixo:
+            Seu plano foi liberado${durationText ? ` e você tem <strong>${durationText}</strong>` : ""} para usar a ferramenta oficial de WhatsApp!
+            <br/>Obrigado mais uma vez pela confiança. Confira os detalhes abaixo:
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #d1fae5;border-radius:12px;padding:16px;margin:0 0 24px;">
             <tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Plano:</strong> ${params.planLabel}</td></tr>
             <tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Valor:</strong> R$ ${Number(params.amount).toFixed(2)}</td></tr>
             <tr><td style="padding:6px 10px;color:#065f46;font-size:14px;"><strong>Email de acesso:</strong> ${params.to}</td></tr>
+            ${extraRows}
           </table>
           <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 20px;">
-            Para entrar na plataforma, clique no botão abaixo e faça login com o email e a senha que você cadastrou no momento da compra:
+            ${params.password
+              ? "Para entrar na plataforma, clique no botão abaixo e use o email e a senha acima:"
+              : "Para entrar na plataforma, clique no botão abaixo e faça login com o email e a senha que você cadastrou:"}
           </p>
           <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td>
             <a href="${login}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:bold;font-size:15px;">🚀 Entrar no CRM</a>
