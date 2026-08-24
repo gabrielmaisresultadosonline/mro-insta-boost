@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Clock, Lock, CheckCircle2, Mail } from "lucide-react";
+import { Loader2, RefreshCw, Clock, Lock, CheckCircle2, Mail, Ban } from "lucide-react";
 
 interface Trial {
   id: string;
