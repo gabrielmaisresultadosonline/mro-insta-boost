@@ -1398,7 +1398,15 @@ const CRM = () => {
        const adminToken = params.get('admin_token');
        if (adminToken) {
          try {
-           await supabase.auth.verifyOtp({ type: 'magiclink', token_hash: adminToken });
+           // Limpa qualquer sessão anterior (do admin) antes de assumir a do usuário
+           await supabase.auth.signOut({ scope: 'local' } as any).catch(() => {});
+           // token_hash de magiclink deve ser verificado com type 'email'
+           let { error } = await supabase.auth.verifyOtp({ type: 'email', token_hash: adminToken });
+           if (error) {
+             const retry = await supabase.auth.verifyOtp({ type: 'magiclink', token_hash: adminToken } as any);
+             error = retry.error;
+           }
+           if (error) throw error;
          } catch (e) {
            console.error('Falha no acesso administrativo:', e);
          }
@@ -1406,6 +1414,7 @@ const CRM = () => {
          const clean = window.location.pathname + (params.toString() ? `?${params}` : '');
          window.history.replaceState({}, '', clean);
        }
+
 
        const { data: { session } } = await supabase.auth.getSession();
        if (!session) {
