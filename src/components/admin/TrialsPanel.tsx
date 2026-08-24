@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Clock, Lock, CheckCircle2, Mail } from "lucide-react";
+import { Loader2, RefreshCw, Clock, Lock, CheckCircle2, Mail, Ban } from "lucide-react";
 
 interface Trial {
   id: string;
@@ -59,6 +59,8 @@ export default function TrialsPanel({ creds }: Props) {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [resendId, setResendId] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
+
   const [selectedPlan, setSelectedPlan] = useState<Record<string, string>>({});
   const [customDays, setCustomDays] = useState<Record<string, string>>({});
 
@@ -148,6 +150,35 @@ export default function TrialsPanel({ creds }: Props) {
       setResendId(null);
     }
   };
+
+  const cancelPlan = async (t: Trial) => {
+    if (
+      !confirm(
+        `Cancelar o plano de ${t.email}?\n\nO acesso será travado imediatamente (popup pedindo pagamento).\nNada será desconectado — o WhatsApp continua conectado.`
+      )
+    )
+      return;
+    setCancelId(t.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-central-admin", {
+        body: {
+          action: "cancel_access",
+          email: t.email,
+          adminEmail: creds.email,
+          adminPassword: creds.password,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro");
+      toast.success(`Plano cancelado — ${t.email} está travado até pagar novamente`);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao cancelar plano");
+    } finally {
+      setCancelId(null);
+    }
+  };
+
 
   const counts = {
     all: trials.length,
@@ -322,6 +353,26 @@ export default function TrialsPanel({ creds }: Props) {
                           </>
                         )}
                       </Button>
+                      {(t.status === "paid" || t.status === "trial_active") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => cancelPlan(t)}
+                          disabled={cancelId === t.id}
+                          className="h-8 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          title="Cancelar plano e travar o acesso (sem desconectar o WhatsApp)"
+                        >
+                          {cancelId === t.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Ban className="w-4 h-4 mr-1" />
+                              Cancelar plano
+                            </>
+                          )}
+                        </Button>
+                      )}
+
                     </div>
                   </td>
                 </tr>
