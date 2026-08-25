@@ -35,11 +35,23 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
         const adminToken = params.get("admin_token");
         if (adminToken) {
           await supabase.auth.signOut({ scope: "local" });
-          const { error: tokenError } = await supabase.auth.verifyOtp({
-            type: "email",
+          // generateLink({ type: "magiclink" }) produz um token que deve ser
+          // confirmado como magiclink. Usar "email" aqui rejeitava o token e
+          // o AccessGate enviava o administrador para /crm/login.
+          let verification = await supabase.auth.verifyOtp({
+            type: "magiclink",
             token_hash: adminToken,
           });
-          if (tokenError) throw tokenError;
+          // Compatibilidade com tokens gerados por versões anteriores do Auth.
+          if (verification.error) {
+            verification = await supabase.auth.verifyOtp({
+              type: "email",
+              token_hash: adminToken,
+            });
+          }
+          if (verification.error || !verification.data.session) {
+            throw verification.error || new Error("Sessão administrativa não foi criada");
+          }
 
           params.delete("admin_token");
           const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
