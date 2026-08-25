@@ -11,17 +11,35 @@ type Status =
 
 export default function AccessGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<Status>(() => {
+    // Um acesso vindo do Admin Central precisa começar obrigatoriamente em
+    // loading. Caso contrário, um "no-auth" antigo salvo neste domínio pode
+    // redirecionar para /crm/login antes que o token seja validado.
+    const hasAdminToken = new URLSearchParams(window.location.search).has("admin_token");
+    if (hasAdminToken) return { kind: "loading" };
+
     // Tenta recuperar estado cacheado para evitar flash verde em refreshes
     try {
       const cached = localStorage.getItem('crm_access_status');
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        const parsed = JSON.parse(cached) as Status;
+        // Estados de autenticação ausente ou carregamento nunca devem persistir
+        // entre navegações. A sessão real será conferida no efeito abaixo.
+        if (parsed.kind === "allowed" || parsed.kind === "blocked") return parsed;
+      }
     } catch {}
     return { kind: "loading" };
   });
 
   useEffect(() => {
-    // Persiste status para navegação instantânea
-    try { localStorage.setItem('crm_access_status', JSON.stringify(status)); } catch {}
+    // Persiste somente decisões de acesso. Salvar "no-auth" criava um redirect
+    // síncrono na próxima abertura e impedia o login administrativo por token.
+    try {
+      if (status.kind === "allowed" || status.kind === "blocked") {
+        localStorage.setItem('crm_access_status', JSON.stringify(status));
+      } else {
+        localStorage.removeItem('crm_access_status');
+      }
+    } catch {}
   }, [status]);
 
   useEffect(() => {
