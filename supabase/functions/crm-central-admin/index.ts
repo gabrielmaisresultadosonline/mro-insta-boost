@@ -204,14 +204,20 @@ serve(async (req) => {
       });
       if (linkErr) throw linkErr;
 
-      // Usamos o token_hash diretamente no nosso domínio, assim a sessão
-      // é criada no próprio app (evita redirect para domínio Lovable).
-      const tokenHash = (linkData as any)?.properties?.hashed_token;
-      if (!tokenHash) {
+      // Preferimos o link oficial de verificação: ele cria a sessão no
+      // Supabase e redireciona já autenticado para /crm (sem tela de login).
+      const props = (linkData as any)?.properties || {};
+      const tokenHash = props.hashed_token;
+      const actionLink = props.action_link as string | undefined;
+
+      let url = actionLink;
+      if (!url && tokenHash) {
+        url = `${APP_BASE_URL}/crm?admin_token=${encodeURIComponent(tokenHash)}`;
+      }
+      if (!url) {
         return json({ success: false, error: "Não foi possível gerar o acesso" }, 500);
       }
 
-      const url = `${APP_BASE_URL}/crm?admin_token=${encodeURIComponent(tokenHash)}`;
       return json({ success: true, url, email: userData.user.email });
     }
 
