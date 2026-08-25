@@ -28,6 +28,24 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
     let cancel = false;
     async function check() {
       try {
+        // O acesso administrativo chega diretamente no domínio oficial com um
+        // token de uso único. Ele precisa ser validado antes da checagem normal,
+        // pois este componente envolve o CRM e é montado antes da página.
+        const params = new URLSearchParams(window.location.search);
+        const adminToken = params.get("admin_token");
+        if (adminToken) {
+          await supabase.auth.signOut({ scope: "local" });
+          const { error: tokenError } = await supabase.auth.verifyOtp({
+            type: "email",
+            token_hash: adminToken,
+          });
+          if (tokenError) throw tokenError;
+
+          params.delete("admin_token");
+          const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+          window.history.replaceState({}, "", cleanUrl);
+        }
+
         // Use the already validated login session here. Calling /user on every
         // route entry could hang the whole screen when that endpoint was slow.
         const { data: { session } } = await supabase.auth.getSession();

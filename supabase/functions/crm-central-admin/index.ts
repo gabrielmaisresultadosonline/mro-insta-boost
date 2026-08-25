@@ -182,21 +182,16 @@ serve(async (req) => {
     }
 
     if (action === "impersonate") {
-      const { userId, origin } = body as any;
+      const { userId } = body as any;
       if (!userId) return json({ success: false, error: "userId obrigatório" }, 400);
 
       const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(userId);
       if (userErr || !userData?.user?.email) {
         return json({ success: false, error: "Usuário não encontrado" }, 404);
       }
-
-
-      // Usa a origem do painel quando for um domínio confiável (preview ou produção)
-      const originStr = typeof origin === "string" ? origin.replace(/\/$/, "") : "";
-      const trusted = /^https:\/\/([a-z0-9-]+\.)*(zapmro\.com\.br|lovable\.app|lovableproject\.com)$/i.test(originStr);
-      const APP_BASE_URL = trusted ? originStr : "https://zapmro.com.br";
-
-
+      // O acesso administrativo deve sempre abrir no domínio oficial, nunca no
+      // domínio da prévia ou no link intermediário do provedor de autenticação.
+      const APP_BASE_URL = "https://zapmro.com.br";
       const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
         type: "magiclink",
         email: userData.user.email,
@@ -204,19 +199,15 @@ serve(async (req) => {
       });
       if (linkErr) throw linkErr;
 
-      // Preferimos o link oficial de verificação: ele cria a sessão no
-      // Supabase e redireciona já autenticado para /crm (sem tela de login).
+      // Enviamos o hash de uso único ao próprio /crm. O AccessGate valida esse
+      // token antes de verificar a sessão, evitando retorno indevido a /vendas.
       const props = (linkData as any)?.properties || {};
       const tokenHash = props.hashed_token;
-      const actionLink = props.action_link as string | undefined;
-
-      let url = actionLink;
-      if (!url && tokenHash) {
-        url = `${APP_BASE_URL}/crm?admin_token=${encodeURIComponent(tokenHash)}`;
-      }
-      if (!url) {
+      if (!tokenHash) {
         return json({ success: false, error: "Não foi possível gerar o acesso" }, 500);
       }
+
+      const url = `${APP_BASE_URL}/crm?admin_token=${encodeURIComponent(tokenHash)}`;
 
       return json({ success: true, url, email: userData.user.email });
     }
