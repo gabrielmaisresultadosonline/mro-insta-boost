@@ -952,6 +952,8 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   }
 
   const value = entry?.[0]?.changes?.[0]?.value || {};
+  const webhookField = entry?.[0]?.changes?.[0]?.field;
+
 
   if (!userId) {
     const webhookPhoneNumberId = value?.metadata?.phone_number_id;
