@@ -5920,7 +5920,7 @@ const CRM = () => {
                                   <ChevronDown className="w-3.5 h-3.5" />
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => { setChatSearchOpen(false); setChatSearchQuery(''); setHighlightedMessageId(null); }} title="Fechar busca">
-                                  <X className="w-3.5 h-3.5" />
+                                  <XCircle className="w-3.5 h-3.5" />
                                 </Button>
                               </div>
                             )}
