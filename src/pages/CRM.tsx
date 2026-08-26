@@ -5845,7 +5845,25 @@ const CRM = () => {
                               </div>
 
                               <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={cn(
+                                    "h-7 w-7 rounded-full shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10",
+                                    chatSearchOpen && "bg-primary/10 text-primary"
+                                  )}
+                                  title="Pesquisar mensagens nesta conversa"
+                                  onClick={() => {
+                                    setChatSearchOpen((v) => {
+                                      if (v) { setChatSearchQuery(''); setHighlightedMessageId(null); }
+                                      return !v;
+                                    });
+                                  }}
+                                >
+                                  <Search className="w-3.5 h-3.5" />
+                                </Button>
                                 <div className="flex items-center gap-1 flex-wrap justify-end">
+
                                   {selectedContact.last_message_received_at && (
                                     <div className="flex items-center gap-1 bg-white/50 dark:bg-black/20 px-1 sm:px-1.5 py-0.5 rounded border border-border/10 shadow-sm shrink-0">
                                       <Clock className={cn("w-2.5 h-2.5", getWindowInfo(selectedContact.last_message_received_at)?.isExpired ? 'text-destructive animate-pulse' : 'text-[#00a884]')} />
