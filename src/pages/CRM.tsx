@@ -6138,10 +6138,14 @@ const CRM = () => {
                                         </span>
                                       </div>
                                     )}
-                                  <div className={cn(
-                                    "flex w-full mb-1 min-w-0",
-                                    m.direction === 'inbound' ? 'justify-start' : 'justify-end'
+                                  <div
+                                    data-msg-id={m.id}
+                                    className={cn(
+                                    "flex w-full mb-1 min-w-0 rounded-xl transition-all duration-500",
+                                    m.direction === 'inbound' ? 'justify-start' : 'justify-end',
+                                    highlightedMessageId && highlightedMessageId === m.id && 'ring-2 ring-yellow-400 bg-yellow-400/10'
                                   )}>
+
                                     <div className={cn(
                                       "p-2 md:p-2.5 rounded-xl max-w-[88%] sm:max-w-[80%] md:max-w-[75%] min-w-0 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] relative transition-all duration-300",
                                       m.direction === 'inbound' 
