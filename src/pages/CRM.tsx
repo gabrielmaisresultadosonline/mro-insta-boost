@@ -1414,8 +1414,8 @@ const CRM = () => {
     };
 
     // Always scroll to bottom when opening a different conversation.
-    // Repeat across a few frames because messages/images can still be loading
-    // and pushing content height after the initial paint.
+    // Keep forcing it for a couple of seconds because images/audios still
+    // loading keep pushing the content height after the first paint.
     if (contactChanged) {
       pendingScrollToBottomRef.current = true;
       jumpToBottom();
@@ -1423,10 +1423,32 @@ const CRM = () => {
         jumpToBottom();
         requestAnimationFrame(jumpToBottom);
       });
-      setTimeout(jumpToBottom, 120);
-      setTimeout(jumpToBottom, 350);
-      setTimeout(() => { pendingScrollToBottomRef.current = false; }, 800);
-      return;
+
+      const interval = setInterval(() => {
+        if (!pendingScrollToBottomRef.current) return;
+        jumpToBottom();
+      }, 120);
+
+      // React to late layout changes (media loading) while still pending
+      let observer: ResizeObserver | null = null;
+      if (viewport && typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(() => {
+          if (pendingScrollToBottomRef.current) jumpToBottom();
+        });
+        Array.from(viewport.children).forEach((child) => observer!.observe(child as Element));
+      }
+
+      const stopTimer = setTimeout(() => {
+        pendingScrollToBottomRef.current = false;
+        clearInterval(interval);
+        observer?.disconnect();
+      }, 2500);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(stopTimer);
+        observer?.disconnect();
+      };
     }
     // If we just received the first batch of messages for this conversation,
     // still force the scroll to the bottom (no "near bottom" heuristic).
@@ -1435,6 +1457,7 @@ const CRM = () => {
       requestAnimationFrame(jumpToBottom);
       return;
     }
+
     // Only auto-scroll on new messages if the user is already near the bottom
     if (newCount > prevCount && viewport) {
       const distanceFromBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
