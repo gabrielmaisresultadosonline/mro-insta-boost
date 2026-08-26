@@ -94,6 +94,49 @@ function isUnavailableUnsupportedMessage(message: any) {
   return Number(error?.code) === 131060 || /unavailable/i.test(details);
 }
 
+/**
+ * Detecta se o evento recebido é a EDIÇÃO de uma mensagem já enviada
+ * (o usuário editou a mensagem no WhatsApp segundos depois).
+ *
+ * A Meta entrega a edição de formas diferentes dependendo da versão da API:
+ *  - campo `message_edits` no changes[].field
+ *  - objeto `edit` / `edited` / `is_edited` dentro da mensagem
+ *  - `context.edited` apontando para a mensagem original
+ *
+ * Uma edição NUNCA pode ser tratada como mensagem nova: não dispara fluxo,
+ * não conta como resposta e não aciona o Agente I.A.
+ */
+function detectEditedInboundMessage(message: any, field?: string): { isEdit: boolean; originalMessageId: string | null } {
+  if (!message) return { isEdit: false, originalMessageId: null };
+
+  const fieldIsEdit = typeof field === 'string' && /message_edits|edited_messages/i.test(field);
+
+  const editNode = message.edit || message.edited || message.message_edit || null;
+  const explicitFlag =
+    message.is_edited === true ||
+    message.edited === true ||
+    (editNode && typeof editNode === 'object');
+
+  const contextEdited =
+    message?.context?.edited === true ||
+    (!!message?.context?.edited_message_id);
+
+  const originalMessageId =
+    (editNode && typeof editNode === 'object'
+      ? (editNode.original_message_id || editNode.message_id || editNode.id)
+      : null) ||
+    message?.context?.edited_message_id ||
+    message?.edited_message_id ||
+    (fieldIsEdit ? (message?.context?.id || message?.context?.message_id || null) : null) ||
+    null;
+
+  return {
+    isEdit: !!(fieldIsEdit || explicitFlag || contextEdited),
+    originalMessageId: originalMessageId ? String(originalMessageId) : null,
+  };
+}
+
+
 const COMMON_CTWA_TRIGGER_TEXTS = [
   'Olá! Posso ter mais informações sobre isso?',
   'Gostaria de saber sobre o sistema inovador !',
