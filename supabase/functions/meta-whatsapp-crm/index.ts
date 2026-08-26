@@ -94,6 +94,49 @@ function isUnavailableUnsupportedMessage(message: any) {
   return Number(error?.code) === 131060 || /unavailable/i.test(details);
 }
 
+/**
+ * Detecta se o evento recebido é a EDIÇÃO de uma mensagem já enviada
+ * (o usuário editou a mensagem no WhatsApp segundos depois).
+ *
+ * A Meta entrega a edição de formas diferentes dependendo da versão da API:
+ *  - campo `message_edits` no changes[].field
+ *  - objeto `edit` / `edited` / `is_edited` dentro da mensagem
+ *  - `context.edited` apontando para a mensagem original
+ *
+ * Uma edição NUNCA pode ser tratada como mensagem nova: não dispara fluxo,
+ * não conta como resposta e não aciona o Agente I.A.
+ */
+function detectEditedInboundMessage(message: any, field?: string): { isEdit: boolean; originalMessageId: string | null } {
+  if (!message) return { isEdit: false, originalMessageId: null };
+
+  const fieldIsEdit = typeof field === 'string' && /message_edits|edited_messages/i.test(field);
+
+  const editNode = message.edit || message.edited || message.message_edit || null;
+  const explicitFlag =
+    message.is_edited === true ||
+    message.edited === true ||
+    (editNode && typeof editNode === 'object');
+
+  const contextEdited =
+    message?.context?.edited === true ||
+    (!!message?.context?.edited_message_id);
+
+  const originalMessageId =
+    (editNode && typeof editNode === 'object'
+      ? (editNode.original_message_id || editNode.message_id || editNode.id)
+      : null) ||
+    message?.context?.edited_message_id ||
+    message?.edited_message_id ||
+    (fieldIsEdit ? (message?.context?.id || message?.context?.message_id || null) : null) ||
+    null;
+
+  return {
+    isEdit: !!(fieldIsEdit || explicitFlag || contextEdited),
+    originalMessageId: originalMessageId ? String(originalMessageId) : null,
+  };
+}
+
+
 const COMMON_CTWA_TRIGGER_TEXTS = [
   'Olá! Posso ter mais informações sobre isso?',
   'Gostaria de saber sobre o sistema inovador !',
@@ -909,6 +952,8 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   }
 
   const value = entry?.[0]?.changes?.[0]?.value || {};
+  const webhookField = entry?.[0]?.changes?.[0]?.field;
+
 
   if (!userId) {
     const webhookPhoneNumberId = value?.metadata?.phone_number_id;
@@ -958,8 +1003,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   if (allEchoes.length > 0) {
     const results = [];
     for (const echo of allEchoes) {
+      // Edições de mensagens enviadas pela empresa também não geram nova bolha.
+      if (detectEditedInboundMessage(echo, webhookField).isEdit) {
+        results.push({ ignored: 'edited_echo', id: echo?.id || null });
+        continue;
+      }
       results.push(await saveOutboundEcho(supabase, userId, echo, businessPhone));
     }
+
     if (allEchoes.length === (value.messages?.length || 0) || echoes.length > 0) {
       return jsonResponse({ success: true, type: 'echoes', results });
     }
@@ -989,6 +1040,55 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   if (businessPhone && String(waId || '').replace(/\D/g, '') === businessPhone) {
     return jsonResponse({ success: true, ignored: 'echo_already_handled' });
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // EDIÇÃO DE MENSAGEM
+  // O contato editou uma mensagem já enviada. Isso NÃO é uma nova
+  // mensagem: não pode disparar fluxo, não conta como resposta de
+  // "aguardando resposta" e não aciona o Agente I.A.
+  // Apenas atualizamos o conteúdo já salvo na conversa.
+  // ─────────────────────────────────────────────────────────────
+  const editInfo = detectEditedInboundMessage(message, webhookField);
+  if (editInfo.isEdit) {
+    const newText = extractInboundTextFromWebhookMessage(message) || message?.text?.body || '';
+    const targetMetaId = editInfo.originalMessageId || message?.id;
+    webhookAiLog('edited_message_ignored', {
+      original_message_id: editInfo.originalMessageId,
+      target_meta_id: targetMetaId,
+    });
+
+    if (!skipSave && targetMetaId && newText) {
+      try {
+        const { data: originalRow } = await supabase
+          .from('crm_messages')
+          .select('id, content, metadata')
+          .eq('meta_message_id', targetMetaId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (originalRow) {
+          await supabase
+            .from('crm_messages')
+            .update({
+              content: newText,
+              metadata: {
+                ...(originalRow.metadata || {}),
+                edited: true,
+                edited_at: new Date().toISOString(),
+                previous_content: originalRow.content || null,
+              },
+            })
+            .eq('id', originalRow.id);
+        }
+      } catch (err) {
+        console.error('[WEBHOOK] Failed to apply message edit', err);
+      }
+    }
+
+    return jsonResponse({ success: true, ignored: 'edited_message' });
+  }
+
+
 
   let text = '';
   let buttonId = '';
