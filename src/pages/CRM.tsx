@@ -630,7 +630,9 @@ const CRM = () => {
     language?: string;
   } | null>(null);
    const [previewTemplate, setPreviewTemplate] = useState<any>(null);
-   const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<{ url: string; fileName?: string } | null>(null);
+
    const [pastedImage, setPastedImage] = useState<File | null>(null);
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
