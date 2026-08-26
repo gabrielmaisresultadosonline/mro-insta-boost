@@ -9257,6 +9257,14 @@ const CRM = () => {
           onClose={() => setPreviewMedia(null)} 
         />
       )}
+      {previewDocument && (
+        <DocumentPopup
+          url={previewDocument.url}
+          fileName={previewDocument.fileName}
+          onClose={() => setPreviewDocument(null)}
+        />
+      )}
+
 
       <Dialog open={isSyncingContacts} onOpenChange={setIsSyncingContacts}>
         <DialogContent className="sm:max-w-md text-center py-10">
