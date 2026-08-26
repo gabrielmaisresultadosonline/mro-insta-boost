@@ -5894,6 +5894,39 @@ const CRM = () => {
                               </div>
                             </div>
 
+                            {chatSearchOpen && (
+                              <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-border/40 bg-muted/30">
+                                <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <Input
+                                  autoFocus
+                                  value={chatSearchQuery}
+                                  onChange={(e) => setChatSearchQuery(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') { e.preventDefault(); goToSearchMatch(chatSearchIndex + (e.shiftKey ? -1 : 1)); }
+                                    if (e.key === 'Escape') { setChatSearchOpen(false); setChatSearchQuery(''); setHighlightedMessageId(null); }
+                                  }}
+                                  placeholder="Pesquisar nesta conversa..."
+                                  className="h-7 text-xs border-0 bg-transparent focus-visible:ring-0 px-0"
+                                />
+                                <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                                  {chatSearchQuery.trim()
+                                    ? (chatSearchMatches.length ? `${chatSearchIndex + 1}/${chatSearchMatches.length}` : '0/0')
+                                    : ''}
+                                </span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={chatSearchMatches.length === 0} onClick={() => goToSearchMatch(chatSearchIndex - 1)} title="Anterior">
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={chatSearchMatches.length === 0} onClick={() => goToSearchMatch(chatSearchIndex + 1)} title="Próxima">
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => { setChatSearchOpen(false); setChatSearchQuery(''); setHighlightedMessageId(null); }} title="Fechar busca">
+                                  <X className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            )}
+
+
+
                             {(() => { const aiFunctional = isAiVisuallyActive(selectedContact); return ((selectedContact.flow_state && selectedContact.flow_state !== 'idle') || aiFunctional) && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24.5 * 60 * 60 * 1000)) && (
                               <div className={cn(
                                 "flex items-center justify-between gap-2 px-2 py-1 rounded-lg border",
