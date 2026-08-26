@@ -1348,7 +1348,50 @@ const CRM = () => {
     }
   }, [selectedContact?.next_execution_time, selectedContact?.id, now]);
 
+  // ---- Busca dentro da conversa ----
+  const chatSearchMatches = useMemo(() => {
+    const q = chatSearchQuery.trim().toLowerCase();
+    if (!q) return [] as any[];
+    return [...chatMessages]
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .filter((m: any) => ((m.message_text || m.content || '') as string).toLowerCase().includes(q));
+  }, [chatMessages, chatSearchQuery]);
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    if (!messageId) return;
+    const node = document.querySelector(`[data-msg-id="${CSS.escape(messageId)}"]`) as HTMLElement | null;
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedMessageId(messageId);
+  }, []);
+
+  const goToSearchMatch = useCallback((index: number) => {
+    if (chatSearchMatches.length === 0) return;
+    const safeIndex = ((index % chatSearchMatches.length) + chatSearchMatches.length) % chatSearchMatches.length;
+    setChatSearchIndex(safeIndex);
+    scrollToMessage(chatSearchMatches[safeIndex]?.id);
+  }, [chatSearchMatches, scrollToMessage]);
+
+  // Ao digitar, salta automaticamente para a ocorrência mais recente
+  useEffect(() => {
+    if (!chatSearchOpen || chatSearchMatches.length === 0) return;
+    const lastIndex = chatSearchMatches.length - 1;
+    setChatSearchIndex(lastIndex);
+    const timer = setTimeout(() => scrollToMessage(chatSearchMatches[lastIndex]?.id), 80);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatSearchQuery, chatSearchOpen]);
+
+  // Fecha a busca ao trocar de conversa
+  useEffect(() => {
+    setChatSearchOpen(false);
+    setChatSearchQuery('');
+    setChatSearchIndex(0);
+    setHighlightedMessageId(null);
+  }, [selectedContact?.id]);
+
   const prevContactIdRef = useRef<string | null>(null);
+
   const prevMsgCountRef = useRef<number>(0);
   const pendingScrollToBottomRef = useRef<boolean>(false);
   useEffect(() => {
