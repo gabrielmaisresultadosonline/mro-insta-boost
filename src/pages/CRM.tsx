@@ -632,6 +632,12 @@ const CRM = () => {
    const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
   const [previewDocument, setPreviewDocument] = useState<{ url: string; fileName?: string } | null>(null);
+  // Busca de mensagens dentro da conversa aberta
+  const [chatSearchOpen, setChatSearchOpen] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [chatSearchIndex, setChatSearchIndex] = useState(0);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
 
    const [pastedImage, setPastedImage] = useState<File | null>(null);
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
