@@ -1035,6 +1035,55 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
     return jsonResponse({ success: true, ignored: 'echo_already_handled' });
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // EDIÇÃO DE MENSAGEM
+  // O contato editou uma mensagem já enviada. Isso NÃO é uma nova
+  // mensagem: não pode disparar fluxo, não conta como resposta de
+  // "aguardando resposta" e não aciona o Agente I.A.
+  // Apenas atualizamos o conteúdo já salvo na conversa.
+  // ─────────────────────────────────────────────────────────────
+  const editInfo = detectEditedInboundMessage(message, webhookField);
+  if (editInfo.isEdit) {
+    const newText = extractInboundTextFromWebhookMessage(message) || message?.text?.body || '';
+    const targetMetaId = editInfo.originalMessageId || message?.id;
+    webhookAiLog('edited_message_ignored', {
+      original_message_id: editInfo.originalMessageId,
+      target_meta_id: targetMetaId,
+    });
+
+    if (!skipSave && targetMetaId && newText) {
+      try {
+        const { data: originalRow } = await supabase
+          .from('crm_messages')
+          .select('id, content, metadata')
+          .eq('meta_message_id', targetMetaId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (originalRow) {
+          await supabase
+            .from('crm_messages')
+            .update({
+              content: newText,
+              metadata: {
+                ...(originalRow.metadata || {}),
+                edited: true,
+                edited_at: new Date().toISOString(),
+                previous_content: originalRow.content || null,
+              },
+            })
+            .eq('id', originalRow.id);
+        }
+      } catch (err) {
+        console.error('[WEBHOOK] Failed to apply message edit', err);
+      }
+    }
+
+    return jsonResponse({ success: true, ignored: 'edited_message' });
+  }
+
+
+
   let text = '';
   let buttonId = '';
   let mediaUrlForSave: string | null = null;
