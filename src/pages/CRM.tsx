@@ -85,7 +85,9 @@ import {
     Moon,
      Sun,
      History as HistoryIcon,
-     BookOpen
+     BookOpen,
+     ChevronUp,
+     ChevronDown
    } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
 const Instagram = (LucideIcons as any).Instagram || Camera;
@@ -632,6 +634,12 @@ const CRM = () => {
    const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
   const [previewDocument, setPreviewDocument] = useState<{ url: string; fileName?: string } | null>(null);
+  // Busca de mensagens dentro da conversa aberta
+  const [chatSearchOpen, setChatSearchOpen] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [chatSearchIndex, setChatSearchIndex] = useState(0);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
 
    const [pastedImage, setPastedImage] = useState<File | null>(null);
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
@@ -1342,7 +1350,50 @@ const CRM = () => {
     }
   }, [selectedContact?.next_execution_time, selectedContact?.id, now]);
 
+  // ---- Busca dentro da conversa ----
+  const chatSearchMatches = useMemo(() => {
+    const q = chatSearchQuery.trim().toLowerCase();
+    if (!q) return [] as any[];
+    return [...chatMessages]
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .filter((m: any) => ((m.message_text || m.content || '') as string).toLowerCase().includes(q));
+  }, [chatMessages, chatSearchQuery]);
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    if (!messageId) return;
+    const node = document.querySelector(`[data-msg-id="${CSS.escape(messageId)}"]`) as HTMLElement | null;
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedMessageId(messageId);
+  }, []);
+
+  const goToSearchMatch = useCallback((index: number) => {
+    if (chatSearchMatches.length === 0) return;
+    const safeIndex = ((index % chatSearchMatches.length) + chatSearchMatches.length) % chatSearchMatches.length;
+    setChatSearchIndex(safeIndex);
+    scrollToMessage(chatSearchMatches[safeIndex]?.id);
+  }, [chatSearchMatches, scrollToMessage]);
+
+  // Ao digitar, salta automaticamente para a ocorrência mais recente
+  useEffect(() => {
+    if (!chatSearchOpen || chatSearchMatches.length === 0) return;
+    const lastIndex = chatSearchMatches.length - 1;
+    setChatSearchIndex(lastIndex);
+    const timer = setTimeout(() => scrollToMessage(chatSearchMatches[lastIndex]?.id), 80);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatSearchQuery, chatSearchOpen]);
+
+  // Fecha a busca ao trocar de conversa
+  useEffect(() => {
+    setChatSearchOpen(false);
+    setChatSearchQuery('');
+    setChatSearchIndex(0);
+    setHighlightedMessageId(null);
+  }, [selectedContact?.id]);
+
   const prevContactIdRef = useRef<string | null>(null);
+
   const prevMsgCountRef = useRef<number>(0);
   const pendingScrollToBottomRef = useRef<boolean>(false);
   useEffect(() => {
@@ -1365,8 +1416,8 @@ const CRM = () => {
     };
 
     // Always scroll to bottom when opening a different conversation.
-    // Repeat across a few frames because messages/images can still be loading
-    // and pushing content height after the initial paint.
+    // Keep forcing it for a couple of seconds because images/audios still
+    // loading keep pushing the content height after the first paint.
     if (contactChanged) {
       pendingScrollToBottomRef.current = true;
       jumpToBottom();
@@ -1374,10 +1425,32 @@ const CRM = () => {
         jumpToBottom();
         requestAnimationFrame(jumpToBottom);
       });
-      setTimeout(jumpToBottom, 120);
-      setTimeout(jumpToBottom, 350);
-      setTimeout(() => { pendingScrollToBottomRef.current = false; }, 800);
-      return;
+
+      const interval = setInterval(() => {
+        if (!pendingScrollToBottomRef.current) return;
+        jumpToBottom();
+      }, 120);
+
+      // React to late layout changes (media loading) while still pending
+      let observer: ResizeObserver | null = null;
+      if (viewport && typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(() => {
+          if (pendingScrollToBottomRef.current) jumpToBottom();
+        });
+        Array.from(viewport.children).forEach((child) => observer!.observe(child as Element));
+      }
+
+      const stopTimer = setTimeout(() => {
+        pendingScrollToBottomRef.current = false;
+        clearInterval(interval);
+        observer?.disconnect();
+      }, 2500);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(stopTimer);
+        observer?.disconnect();
+      };
     }
     // If we just received the first batch of messages for this conversation,
     // still force the scroll to the bottom (no "near bottom" heuristic).
@@ -1386,6 +1459,7 @@ const CRM = () => {
       requestAnimationFrame(jumpToBottom);
       return;
     }
+
     // Only auto-scroll on new messages if the user is already near the bottom
     if (newCount > prevCount && viewport) {
       const distanceFromBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
@@ -5773,7 +5847,25 @@ const CRM = () => {
                               </div>
 
                               <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={cn(
+                                    "h-7 w-7 rounded-full shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10",
+                                    chatSearchOpen && "bg-primary/10 text-primary"
+                                  )}
+                                  title="Pesquisar mensagens nesta conversa"
+                                  onClick={() => {
+                                    setChatSearchOpen((v) => {
+                                      if (v) { setChatSearchQuery(''); setHighlightedMessageId(null); }
+                                      return !v;
+                                    });
+                                  }}
+                                >
+                                  <Search className="w-3.5 h-3.5" />
+                                </Button>
                                 <div className="flex items-center gap-1 flex-wrap justify-end">
+
                                   {selectedContact.last_message_received_at && (
                                     <div className="flex items-center gap-1 bg-white/50 dark:bg-black/20 px-1 sm:px-1.5 py-0.5 rounded border border-border/10 shadow-sm shrink-0">
                                       <Clock className={cn("w-2.5 h-2.5", getWindowInfo(selectedContact.last_message_received_at)?.isExpired ? 'text-destructive animate-pulse' : 'text-[#00a884]')} />
@@ -5801,6 +5893,39 @@ const CRM = () => {
                                 </div>
                               </div>
                             </div>
+
+                            {chatSearchOpen && (
+                              <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-border/40 bg-muted/30">
+                                <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <Input
+                                  autoFocus
+                                  value={chatSearchQuery}
+                                  onChange={(e) => setChatSearchQuery(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') { e.preventDefault(); goToSearchMatch(chatSearchIndex + (e.shiftKey ? -1 : 1)); }
+                                    if (e.key === 'Escape') { setChatSearchOpen(false); setChatSearchQuery(''); setHighlightedMessageId(null); }
+                                  }}
+                                  placeholder="Pesquisar nesta conversa..."
+                                  className="h-7 text-xs border-0 bg-transparent focus-visible:ring-0 px-0"
+                                />
+                                <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                                  {chatSearchQuery.trim()
+                                    ? (chatSearchMatches.length ? `${chatSearchIndex + 1}/${chatSearchMatches.length}` : '0/0')
+                                    : ''}
+                                </span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={chatSearchMatches.length === 0} onClick={() => goToSearchMatch(chatSearchIndex - 1)} title="Anterior">
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={chatSearchMatches.length === 0} onClick={() => goToSearchMatch(chatSearchIndex + 1)} title="Próxima">
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => { setChatSearchOpen(false); setChatSearchQuery(''); setHighlightedMessageId(null); }} title="Fechar busca">
+                                  <XCircle className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            )}
+
+
 
                             {(() => { const aiFunctional = isAiVisuallyActive(selectedContact); return ((selectedContact.flow_state && selectedContact.flow_state !== 'idle') || aiFunctional) && (!selectedContact.last_message_received_at || (Date.now() - new Date(selectedContact.last_message_received_at).getTime()) < (24.5 * 60 * 60 * 1000)) && (
                               <div className={cn(
@@ -6138,10 +6263,14 @@ const CRM = () => {
                                         </span>
                                       </div>
                                     )}
-                                  <div className={cn(
-                                    "flex w-full mb-1 min-w-0",
-                                    m.direction === 'inbound' ? 'justify-start' : 'justify-end'
+                                  <div
+                                    data-msg-id={m.id}
+                                    className={cn(
+                                    "flex w-full mb-1 min-w-0 rounded-xl transition-all duration-500",
+                                    m.direction === 'inbound' ? 'justify-start' : 'justify-end',
+                                    highlightedMessageId && highlightedMessageId === m.id && 'ring-2 ring-yellow-400 bg-yellow-400/10'
                                   )}>
+
                                     <div className={cn(
                                       "p-2 md:p-2.5 rounded-xl max-w-[88%] sm:max-w-[80%] md:max-w-[75%] min-w-0 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] relative transition-all duration-300",
                                       m.direction === 'inbound' 
