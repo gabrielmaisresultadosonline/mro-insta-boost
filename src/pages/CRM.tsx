@@ -100,6 +100,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TemplateBuilder from "@/components/whatsapp/TemplateBuilder";
 import FlowEditor from "@/components/crm/FlowEditor";
 import { MediaPopup } from "@/components/MediaPopup";
+import { DocumentPopup } from "@/components/crm/DocumentPopup";
+
 import Broadcaster from "@/components/crm/Broadcaster";
 import { SwipeableContactRow } from "@/components/crm/SwipeableContactRow";
 import { ImageEditor } from "@/components/crm/ImageEditor";
@@ -628,7 +630,9 @@ const CRM = () => {
     language?: string;
   } | null>(null);
    const [previewTemplate, setPreviewTemplate] = useState<any>(null);
-   const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<{ url: string; fileName?: string } | null>(null);
+
    const [pastedImage, setPastedImage] = useState<File | null>(null);
    const [pastedImagePreview, setPastedImagePreview] = useState<string | null>(null);
   const [imageEditorOpen, setImageEditorOpen] = useState(false);
@@ -6306,18 +6310,19 @@ const CRM = () => {
                                           )}
                                           {m.message_type === 'document' && m.media_url && (
                                             <div 
-                                              onClick={() => window.open(m.media_url, '_blank')}
+                                              onClick={() => setPreviewDocument({ url: m.media_url, fileName: m.metadata?.fileName || m.metadata?.filename || m.file_name || undefined })}
                                               className="mb-2 p-3 rounded-xl bg-muted/20 border border-border/20 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors"
                                             >
                                               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                                                 <FileText className="w-5 h-5 text-primary" />
                                               </div>
                                               <div className="flex-1 overflow-hidden">
-                                                <div className="text-[13px] font-medium truncate">Documento</div>
-                                                <div className="text-[10px] opacity-60">Clique para abrir</div>
+                                                <div className="text-[13px] font-medium truncate">{m.metadata?.fileName || m.metadata?.filename || m.file_name || 'Documento'}</div>
+                                                <div className="text-[10px] opacity-60">Clique para visualizar</div>
                                               </div>
                                             </div>
                                           )}
+
                                           {m.message_type === 'location' && (
                                             <div className="mb-2 p-3 rounded-xl bg-muted/20 border border-border/20 flex flex-col gap-2">
                                               <div className="flex items-center gap-2">
@@ -9252,6 +9257,14 @@ const CRM = () => {
           onClose={() => setPreviewMedia(null)} 
         />
       )}
+      {previewDocument && (
+        <DocumentPopup
+          url={previewDocument.url}
+          fileName={previewDocument.fileName}
+          onClose={() => setPreviewDocument(null)}
+        />
+      )}
+
 
       <Dialog open={isSyncingContacts} onOpenChange={setIsSyncingContacts}>
         <DialogContent className="sm:max-w-md text-center py-10">
