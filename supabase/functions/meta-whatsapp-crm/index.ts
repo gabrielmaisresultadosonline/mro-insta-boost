@@ -1003,8 +1003,14 @@ async function handleProcessWebhook(supabase: any, entry: any, skipSave = false,
   if (allEchoes.length > 0) {
     const results = [];
     for (const echo of allEchoes) {
+      // Edições de mensagens enviadas pela empresa também não geram nova bolha.
+      if (detectEditedInboundMessage(echo, webhookField).isEdit) {
+        results.push({ ignored: 'edited_echo', id: echo?.id || null });
+        continue;
+      }
       results.push(await saveOutboundEcho(supabase, userId, echo, businessPhone));
     }
+
     if (allEchoes.length === (value.messages?.length || 0) || echoes.length > 0) {
       return jsonResponse({ success: true, type: 'echoes', results });
     }
