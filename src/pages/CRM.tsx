@@ -85,7 +85,9 @@ import {
     Moon,
      Sun,
      History as HistoryIcon,
-     BookOpen
+     BookOpen,
+     ChevronUp,
+     ChevronDown
    } from "lucide-react";
 import * as LucideIcons from 'lucide-react';
 const Instagram = (LucideIcons as any).Instagram || Camera;
