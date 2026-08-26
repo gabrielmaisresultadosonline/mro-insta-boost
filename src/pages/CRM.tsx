@@ -100,6 +100,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TemplateBuilder from "@/components/whatsapp/TemplateBuilder";
 import FlowEditor from "@/components/crm/FlowEditor";
 import { MediaPopup } from "@/components/MediaPopup";
+import { DocumentPopup } from "@/components/crm/DocumentPopup";
+
 import Broadcaster from "@/components/crm/Broadcaster";
 import { SwipeableContactRow } from "@/components/crm/SwipeableContactRow";
 import { ImageEditor } from "@/components/crm/ImageEditor";
