@@ -4621,8 +4621,8 @@ const CRM = () => {
   const isWhatsAppConnected = whatsAppConnectionConfirmed || !!(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id);
   if (!loading && !isWhatsAppConnected) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#0c1317] via-[#111b21] to-[#0c1317] p-6">
-        <div className="max-w-xl w-full bg-[#202c33] rounded-2xl shadow-2xl border border-white/5 p-8 text-center">
+      <div className="min-h-screen w-full flex flex-col lg:flex-row items-center justify-center gap-6 bg-gradient-to-br from-[#0c1317] via-[#111b21] to-[#0c1317] p-6">
+        <div className="max-w-xl w-full bg-[#202c33] rounded-2xl shadow-2xl border border-white/5 p-8 text-center order-2 lg:order-1">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#00a884]/10 flex items-center justify-center">
             <MessageSquare className="w-10 h-10 text-[#00a884]" />
           </div>
