@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react';
 import { WhatsAppAudioPlayer } from '@/components/crm/WhatsAppAudioPlayer';
+import { openWhatsAppChat } from '@/lib/whatsapp';
  import { useNavigate, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -4621,8 +4622,8 @@ const CRM = () => {
   const isWhatsAppConnected = whatsAppConnectionConfirmed || !!(metaSettings.meta_access_token && metaSettings.meta_phone_number_id && metaSettings.meta_waba_id);
   if (!loading && !isWhatsAppConnected) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#0c1317] via-[#111b21] to-[#0c1317] p-6">
-        <div className="max-w-xl w-full bg-[#202c33] rounded-2xl shadow-2xl border border-white/5 p-8 text-center">
+      <div className="min-h-screen w-full flex flex-col lg:flex-row items-center justify-center gap-6 bg-gradient-to-br from-[#0c1317] via-[#111b21] to-[#0c1317] p-6">
+        <div className="max-w-xl w-full bg-[#202c33] rounded-2xl shadow-2xl border border-white/5 p-8 text-center order-2 lg:order-1">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#00a884]/10 flex items-center justify-center">
             <MessageSquare className="w-10 h-10 text-[#00a884]" />
           </div>
@@ -4663,6 +4664,29 @@ const CRM = () => {
             </a>
           </div>
         </div>
+
+        {/* Nuvem de conversa — suporte para quem não tem CNPJ / portfólio verificado */}
+        <button
+          type="button"
+          onClick={() =>
+            openWhatsAppChat(
+              "5551992835863",
+              "Vim pelo ZAPMRO gostaria de saber sobre a solução para quem não tem CNPJ ou quem não esta com portifolio verificado"
+            )
+          }
+          className="order-1 lg:order-2 relative w-full max-w-xs lg:max-w-[260px] text-left rounded-2xl bg-orange-500 hover:bg-orange-600 transition-colors text-white p-4 shadow-xl shadow-orange-500/20 animate-pulse-slow"
+        >
+          <span className="hidden lg:block absolute top-8 -left-2 w-4 h-4 rotate-45 bg-orange-500" />
+          <span className="lg:hidden absolute -bottom-2 left-8 w-4 h-4 rotate-45 bg-orange-500" />
+          <span className="flex items-start gap-2">
+            <MessageSquare className="w-5 h-5 shrink-0 mt-0.5" />
+            <span className="text-sm font-semibold leading-snug">
+              Não tens CNPJ para utilizar? Não tens o portifólio verificado?{" "}
+              <span className="underline">Entre em contato conosco no WhatsApp.</span>
+            </span>
+          </span>
+        </button>
+
       </div>
     );
   }
