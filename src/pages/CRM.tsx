@@ -4663,6 +4663,29 @@ const CRM = () => {
             </a>
           </div>
         </div>
+
+        {/* Nuvem de conversa — suporte para quem não tem CNPJ / portfólio verificado */}
+        <button
+          type="button"
+          onClick={() =>
+            openWhatsAppChat(
+              "5551992835863",
+              "Vim pelo ZAPMRO gostaria de saber sobre a solução para quem não tem CNPJ ou quem não esta com portifolio verificado"
+            )
+          }
+          className="order-1 lg:order-2 relative w-full max-w-xs lg:max-w-[260px] text-left rounded-2xl bg-orange-500 hover:bg-orange-600 transition-colors text-white p-4 shadow-xl shadow-orange-500/20 animate-pulse-slow"
+        >
+          <span className="hidden lg:block absolute top-8 -left-2 w-4 h-4 rotate-45 bg-orange-500" />
+          <span className="lg:hidden absolute -bottom-2 left-8 w-4 h-4 rotate-45 bg-orange-500" />
+          <span className="flex items-start gap-2">
+            <MessageSquare className="w-5 h-5 shrink-0 mt-0.5" />
+            <span className="text-sm font-semibold leading-snug">
+              Não tens CNPJ para utilizar? Não tens o portifólio verificado?{" "}
+              <span className="underline">Entre em contato conosco no WhatsApp.</span>
+            </span>
+          </span>
+        </button>
+
       </div>
     );
   }
