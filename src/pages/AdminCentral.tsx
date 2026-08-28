@@ -224,8 +224,8 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
               <Shield className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#075E54]">Senhas preservadas</p>
-              <p className="text-xs text-[#128C7E]/70">Hash bcrypt intacto — usuários não perdem acesso</p>
+              <p className="text-sm font-bold text-[#075E54]">Auth exportado (INSERT)</p>
+              <p className="text-xs text-[#128C7E]/70">auth.users + identidades — testar em banco descartável antes de restaurar</p>
             </div>
           </div>
         </Card>
@@ -235,8 +235,8 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
               <FileText className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#075E54]">SQL compatível</p>
-              <p className="text-xs text-[#128C7E]/70">Formato COPY compatible com pg_restore</p>
+              <p className="text-sm font-bold text-[#075E54]">SQL puro (INSERT)</p>
+              <p className="text-xs text-[#128C7E]/70">Compatível com psql — não usa COPY/pg_restore</p>
             </div>
           </div>
         </Card>
