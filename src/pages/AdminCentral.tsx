@@ -852,6 +852,9 @@ export default function AdminCentral() {
 
           <TabsContent value="migration" className="mt-4">
             <MigrationPanel creds={creds} />
+            <div className="mt-6">
+              <MigrationExtras />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
