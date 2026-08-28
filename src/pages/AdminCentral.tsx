@@ -11,6 +11,7 @@ import AnnouncementsAdminPanel from "@/components/admin/AnnouncementsAdminPanel"
 import SalesOrdersPanel from "@/components/admin/SalesOrdersPanel";
 import TutorialsAdminPanel from "@/components/admin/TutorialsAdminPanel";
 import TrialsPanel from "@/components/admin/TrialsPanel";
+import MigrationExtras from "@/components/admin/MigrationExtras";
 import { toast } from "sonner";
 import {
   Loader2,
