@@ -117,7 +117,10 @@ serve(async (req) => {
         return json({ success: false, error: "kind inválido" }, 400);
       }
 
-      const lines = sql.trim() ? sql.trim().split("\n").length : 0;
+      // Conta statements reais (valores podem conter quebras de linha)
+      const lines = kind === "storage"
+        ? (sql.match(/^-- FILE /gm) || []).length
+        : sql.split("\n").filter((l) => l.startsWith("INSERT INTO ")).length;
       return json({ success: true, sql, lines });
     }
 
