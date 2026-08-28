@@ -184,7 +184,7 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
           <div className="flex-1">
             <h3 className="text-lg font-bold mb-1">Exportar Dump SQL</h3>
             <p className="text-sm text-white/80 leading-relaxed">
-              Exporta todo o banco de dados conectado como um arquivo SQL completo — inclui todos os cadastros de usuários, conversas, contatos, configurações, auth.users (com senhas hasheadas) e metadados. Use este arquivo para migrar para outro projeto Supabase ou fazer backup de segurança.
+              Exporta todo o banco de dados conectado como um arquivo SQL completo — inclui todas as tabelas, todos os dados, funções PostgreSQL, triggers, políticas RLS, índices, relacionamentos (FKs) e permissões (grants). Não inclui: usuários do Auth (login/senha), arquivos do Storage e Edge Functions — estes precisam de migração separada.
             </p>
           </div>
         </div>
