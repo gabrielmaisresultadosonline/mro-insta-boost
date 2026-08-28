@@ -28,6 +28,15 @@ import {
   TrendingUp,
   Zap,
   ExternalLink,
+  Database,
+  Download,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Shield,
 } from "lucide-react";
 
 type AdminUser = {
@@ -49,6 +58,13 @@ type Insights = {
   totalSent: number;
   totalContacts: number;
   paidConversations: number;
+};
+
+type DumpProgress = {
+  phase: string;
+  current: number;
+  total: number;
+  detail: string;
 };
 
 const STORAGE_KEY = "admincentral_creds_v1";
@@ -88,6 +104,242 @@ function ReportStat({
         <div className="text-[10px] text-[#128C7E] mt-1 font-semibold">
           {active ? "Ocultar lista ▲" : "Ver lista ▼"}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * MigrationPanel — exporta dump SQL do banco conectado
+ */
+function MigrationPanel({ creds }: { creds: { email: string; password: string } }) {
+  const [dumping, setDumping] = useState(false);
+  const [progress, setProgress] = useState<DumpProgress | null>(null);
+  const [dumpResult, setDumpResult] = useState<{ sql: string; tablesCount: number; rowsCount: number } | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  async function startDump() {
+    setDumping(true);
+    setDumpResult(null);
+    setProgress({ phase: "Conectando...", current: 0, total: 0, detail: "" });
+
+    try {
+      // Busca todas as tabelas do banco via RPC
+      setProgress({ phase: "Mapeando tabelas...", current: 1, total: 6, detail: "Listando esquemas" });
+
+      // Usa a edge function de admin para fazer o dump
+      const { data, error } = await supabase.functions.invoke("crm-central-admin", {
+        body: {
+          action: "export_dump_sql",
+          adminEmail: creds.email,
+          adminPassword: creds.password,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao gerar dump");
+
+      setProgress({ phase: "Finalizando...", current: 6, total: 6, detail: "Preparando download" });
+      setDumpResult({
+        sql: data.sql,
+        tablesCount: data.tablesCount,
+        rowsCount: data.rowsCount,
+      });
+      toast.success("Dump SQL gerado com sucesso!");
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao exportar dump");
+    } finally {
+      setDumping(false);
+      setProgress(null);
+    }
+  }
+
+  function downloadDump() {
+    if (!dumpResult) return;
+    const blob = new Blob([dumpResult.sql], { type: "text/sql;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `mro_backup_${date}.sql`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Download iniciado!");
+  }
+
+  function copyToClipboard() {
+    if (!dumpResult) return;
+    navigator.clipboard.writeText(dumpResult.sql);
+    toast.success("SQL copiado para a área de transferência");
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Card de instrução */}
+      <Card className="p-5 bg-gradient-to-br from-[#075E54] to-[#128C7E] border-0 text-white shadow-xl">
+        <div className="flex items-start gap-4">
+          <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <Database className="h-6 w-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold mb-1">Exportar Dump SQL</h3>
+            <p className="text-sm text-white/80 leading-relaxed">
+              Exporta todo o banco de dados conectado como um arquivo SQL completo — inclui todos os cadastros de usuários, conversas, contatos, configurações, auth.users (com senhas hasheadas) e metadados. Use este arquivo para migrar para outro projeto Supabase ou fazer backup de segurança.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Info boxes */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-4 bg-white border-[#E8F5F1]">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+              <Shield className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#075E54]">Senhas preservadas</p>
+              <p className="text-xs text-[#128C7E]/70">Hash bcrypt intacto — usuários não perdem acesso</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 bg-white border-[#E8F5F1]">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#075E54]">SQL compatível</p>
+              <p className="text-xs text-[#128C7E]/70">Formato COPY compatible com pg_restore</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 bg-white border-[#E8F5F1]">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#075E54]">Funciona offline</p>
+              <p className="text-xs text-[#128C7E]/70">Arquivo .sql pode ser guardado localmente</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Progress ou Resultado */}
+      {dumping && progress && (
+        <Card className="p-6 bg-white border-[#E8F5F1]">
+          <div className="flex items-center gap-4 mb-4">
+            <Loader2 className="h-6 w-6 animate-spin text-[#25D366]" />
+            <div>
+              <p className="font-semibold text-[#075E54]">{progress.phase}</p>
+              <p className="text-xs text-[#128C7E]/70">{progress.detail}</p>
+            </div>
+          </div>
+          <div className="h-2 w-full rounded-full bg-[#E8F5F1] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#25D366] to-[#128C7E] transition-all duration-500"
+              style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
+            />
+          </div>
+        </Card>
+      )}
+
+      {dumpResult && !dumping && (
+        <>
+          {/* Stats do dump */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-4 bg-[#F0FDF4] border-[#E8F5F1] text-center">
+              <p className="text-2xl font-bold text-[#075E54]">{dumpResult.tablesCount}</p>
+              <p className="text-xs text-[#128C7E]/70">Tabelas exportadas</p>
+            </Card>
+            <Card className="p-4 bg-[#F0FDF4] border-[#E8F5F1] text-center">
+              <p className="text-2xl font-bold text-[#075E54]">{dumpResult.rowsCount.toLocaleString("pt-BR")}</p>
+              <p className="text-xs text-[#128C7E]/70">Linhas exportadas</p>
+            </Card>
+            <Card className="p-4 bg-[#F0FDF4] border-[#E8F5F1] text-center">
+              <p className="text-2xl font-bold text-[#075E54]">{(dumpResult.sql.length / 1024 / 1024).toFixed(1)} MB</p>
+              <p className="text-xs text-[#128C7E]/70">Tamanho do arquivo</p>
+            </Card>
+            <Card className="p-4 bg-[#F0FDF4] border-[#E8F5F1] text-center">
+              <p className="text-2xl font-bold text-green-600">✓</p>
+              <p className="text-xs text-[#128C7E]/70">Dump pronto</p>
+            </Card>
+          </div>
+
+          {/* Preview */}
+          <Card className="bg-white border-[#E8F5F1] overflow-hidden">
+            <div
+              className="flex items-center justify-between p-3 border-b border-[#E8F5F1] bg-slate-50 cursor-pointer"
+              onClick={() => setPreviewOpen((v) => !v)}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#128C7E]" />
+                <span className="text-sm font-medium text-[#075E54]">Prévia do SQL (primeiras 50 linhas)</span>
+              </div>
+              {previewOpen ? (
+                <ChevronUp className="h-4 w-4 text-[#128C7E]" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-[#128C7E]" />
+              )}
+            </div>
+            {previewOpen && (
+              <pre className="p-4 text-xs text-slate-600 font-mono overflow-x-auto max-h-64 bg-slate-900 text-green-400 leading-relaxed">
+                {dumpResult.sql.split("\n").slice(0, 50).join("\n")}
+                {dumpResult.sql.split("\n").length > 50 && "\n\n-- ... (continua no arquivo baixado)"}
+              </pre>
+            )}
+          </Card>
+
+          {/* Ações */}
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={downloadDump}
+              className="bg-[#25D366] hover:bg-[#128C7E] text-white gap-2"
+            >
+              <Download className="h-4 w-4" /> Baixar .sql
+            </Button>
+            <Button
+              variant="outline"
+              onClick={copyToClipboard}
+              className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4] gap-2"
+            >
+              <Copy className="h-4 w-4" /> Copiar SQL
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setDumpResult(null); }}
+              className="bg-white border-[#E8F5F1] text-[#075E54] hover:bg-[#F0FDF4] gap-2"
+            >
+              <RefreshCw className="h-4 w-4" /> Novo dump
+            </Button>
+          </div>
+
+          {/* Alerta de segurança */}
+          <Card className="p-4 bg-amber-50 border-amber-200">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-800">
+                <p className="font-semibold mb-1">Arquivo contém dados sensíveis</p>
+                <p className="text-xs text-amber-700">
+                  O dump inclui e-mails, senhas hasheadas (não legíveis), mensagens e dados de contatos. Armazene o arquivo em local seguro e não compartilhe publicamente. Para restaurar em outro projeto Supabase, use o Dashboard &gt; SQL Editor &gt; Open file &gt; Run.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {/* Botão principal */}
+      {!dumpResult && !dumping && (
+        <Button
+          onClick={startDump}
+          className="bg-[#25D366] hover:bg-[#128C7E] text-white text-base px-8 py-6 rounded-xl gap-3 shadow-lg"
+        >
+          <Database className="h-5 w-5" />
+          <span>Exportar Dump SQL Completo</span>
+        </Button>
       )}
     </div>
   );
@@ -164,12 +416,6 @@ export default function AdminCentral() {
     setSelected(null);
   }
 
-  /**
-   * Carrega os usuários com novas tentativas automáticas.
-   * O banco pode responder com timeout momentâneo em picos de uso; nesses casos
-   * a tela ficava vazia até o admin recarregar manualmente. Agora tentamos de
-   * novo (com espera progressiva) antes de mostrar erro.
-   */
   async function loadUsers(attempt = 0) {
     setLoading(true);
     try {
@@ -366,16 +612,18 @@ export default function AdminCentral() {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="bg-white border border-[#E8F5F1] shadow-sm">
+          <TabsList className="bg-white border border-[#E8F5F1] shadow-sm flex flex-wrap h-auto gap-1">
             <TabsTrigger value="users" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Cadastros & Números</TabsTrigger>
             <TabsTrigger value="trials" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Testes & Acessos</TabsTrigger>
             <TabsTrigger value="sales" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Vendas</TabsTrigger>
             <TabsTrigger value="announcements" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Avisos (Popup)</TabsTrigger>
             <TabsTrigger value="tutorials" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Tutoriais</TabsTrigger>
+            <TabsTrigger value="migration" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white gap-1.5">
+              <Database className="h-3.5 w-3.5" /> Migração
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4 mt-4">
-        {/* WhatsApp-themed report */}
         {!loading && users.length > 0 && (
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#075E54] via-[#128C7E] to-[#25D366] p-1 shadow-xl">
             <div className="rounded-[14px] bg-white p-5 md:p-6">
@@ -566,6 +814,10 @@ export default function AdminCentral() {
 
           <TabsContent value="tutorials" className="mt-4">
             <TutorialsAdminPanel />
+          </TabsContent>
+
+          <TabsContent value="migration" className="mt-4">
+            <MigrationPanel creds={creds} />
           </TabsContent>
         </Tabs>
       </div>
