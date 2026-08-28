@@ -5302,6 +5302,24 @@ export type Database = {
       }
     }
     Functions: {
+      admin_dump_fks: { Args: never; Returns: string }
+      admin_dump_functions: { Args: never; Returns: string }
+      admin_dump_grants: { Args: never; Returns: string }
+      admin_dump_indexes: { Args: never; Returns: string }
+      admin_dump_policies: { Args: never; Returns: string }
+      admin_dump_schema: { Args: never; Returns: string }
+      admin_dump_table_rows: {
+        Args: { p_limit: number; p_offset: number; p_table: string }
+        Returns: string
+      }
+      admin_dump_triggers: { Args: never; Returns: string }
+      admin_list_public_tables: {
+        Args: never
+        Returns: {
+          row_count: number
+          table_name: string
+        }[]
+      }
       claim_crm_contacts_for_google_sync: {
         Args: { p_claim_token: string; p_limit: number; p_user_id: string }
         Returns: {

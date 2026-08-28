@@ -44,6 +44,90 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "export_dump_sql") {
+      const rpcText = async (fn: string, args: Record<string, unknown> = {}): Promise<string> => {
+        const { data, error } = await supabase.rpc(fn, args);
+        if (error) throw new Error(`${fn}: ${error.message}`);
+        return (data as string) || "";
+      };
+
+      // 1) Lista de tabelas
+      const { data: tables, error: tErr } = await supabase.rpc("admin_list_public_tables");
+      if (tErr) throw tErr;
+      const tableList = (tables || []) as { table_name: string; row_count: number }[];
+
+      // 2) Estrutura (tabelas) + extras (FKs, índices, funções, triggers, RLS, grants)
+      const schemaSql = await rpcText("admin_dump_schema");
+      const fksSql = await rpcText("admin_dump_fks");
+      const indexesSql = await rpcText("admin_dump_indexes");
+      const functionsSql = await rpcText("admin_dump_functions");
+      const triggersSql = await rpcText("admin_dump_triggers");
+      const policiesSql = await rpcText("admin_dump_policies");
+      const grantsSql = await rpcText("admin_dump_grants");
+
+      // 3) Dados, em blocos de 1000 linhas por tabela
+      let rowsCount = 0;
+      const dataParts: string[] = [];
+      for (const t of tableList) {
+        let offset = 0;
+        for (;;) {
+          const chunk = await rpcText("admin_dump_table_rows", {
+            p_table: t.table_name,
+            p_offset: offset,
+            p_limit: 1000,
+          });
+          if (!chunk || !chunk.trim()) break;
+          dataParts.push(`-- Tabela: ${t.table_name}\n${chunk}`);
+          const lines = chunk.trim().split("\n").length;
+          rowsCount += lines;
+          if (lines < 1000) break;
+          offset += 1000;
+        }
+      }
+
+      const header = [
+        `-- MRO Full Database Dump`,
+        `-- Gerado em: ${new Date().toISOString()}`,
+        `-- Tabelas: ${tableList.length} | Linhas: ${rowsCount}`,
+        `-- Inclui: estrutura, dados, funções, triggers, políticas RLS, índices, FKs e permissões`,
+        ``,
+        `BEGIN;`,
+        `SET session_replication_role = replica;`,
+        ``,
+      ].join("\n");
+
+      const sql = [
+        header,
+        `-- ============ ESTRUTURA (TABELAS) ============`,
+        schemaSql,
+        `-- ============ FUNÇÕES ============`,
+        functionsSql,
+        `-- ============ DADOS ============`,
+        dataParts.join("\n\n"),
+        ``,
+        `-- ============ RELACIONAMENTOS (FKs) ============`,
+        fksSql,
+        `-- ============ ÍNDICES ============`,
+        indexesSql,
+        `-- ============ POLÍTICAS RLS ============`,
+        policiesSql,
+        `-- ============ TRIGGERS ============`,
+        triggersSql,
+        `-- ============ PERMISSÕES (GRANTS) ============`,
+        grantsSql,
+        ``,
+        `SET session_replication_role = DEFAULT;`,
+        `COMMIT;`,
+      ].join("\n");
+
+      return json({
+        success: true,
+        sql,
+        tablesCount: tableList.length,
+        rowsCount,
+      });
+    }
+
     if (action === "list_users") {
       // Get all auth users (paginated)
       const allUsers: any[] = [];
