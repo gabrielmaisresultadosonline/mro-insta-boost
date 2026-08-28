@@ -5302,17 +5302,35 @@ export type Database = {
       }
     }
     Functions: {
+      admin_count_auth_users: { Args: never; Returns: number }
+      admin_dump_auth_identities: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: string
+      }
+      admin_dump_auth_users: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: string
+      }
+      admin_dump_cron: { Args: never; Returns: string }
+      admin_dump_extensions: { Args: never; Returns: string }
       admin_dump_fks: { Args: never; Returns: string }
       admin_dump_functions: { Args: never; Returns: string }
       admin_dump_grants: { Args: never; Returns: string }
       admin_dump_indexes: { Args: never; Returns: string }
       admin_dump_policies: { Args: never; Returns: string }
       admin_dump_schema: { Args: never; Returns: string }
+      admin_dump_sequences: { Args: never; Returns: string }
+      admin_dump_storage: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: string
+      }
       admin_dump_table_rows: {
         Args: { p_limit: number; p_offset: number; p_table: string }
         Returns: string
       }
       admin_dump_triggers: { Args: never; Returns: string }
+      admin_dump_types: { Args: never; Returns: string }
+      admin_dump_views: { Args: never; Returns: string }
       admin_list_public_tables: {
         Args: never
         Returns: {
