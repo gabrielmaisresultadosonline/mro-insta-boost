@@ -11,6 +11,7 @@ import AnnouncementsAdminPanel from "@/components/admin/AnnouncementsAdminPanel"
 import SalesOrdersPanel from "@/components/admin/SalesOrdersPanel";
 import TutorialsAdminPanel from "@/components/admin/TutorialsAdminPanel";
 import TrialsPanel from "@/components/admin/TrialsPanel";
+import MigrationPanel from "@/components/admin/MigrationPanel";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -372,6 +373,7 @@ export default function AdminCentral() {
             <TabsTrigger value="sales" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Vendas</TabsTrigger>
             <TabsTrigger value="announcements" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Avisos (Popup)</TabsTrigger>
             <TabsTrigger value="tutorials" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Tutoriais</TabsTrigger>
+            <TabsTrigger value="migration" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Migração</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4 mt-4">
@@ -566,6 +568,10 @@ export default function AdminCentral() {
 
           <TabsContent value="tutorials" className="mt-4">
             <TutorialsAdminPanel />
+          </TabsContent>
+
+          <TabsContent value="migration" className="mt-4">
+            <MigrationPanel creds={creds} />
           </TabsContent>
         </Tabs>
       </div>
