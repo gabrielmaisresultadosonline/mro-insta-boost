@@ -129,32 +129,119 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
   async function startDump() {
     setDumping(true);
     setDumpResult(null);
-    setProgress({ phase: "Conectando...", current: 0, total: 0, detail: "" });
+    setProgress({ phase: "Conectando...", current: 0, total: 100, detail: "" });
+
+    const call = async (payload: Record<string, unknown>) => {
+      const { data, error } = await supabase.functions.invoke("crm-central-admin", {
+        body: { ...payload, adminEmail: creds.email, adminPassword: creds.password },
+      });
+      if (error) throw new Error(error.message || "Falha na comunicação com o servidor");
+      if (!data?.success) throw new Error(data?.error || "Erro ao gerar dump");
+      return data as any;
+    };
 
     try {
-      // Busca todas as tabelas do banco via RPC
-      setProgress({ phase: "Mapeando tabelas...", current: 1, total: 6, detail: "Listando esquemas" });
+      setProgress({ phase: "Mapeando estrutura...", current: 5, total: 100, detail: "Tabelas, funções, RLS" });
+      const meta = await call({ action: "dump_structure" });
+      const tables = (meta.tables || []) as { table_name: string; row_count: number }[];
+      const s = meta.sections || {};
 
-      // Usa a edge function de admin para fazer o dump
-      const { data, error } = await supabase.functions.invoke("crm-central-admin", {
-        body: {
-          action: "export_dump_sql",
-          adminEmail: creds.email,
-          adminPassword: creds.password,
-        },
-      });
+      // Coleta de dados, tabela por tabela, em blocos pequenos
+      const dataParts: string[] = [];
+      let rowsCount = 0;
+      const PAGE = 500;
+      for (let i = 0; i < tables.length; i++) {
+        const t = tables[i];
+        setProgress({
+          phase: "Exportando dados...",
+          current: 10 + Math.round((i / Math.max(tables.length, 1)) * 70),
+          total: 100,
+          detail: `${t.table_name} (${i + 1}/${tables.length})`,
+        });
+        if (!t.row_count) continue;
+        for (let off = 0; ; off += PAGE) {
+          const chunk = await call({ action: "dump_chunk", kind: "rows", table: t.table_name, offset: off, limit: PAGE });
+          if (!chunk.sql || !chunk.sql.trim()) break;
+          dataParts.push(`-- Tabela: ${t.table_name}\n${chunk.sql}`);
+          rowsCount += chunk.lines;
+          if (chunk.lines < PAGE) break;
+        }
+      }
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Erro ao gerar dump");
+      // Auth + storage
+      const collect = async (kind: string, page: number, phase: string) => {
+        const parts: string[] = [];
+        for (let off = 0; ; off += page) {
+          setProgress({ phase, current: 85, total: 100, detail: `${off + parts.length} registros` });
+          const chunk = await call({ action: "dump_chunk", kind, offset: off, limit: page });
+          if (!chunk.sql || !chunk.sql.trim()) break;
+          parts.push(chunk.sql);
+          if (chunk.lines < page) break;
+          if (off > 200000) break;
+        }
+        return parts;
+      };
 
-      setProgress({ phase: "Finalizando...", current: 6, total: 6, detail: "Preparando download" });
+      const authParts = await collect("auth_users", 500, "Exportando Auth...");
+      const identityParts = await collect("auth_identities", 500, "Exportando identidades...");
+      const storageParts = await collect("storage", 1000, "Inventariando Storage...");
+      const filesCount = storageParts.join("\n").match(/^-- FILE /gm)?.length || 0;
+
+      setProgress({ phase: "Montando arquivo...", current: 95, total: 100, detail: "Gerando SQL" });
+      const generatedAt = new Date().toISOString();
+      const sql = [
+        `-- ============================================================`,
+        `-- MRO / ZAPMRO — DUMP COMPLETO DO BANCO`,
+        `-- Gerado em: ${generatedAt}`,
+        `-- Tabelas: ${tables.length} | Linhas: ${rowsCount} | Usuarios Auth: ${meta.usersCount} | Arquivos storage: ${filesCount}`,
+        `-- ============================================================`,
+        ``,
+        `BEGIN;`,
+        `SET session_replication_role = replica;`,
+        ``,
+        `-- ============ 1. EXTENSIONS ============`, s.extensions,
+        `-- ============ 2. TYPES / ENUMS ============`, s.types,
+        `-- ============ 3. SEQUENCES ============`, s.sequences,
+        `-- ============ 4. ESTRUTURA (TABELAS) ============`, s.schema,
+        `-- ============ 5. FUNCOES POSTGRESQL ============`, s.functions,
+        `-- ============ 6. DADOS (SCHEMA PUBLIC) ============`, dataParts.join("\n\n"),
+        `-- ============ 7. AUTH — USUARIOS ============`, authParts.join("\n"),
+        `-- ============ 8. AUTH — IDENTIDADES ============`, identityParts.join("\n"),
+        `-- ============ 9. STORAGE — BUCKETS + INVENTARIO ============`, storageParts.join("\n"),
+        `-- ============ 10. VIEWS ============`, s.views,
+        `-- ============ 11. FKs ============`, s.fks,
+        `-- ============ 12. INDICES ============`, s.indexes,
+        `-- ============ 13. POLITICAS RLS ============`, s.policies,
+        `-- ============ 14. TRIGGERS ============`, s.triggers,
+        `-- ============ 15. GRANTS ============`, s.grants,
+        `-- ============ 16. CRON JOBS ============`, s.cron,
+        ``,
+        `SET session_replication_role = DEFAULT;`,
+        `COMMIT;`,
+      ].join("\n");
+
+      const readme = [
+        `# MIGRACAO ZAPMRO — COMO IMPORTAR NO NOVO BANCO`,
+        ``,
+        `Gerado em: ${generatedAt}`,
+        `Tabelas: ${tables.length} | Linhas: ${rowsCount} | Usuarios Auth: ${meta.usersCount} | Arquivos Storage: ${filesCount}`,
+        ``,
+        `## Importar`,
+        `psql "postgres://postgres:SENHA@HOST:5432/postgres" -f mro_backup.sql | tee restore.log`,
+        ``,
+        `## Fora do SQL (baixe nos outros botoes desta aba)`,
+        `- Binarios do Storage (script Node)`,
+        `- Codigo das Edge Functions (.zip)`,
+        `- Secrets, OAuth/Google/Meta e webhooks: recriar manualmente`,
+      ].join("\n");
+
       setDumpResult({
-        sql: data.sql,
-        readme: data.readme,
-        tablesCount: data.tablesCount,
-        rowsCount: data.rowsCount,
-        usersCount: data.usersCount,
-        filesCount: data.filesCount,
+        sql,
+        readme,
+        tablesCount: tables.length,
+        rowsCount,
+        usersCount: meta.usersCount,
+        filesCount,
       });
       toast.success("Dump completo gerado com sucesso!");
     } catch (err: any) {
@@ -164,6 +251,7 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
       setProgress(null);
     }
   }
+
 
   function triggerDownload(content: string, filename: string, mime: string) {
     const blob = new Blob([content], { type: mime });

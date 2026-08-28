@@ -44,6 +44,88 @@ serve(async (req) => {
       return json({ success: true });
     }
 
+    /**
+     * Dump em pedaços — evita estourar tempo/memória da edge function.
+     * dump_structure: metadados + estrutura (leve)
+     * dump_chunk: um bloco de dados por vez (rows/auth/storage)
+     */
+    if (action === "dump_structure" || action === "dump_chunk") {
+      const rpcText = async (fn: string, args: Record<string, unknown> = {}): Promise<string> => {
+        const { data, error } = await supabase.rpc(fn, args);
+        if (error) throw new Error(`${fn}: ${error.message}`);
+        return (data as string) || "";
+      };
+      const safe = async (fn: string, args: Record<string, unknown> = {}): Promise<string> => {
+        try {
+          return await rpcText(fn, args);
+        } catch (e) {
+          return `-- ERRO ao exportar ${fn}: ${(e as Error).message}`;
+        }
+      };
+
+      if (action === "dump_structure") {
+        const { data: tables, error: tErr } = await supabase.rpc("admin_list_public_tables");
+        if (tErr) throw tErr;
+        let usersCount = 0;
+        try {
+          const { data: uc } = await supabase.rpc("admin_count_auth_users");
+          usersCount = Number(uc || 0);
+        } catch (_e) { /* ignore */ }
+
+        const [
+          extensions, types, sequences, schema, functions,
+          views, fks, indexes, policies, triggers, grants, cron,
+        ] = await Promise.all([
+          safe("admin_dump_extensions"),
+          safe("admin_dump_types"),
+          safe("admin_dump_sequences"),
+          safe("admin_dump_schema"),
+          safe("admin_dump_functions"),
+          safe("admin_dump_views"),
+          safe("admin_dump_fks"),
+          safe("admin_dump_indexes"),
+          safe("admin_dump_policies"),
+          safe("admin_dump_triggers"),
+          safe("admin_dump_grants"),
+          safe("admin_dump_cron"),
+        ]);
+
+        return json({
+          success: true,
+          tables: tables || [],
+          usersCount,
+          sections: { extensions, types, sequences, schema, functions, views, fks, indexes, policies, triggers, grants, cron },
+        });
+      }
+
+      // dump_chunk
+      const { kind, table, offset = 0, limit } = body as any;
+      let sql = "";
+      if (kind === "rows") {
+        sql = await safe("admin_dump_table_rows", {
+          p_table: table,
+          p_offset: Number(offset) || 0,
+          p_limit: Number(limit) || 500,
+        });
+      } else if (kind === "auth_users") {
+        sql = await safe("admin_dump_auth_users", { p_offset: Number(offset) || 0, p_limit: Number(limit) || 500 });
+      } else if (kind === "auth_identities") {
+        sql = await safe("admin_dump_auth_identities", { p_offset: Number(offset) || 0, p_limit: Number(limit) || 500 });
+      } else if (kind === "storage") {
+        sql = await safe("admin_dump_storage", { p_offset: Number(offset) || 0, p_limit: Number(limit) || 1000 });
+      } else {
+        return json({ success: false, error: "kind inválido" }, 400);
+      }
+
+      // Conta statements reais (valores podem conter quebras de linha)
+      const lines = kind === "storage"
+        ? (sql.match(/^-- FILE /gm) || []).length
+        : sql.split("\n").filter((l) => l.startsWith("INSERT INTO ")).length;
+      return json({ success: true, sql, lines });
+    }
+
+
+
     if (action === "export_dump_sql") {
       const rpcText = async (fn: string, args: Record<string, unknown> = {}): Promise<string> => {
         const { data, error } = await supabase.rpc(fn, args);
