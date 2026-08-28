@@ -50,22 +50,34 @@ serve(async (req) => {
         if (error) throw new Error(`${fn}: ${error.message}`);
         return (data as string) || "";
       };
+      const safe = async (fn: string, args: Record<string, unknown> = {}): Promise<string> => {
+        try {
+          return await rpcText(fn, args);
+        } catch (e) {
+          return `-- ERRO ao exportar ${fn}: ${(e as Error).message}`;
+        }
+      };
 
       // 1) Lista de tabelas
       const { data: tables, error: tErr } = await supabase.rpc("admin_list_public_tables");
       if (tErr) throw tErr;
       const tableList = (tables || []) as { table_name: string; row_count: number }[];
 
-      // 2) Estrutura (tabelas) + extras (FKs, índices, funções, triggers, RLS, grants)
-      const schemaSql = await rpcText("admin_dump_schema");
-      const fksSql = await rpcText("admin_dump_fks");
-      const indexesSql = await rpcText("admin_dump_indexes");
-      const functionsSql = await rpcText("admin_dump_functions");
-      const triggersSql = await rpcText("admin_dump_triggers");
-      const policiesSql = await rpcText("admin_dump_policies");
-      const grantsSql = await rpcText("admin_dump_grants");
+      // 2) Estrutura completa
+      const extensionsSql = await safe("admin_dump_extensions");
+      const typesSql = await safe("admin_dump_types");
+      const sequencesSql = await safe("admin_dump_sequences");
+      const schemaSql = await safe("admin_dump_schema");
+      const viewsSql = await safe("admin_dump_views");
+      const fksSql = await safe("admin_dump_fks");
+      const indexesSql = await safe("admin_dump_indexes");
+      const functionsSql = await safe("admin_dump_functions");
+      const triggersSql = await safe("admin_dump_triggers");
+      const policiesSql = await safe("admin_dump_policies");
+      const grantsSql = await safe("admin_dump_grants");
+      const cronSql = await safe("admin_dump_cron");
 
-      // 3) Dados, em blocos de 1000 linhas por tabela
+      // 3) Dados públicos, em blocos de 1000 linhas por tabela
       let rowsCount = 0;
       const dataParts: string[] = [];
       for (const t of tableList) {
@@ -85,11 +97,54 @@ serve(async (req) => {
         }
       }
 
+      // 4) Auth (usuários + identidades) — hashes de senha preservados
+      let usersCount = 0;
+      try {
+        const { data: uc } = await supabase.rpc("admin_count_auth_users");
+        usersCount = Number(uc || 0);
+      } catch (_e) { /* ignore */ }
+
+      const authParts: string[] = [];
+      for (let off = 0; ; off += 500) {
+        const chunk = await safe("admin_dump_auth_users", { p_offset: off, p_limit: 500 });
+        if (!chunk || !chunk.trim()) break;
+        authParts.push(chunk);
+        if (chunk.trim().split("\n").length < 500) break;
+        if (off > 100000) break;
+      }
+      const identityParts: string[] = [];
+      for (let off = 0; ; off += 500) {
+        const chunk = await safe("admin_dump_auth_identities", { p_offset: off, p_limit: 500 });
+        if (!chunk || !chunk.trim()) break;
+        identityParts.push(chunk);
+        if (chunk.trim().split("\n").length < 500) break;
+        if (off > 100000) break;
+      }
+
+      // 5) Storage: buckets + inventário de arquivos
+      const storageParts: string[] = [];
+      let filesCount = 0;
+      for (let off = 0; ; off += 2000) {
+        const chunk = await safe("admin_dump_storage", { p_offset: off, p_limit: 2000 });
+        if (!chunk || !chunk.trim()) break;
+        storageParts.push(chunk);
+        const fileLines = (chunk.match(/^-- FILE /gm) || []).length;
+        filesCount += fileLines;
+        if (fileLines < 2000) break;
+        if (off > 200000) break;
+      }
+
+      const generatedAt = new Date().toISOString();
+
       const header = [
-        `-- MRO Full Database Dump`,
-        `-- Gerado em: ${new Date().toISOString()}`,
-        `-- Tabelas: ${tableList.length} | Linhas: ${rowsCount}`,
-        `-- Inclui: estrutura, dados, funções, triggers, políticas RLS, índices, FKs e permissões`,
+        `-- ============================================================`,
+        `-- MRO / ZAPMRO — DUMP COMPLETO DO BANCO`,
+        `-- Gerado em: ${generatedAt}`,
+        `-- Tabelas: ${tableList.length} | Linhas: ${rowsCount} | Usuarios Auth: ${usersCount} | Arquivos storage: ${filesCount}`,
+        `-- Inclui: extensions, types/enums, sequences, tabelas, views, dados,`,
+        `--         funcoes, triggers, RLS, indices, FKs, grants, cron, auth.users`,
+        `-- Ordem de restauracao ja esta correta: basta rodar este arquivo inteiro.`,
+        `-- ============================================================`,
         ``,
         `BEGIN;`,
         `SET session_replication_role = replica;`,
@@ -98,35 +153,116 @@ serve(async (req) => {
 
       const sql = [
         header,
-        `-- ============ ESTRUTURA (TABELAS) ============`,
+        `-- ============ 1. EXTENSIONS ============`,
+        extensionsSql,
+        `-- ============ 2. TYPES / ENUMS / DOMAINS ============`,
+        typesSql,
+        `-- ============ 3. SEQUENCES ============`,
+        sequencesSql,
+        `-- ============ 4. ESTRUTURA (TABELAS) ============`,
         schemaSql,
-        `-- ============ FUNÇÕES ============`,
+        `-- ============ 5. FUNCOES POSTGRESQL ============`,
         functionsSql,
-        `-- ============ DADOS ============`,
+        `-- ============ 6. DADOS (SCHEMA PUBLIC) ============`,
         dataParts.join("\n\n"),
         ``,
-        `-- ============ RELACIONAMENTOS (FKs) ============`,
+        `-- ============ 7. AUTH — USUARIOS (senhas hash preservadas) ============`,
+        authParts.join("\n"),
+        ``,
+        `-- ============ 8. AUTH — IDENTIDADES (Google/Facebook/email) ============`,
+        identityParts.join("\n"),
+        ``,
+        `-- ============ 9. STORAGE — BUCKETS + INVENTARIO DE ARQUIVOS ============`,
+        storageParts.join("\n"),
+        ``,
+        `-- ============ 10. VIEWS ============`,
+        viewsSql,
+        `-- ============ 11. RELACIONAMENTOS (FKs) ============`,
         fksSql,
-        `-- ============ ÍNDICES ============`,
+        `-- ============ 12. INDICES ============`,
         indexesSql,
-        `-- ============ POLÍTICAS RLS ============`,
+        `-- ============ 13. POLITICAS RLS ============`,
         policiesSql,
-        `-- ============ TRIGGERS ============`,
+        `-- ============ 14. TRIGGERS ============`,
         triggersSql,
-        `-- ============ PERMISSÕES (GRANTS) ============`,
+        `-- ============ 15. PERMISSOES (GRANTS) ============`,
         grantsSql,
+        `-- ============ 16. CRON JOBS ============`,
+        cronSql,
         ``,
         `SET session_replication_role = DEFAULT;`,
         `COMMIT;`,
       ].join("\n");
 
+      const readme = [
+        `# MIGRACAO ZAPMRO — COMO IMPORTAR NO NOVO BANCO`,
+        ``,
+        `Gerado em: ${generatedAt}`,
+        `Tabelas: ${tableList.length} | Linhas: ${rowsCount} | Usuarios Auth: ${usersCount} | Arquivos storage: ${filesCount}`,
+        ``,
+        `## 1. O que o arquivo .sql ja contem (tudo automatico)`,
+        `- Extensions (pgcrypto, pg_net, pg_cron, etc.)`,
+        `- Types / Enums (ex: app_role) e domains`,
+        `- Sequences com valor atual (setval)`,
+        `- Todas as tabelas do schema public (colunas, defaults, NOT NULL, PK)`,
+        `- Todos os dados (INSERT ... ON CONFLICT DO NOTHING)`,
+        `- Usuarios do Auth (auth.users) com hash de senha + auth.identities`,
+        `- Buckets do Storage + inventario completo dos arquivos (linhas "-- FILE bucket/caminho")`,
+        `- Views e materialized views`,
+        `- Foreign keys, indices, funcoes, triggers, politicas RLS, grants`,
+        `- Cron jobs (comandos cron.schedule)`,
+        ``,
+        `## 2. Passo a passo da importacao`,
+        `1. Crie o novo projeto Supabase (ou Postgres) e anote a connection string.`,
+        `2. Rode o dump:`,
+        `   psql "postgres://postgres:SENHA@HOST:5432/postgres" -f mro_backup_AAAA-MM-DD.sql`,
+        `   (ou cole o conteudo no SQL Editor, em partes se for muito grande)`,
+        `3. Se alguma extension nao existir no destino, comente a linha e rode de novo.`,
+        `4. Confira: select count(*) from crm_contacts; select count(*) from auth.users;`,
+        ``,
+        `## 3. Arquivos do Storage (binarios)`,
+        `O SQL recria os buckets e lista todos os arquivos, mas os binarios precisam ser copiados.`,
+        `Use o script abaixo (Node) com as chaves dos dois projetos:`,
+        ``,
+        '```js',
+        `import { createClient } from "@supabase/supabase-js";`,
+        `const src = createClient(OLD_URL, OLD_SERVICE_ROLE);`,
+        `const dst = createClient(NEW_URL, NEW_SERVICE_ROLE);`,
+        `// para cada linha "-- FILE bucket/caminho" do dump:`,
+        `const { data } = await src.storage.from(bucket).download(path);`,
+        `await dst.storage.from(bucket).upload(path, data, { upsert: true });`,
+        '```',
+        ``,
+        `## 4. O que NAO entra no SQL (feito fora do banco)`,
+        `- Codigo das Edge Functions: ja esta no repositorio (pasta supabase/functions) — redeploy no projeto novo.`,
+        `- Secrets/API keys: precisam ser cadastrados novamente no projeto novo (por seguranca nao sao exportaveis).`,
+        `- Configuracao de provedores de login social (Google/Facebook) e URLs de redirect.`,
+        `- Webhooks da Meta/WhatsApp: reapontar a callback URL para o novo dominio de functions.`,
+        ``,
+        `## 5. Pos-importacao (checklist)`,
+        `- [ ] Rodar o SQL sem erros`,
+        `- [ ] Conferir contagem de tabelas, contatos, mensagens e usuarios`,
+        `- [ ] Copiar arquivos do storage`,
+        `- [ ] Redeploy das edge functions + cadastrar secrets`,
+        `- [ ] Reconfigurar provedores de auth e redirect URLs`,
+        `- [ ] Reapontar webhooks Meta/InfinitePay`,
+        `- [ ] Atualizar VITE_SUPABASE_URL / KEY no frontend`,
+        `- [ ] Testar login, recebimento e envio de mensagem`,
+        ``,
+      ].join("\n");
+
       return json({
         success: true,
         sql,
+        readme,
         tablesCount: tableList.length,
         rowsCount,
+        usersCount,
+        filesCount,
       });
     }
+
+
 
     if (action === "list_users") {
       // Get all auth users (paginated)
