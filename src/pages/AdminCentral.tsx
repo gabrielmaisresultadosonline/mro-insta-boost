@@ -115,7 +115,14 @@ function ReportStat({
 function MigrationPanel({ creds }: { creds: { email: string; password: string } }) {
   const [dumping, setDumping] = useState(false);
   const [progress, setProgress] = useState<DumpProgress | null>(null);
-  const [dumpResult, setDumpResult] = useState<{ sql: string; tablesCount: number; rowsCount: number } | null>(null);
+  const [dumpResult, setDumpResult] = useState<{
+    sql: string;
+    readme?: string;
+    tablesCount: number;
+    rowsCount: number;
+    usersCount?: number;
+    filesCount?: number;
+  } | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   async function startDump() {
@@ -142,10 +149,13 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
       setProgress({ phase: "Finalizando...", current: 6, total: 6, detail: "Preparando download" });
       setDumpResult({
         sql: data.sql,
+        readme: data.readme,
         tablesCount: data.tablesCount,
         rowsCount: data.rowsCount,
+        usersCount: data.usersCount,
+        filesCount: data.filesCount,
       });
-      toast.success("Dump SQL gerado com sucesso!");
+      toast.success("Dump completo gerado com sucesso!");
     } catch (err: any) {
       toast.error(err.message || "Falha ao exportar dump");
     } finally {
@@ -154,17 +164,28 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
     }
   }
 
-  function downloadDump() {
-    if (!dumpResult) return;
-    const blob = new Blob([dumpResult.sql], { type: "text/sql;charset=utf-8" });
+  function triggerDownload(content: string, filename: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const date = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `mro_backup_${date}.sql`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function downloadDump() {
+    if (!dumpResult) return;
+    const date = new Date().toISOString().slice(0, 10);
+    triggerDownload(dumpResult.sql, `mro_backup_${date}.sql`, "text/sql;charset=utf-8");
     toast.success("Download iniciado!");
+  }
+
+  function downloadReadme() {
+    if (!dumpResult?.readme) return;
+    const date = new Date().toISOString().slice(0, 10);
+    triggerDownload(dumpResult.readme, `MIGRACAO_INSTRUCOES_${date}.md`, "text/markdown;charset=utf-8");
+    toast.success("Documentação baixada!");
   }
 
   function copyToClipboard() {
@@ -182,13 +203,18 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
             <Database className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold mb-1">Exportar Dump SQL</h3>
+            <h3 className="text-lg font-bold mb-1">Exportar Dump SQL Completo</h3>
             <p className="text-sm text-white/80 leading-relaxed">
-              Exporta todo o banco de dados conectado como um arquivo SQL completo — inclui todas as tabelas, todos os dados, funções PostgreSQL, triggers, políticas RLS, índices, relacionamentos (FKs) e permissões (grants). Não inclui: usuários do Auth (login/senha), arquivos do Storage e Edge Functions — estes precisam de migração separada.
+              Exporta <strong>tudo</strong>: extensions, types/enums, sequences, tabelas, dados, views,
+              funções, triggers, políticas RLS, índices, FKs, grants, cron jobs, usuários do Auth
+              (com hash de senha) e identidades sociais, além dos buckets e do inventário completo dos
+              arquivos do Storage. Junto vem a documentação passo a passo para importar no novo banco.
+              Apenas os binários do Storage e os secrets precisam ser copiados fora do SQL.
             </p>
           </div>
         </div>
       </Card>
+
 
       {/* Info boxes */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -300,6 +326,14 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
             >
               <Download className="h-4 w-4" /> Baixar .sql
             </Button>
+            {dumpResult.readme && (
+              <Button
+                onClick={downloadReadme}
+                className="bg-[#075E54] hover:bg-[#128C7E] text-white gap-2"
+              >
+                <FileText className="h-4 w-4" /> Baixar documentação
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={copyToClipboard}
