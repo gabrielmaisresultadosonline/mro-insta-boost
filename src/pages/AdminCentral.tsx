@@ -372,6 +372,7 @@ export default function AdminCentral() {
             <TabsTrigger value="sales" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Vendas</TabsTrigger>
             <TabsTrigger value="announcements" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Avisos (Popup)</TabsTrigger>
             <TabsTrigger value="tutorials" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Tutoriais</TabsTrigger>
+            <TabsTrigger value="migration" className="data-[state=active]:bg-[#25D366] data-[state=active]:text-white">Migração</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4 mt-4">
