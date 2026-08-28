@@ -326,6 +326,14 @@ function MigrationPanel({ creds }: { creds: { email: string; password: string } 
             >
               <Download className="h-4 w-4" /> Baixar .sql
             </Button>
+            {dumpResult.readme && (
+              <Button
+                onClick={downloadReadme}
+                className="bg-[#075E54] hover:bg-[#128C7E] text-white gap-2"
+              >
+                <FileText className="h-4 w-4" /> Baixar documentação
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={copyToClipboard}
